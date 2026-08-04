@@ -1,0 +1,32 @@
+---
+// SAMPLE pricing — replace with real current rates before launch.
+const rates = [
+  { label: 'Guided Day Trip', price: '$275', unit: 'per angler' },
+  { label: 'Wilson River Lodge Package', price: '$650', unit: 'per person, 2-night' },
+];
+---
+
+<section class="bg-cream py-16 md:py-24">
+  <div class="mx-auto max-w-7xl px-4 md:px-8">
+    <h2 class="text-3xl md:text-4xl">Rates, Up Front</h2>
+    <div class="mt-10 grid gap-6 sm:grid-cols-2">
+      {
+        rates.map((rate) => (
+          <div class="border-cedar/30 bg-cream-dark/40 rounded-sm border p-8">
+            <p class="font-display text-ink/60 tracking-widest">{rate.label}</p>
+            <p class="font-display text-ink mt-2 text-4xl">
+              {rate.price}
+              <span class="font-body text-ink/60 text-base font-normal"> {rate.unit}</span>
+            </p>
+          </div>
+        ))
+      }
+    </div>
+    <a
+      href="/rates-packages"
+      class="font-display text-cedar mt-8 inline-block tracking-wide hover:underline"
+    >
+      See Full Rates &amp; Packages &rarr;
+    </a>
+  </div>
+</section>

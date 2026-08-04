@@ -1,0 +1,25 @@
+---
+interface Props {
+  label: string;
+  class?: string;
+  tone?: 'dark' | 'light';
+}
+
+const { label, class: className = '', tone = 'light' } = Astro.props;
+---
+
+<div
+  class:list={[
+    'from-cedar/60 via-ink/70 to-ink relative flex items-center justify-center overflow-hidden bg-gradient-to-br',
+    className,
+  ]}
+>
+  <span
+    class:list={[
+      'font-body absolute top-2 right-2 rounded px-2 py-1 text-[11px] font-medium tracking-wide',
+      tone === 'dark' ? 'bg-cream/90 text-ink' : 'bg-ink/90 text-cream',
+    ]}
+  >
+    Photo placeholder — {label}
+  </span>
+</div>

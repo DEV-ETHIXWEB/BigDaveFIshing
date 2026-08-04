@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/oswald/500.css';
+@import '@fontsource/oswald/600.css';
+
+@font-face {
+  font-family: 'Rye';
+  src: url('/fonts/Rye-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Big Dave's Fishing brand palette — cream parchment + black ink, matching the illustrated poster art direction */
+  /* --color-cream is the exact parchment tone every illustration is normalised to by
+     scripts/normalize-paper.mjs, so artwork and page background are the same colour and
+     section boundaries leave no seam. Change this and re-run that script to match. */
+  --color-cream: #ece0cb;
+  --color-cream-dark: #ddcaa6;
+  --color-ink: #17130f;
+  /* Two weights of the same copper: cedar for accents on cream, copper for accents
+     on ink. Both clear 4.5:1 against their own background; the single mid-tone we
+     used before failed on one side or the other. */
+  --color-cedar: #7a5535;
+  --color-copper: #c9915c;
+
+  --font-display: 'Rye', 'Arial Narrow', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  /* Condensed caps for navigation, buttons and small labels. */
+  --font-ui: 'Oswald', 'Arial Narrow', sans-serif;
+}
+
+/* Paper tones sampled from each illustration's own parchment, so a section's
+   background continues its artwork exactly instead of butting against a
+   different cream. Each tear is filled with the NEXT section's tone, which is
+   what makes the tonal change land on the rip rather than on a straight line. */
+:root {
+  --paper-hero: #f0e5d6;
+  --paper-about: #ebe1d0;
+  --paper-trip: #eadbc7;
+  --paper-lodge-top: #e7d1b4;
+  --paper-lodge-bottom: #efe0ca;
+  --paper-firsttime: #d1b38b;
+  --paper-gallery: #e7d6c0;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background-color: var(--color-cream);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-cedar);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Cuts a section off along a torn edge instead of filling the area below the rip
+     with a flat colour, so the next section shows through the rip immediately.
+     Set --tear-mask from tornMaskUrl(). --tear-h must match TornBottom's h-9/md:h-14. */
+  .torn-bottom {
+    --tear-h: 2.25rem;
+    -webkit-mask-image: linear-gradient(#000, #000), var(--tear-mask);
+    mask-image: linear-gradient(#000, #000), var(--tear-mask);
+    -webkit-mask-size:
+      100% calc(100% - var(--tear-h) + 1px),
+      100% var(--tear-h);
+    mask-size:
+      100% calc(100% - var(--tear-h) + 1px),
+      100% var(--tear-h);
+    -webkit-mask-position:
+      top left,
+      bottom left;
+    mask-position:
+      top left,
+      bottom left;
+    -webkit-mask-repeat: no-repeat, no-repeat;
+    mask-repeat: no-repeat, no-repeat;
+  }
+
+  @media (min-width: 768px) {
+    .torn-bottom {
+      --tear-h: 3.5rem;
+    }
+  }
+
+  /* A couple of the illustrations are vignetted along their top edge, so their
+     parchment reads darker there than the page cream and leaves a faint band at the
+     section join. This dissolves that edge into the page. Only used where the top
+     strip of the artwork is empty sky, so nothing is washed out. */
+  .paper-fade-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -1px;
+    height: 4.5rem;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--color-cream) 0%, rgb(236 224 203 / 0) 100%);
+  }
+
+  /* Soft feathered cream halo behind copy that sits on top of the illustrations.
+     Keeps text legible wherever the art crops, without a hard panel edge. */
+  .art-wash {
+    position: relative;
+  }
+
+  .art-wash > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .art-wash::before {
+    content: '';
+    position: absolute;
+    inset: -2rem -3.5rem;
+    z-index: 0;
+    pointer-events: none;
+    /* Opaque core is sized to fully contain the text box, then feathers out to nothing. */
+    background: radial-gradient(
+      ellipse 75% 80% at 45% 50%,
+      var(--color-cream) 0%,
+      var(--color-cream) 72%,
+      rgb(236 224 203 / 0) 100%
+    );
+  }
+}

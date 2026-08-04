@@ -1,0 +1,36 @@
+---
+import { TEAR_W, TEAR_H, tornEdgePoints, tornEdgeLine, tornEdgeBelow } from '../lib/torn-edge';
+
+/**
+ * Torn-paper edge filled with the colour of whatever sits BELOW, so the rip reads as
+ * this sheet being ripped away to reveal the next one.
+ *
+ * Use this where the next section is a flat colour. Where the next section is artwork,
+ * use TornBottom instead — it masks the section along the rip so the artwork shows
+ * through directly, with no band of flat colour in between.
+ */
+interface Props {
+  class?: string;
+  fill?: string;
+  flip?: boolean;
+}
+
+const { class: className = '', fill = 'var(--color-cream)', flip = false } = Astro.props;
+
+const points = tornEdgePoints();
+const line = tornEdgeLine(points);
+const area = tornEdgeBelow(points);
+---
+
+<svg
+  viewBox={`0 0 ${TEAR_W} ${TEAR_H}`}
+  preserveAspectRatio="none"
+  class:list={['pointer-events-none block h-9 w-full md:h-14', flip && 'rotate-180', className]}
+  aria-hidden="true"
+>
+  <!-- Shadow cast upward onto the sheet above, so the layers read as stacked paper. -->
+  <path d={area} fill={fill} style="filter: drop-shadow(0 -3px 5px rgb(0 0 0 / 0.22));"></path>
+  <!-- Frayed pale fibres along the rip. -->
+  <path d={line} fill="none" stroke="#fffaf0" stroke-width="3" opacity="0.9"></path>
+  <path d={line} fill="none" stroke="#fffaf0" stroke-width="6" opacity="0.35"></path>
+</svg>

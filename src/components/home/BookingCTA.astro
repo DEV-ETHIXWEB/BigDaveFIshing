@@ -1,0 +1,24 @@
+---
+import BookingForm from './BookingForm';
+import { business } from '../../lib/business';
+---
+
+<section id="book" class="bg-ink text-cream py-16 md:py-24">
+  <div class="mx-auto grid max-w-7xl gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-8">
+    <div>
+      <p class="font-display text-copper tracking-widest">Ready to Go</p>
+      <h2 class="mt-2 text-3xl md:text-4xl">Book Your Trip</h2>
+      <p class="text-cream/75 mt-4 max-w-md">
+        Call or send an enquiry — Dave books trips out weeks in advance during peak season, so the
+        earlier you reach out, the better your pick of dates.
+      </p>
+      <a
+        href={business.phoneHref}
+        class="font-display hover:text-copper mt-6 inline-block text-2xl tracking-wide"
+      >
+        {business.phone}
+      </a>
+    </div>
+    <BookingForm client:visible />
+  </div>
+</section>

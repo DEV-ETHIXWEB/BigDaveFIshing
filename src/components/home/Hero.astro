@@ -1,0 +1,62 @@
+---
+import { business } from '../../lib/business';
+---
+
+<!-- The artwork's own torn edge is the boundary. The paper below the rip has been cut
+     to transparent (scripts/normalize-paper.mjs), and the About section is pulled up
+     underneath, so the illustrated tear reveals the dark section through it. The hero
+     sits above its neighbour so the rip is never covered.
+
+     Served from public/art rather than astro:assets: Astro's pipeline flattens alpha
+     when it converts to WebP, and its PNG fallback is ~2MB. These are pre-encoded as
+     WebP with alpha by the same script (186kB at 1536w). -->
+<section class="relative z-30 bg-transparent">
+  <img
+    src="/art/hero-background-1536.webp"
+    srcset="
+      /art/hero-background-768.webp   768w,
+      /art/hero-background-1200.webp 1200w,
+      /art/hero-background-1536.webp 1536w
+    "
+    sizes="100vw"
+    width="1536"
+    height="1024"
+    alt="Illustrated view of a quiet Oregon coastal river winding through pine forest"
+    class="block h-auto w-full"
+    loading="eager"
+    fetchpriority="high"
+  />
+
+  <div class="absolute inset-x-0 top-0 flex justify-center pt-[6%]">
+    <div class="w-full max-w-7xl px-4 text-center md:px-8">
+      <h1 class="font-display text-ink text-3xl leading-none sm:text-4xl md:text-6xl">
+        Big Dave's
+      </h1>
+      <h2 class="font-display text-ink mt-1 text-xl leading-none sm:text-2xl md:text-4xl">
+        <span class="text-cedar">&mdash;</span> Fishing Adventures <span class="text-cedar"
+          >&mdash;</span
+        >
+      </h2>
+      <p
+        class="font-display text-ink/70 mt-3 text-sm tracking-widest normal-case md:mt-4 md:text-lg"
+      >
+        Your Adventure. My Waters.
+      </p>
+
+      <div class="mt-5 flex flex-wrap items-center justify-center gap-3 md:mt-7 md:gap-4">
+        <a
+          href="#book"
+          class="bg-ink font-display text-cream hover:bg-cedar rounded-full px-5 py-2.5 text-[11px] tracking-[0.15em] transition-colors md:px-6 md:py-3 md:text-sm"
+        >
+          Book Your Adventure
+        </a>
+        <a
+          href={business.phoneHref}
+          class="font-display text-ink hover:text-cedar text-xs tracking-wide md:text-base"
+        >
+          {business.phone}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
