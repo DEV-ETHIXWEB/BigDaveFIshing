@@ -42,6 +42,14 @@ const INK = { r: 23, g: 19, b: 15 };
  */
 const TEAR_CUT = new Set(['hero-background.png']);
 
+/**
+ * The brand mark is the medallion drawn inside the About artwork. Rather than keep a
+ * hand-cropped duplicate, it is cut out here: the linework's bounding box is detected,
+ * squared off and padded. Its ground is already levelled to --color-ink, so it sits
+ * seamlessly on the dark header and footer.
+ */
+const LOGO = { from: 'about-dave.png', out: 'logo-badge', widths: [160, 320, 640], pad: 0.06 };
+
 /** Estimate the paper tone: the mean of the brightest cluster of pixels. */
 async function samplePaper(file) {
   const { data, info } = await sharp(file)
@@ -58,7 +66,7 @@ async function samplePaper(file) {
   }
   px.sort((a, b) => b.lum - a.lum);
   // Skip the very brightest 2% (specular white fray on the torn edges), then
-  // average the next 15% — that band is the paper itself.
+  // average the next 15% - that band is the paper itself.
   const start = Math.floor(px.length * 0.02);
   const end = Math.floor(px.length * 0.17);
   const band = px.slice(start, end);
@@ -100,7 +108,7 @@ async function sampleFloor(file) {
 
 /**
  * True when the artwork sits on a dark ground rather than parchment. Tested on the
- * border pixels, not the whole image — several parchment scenes are mostly black
+ * border pixels, not the whole image - several parchment scenes are mostly black
  * forest but still sit on paper, and only the border tells them apart.
  */
 async function isDarkGround(file) {
@@ -154,6 +162,81 @@ async function cutBelowTear(buffer) {
   return { out, cutFraction: deepest / h };
 }
 
+/** Square crop around the bright linework in a dark-ground image. */
+async function extractLogo(buffer) {
+  const { data, info } = await sharp(buffer).raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h, channels: ch } = info;
+  const lum = (x, y) => {
+    const i = (y * w + x) * ch;
+    return 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+  };
+
+  let minX = w,
+    maxX = 0,
+    minY = h,
+    maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (lum(x, y) > 110) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const side = Math.round(Math.max(maxX - minX, maxY - minY) * (1 + LOGO.pad * 2));
+  // Keep the square inside the source.
+  const half = Math.min(side / 2, cx, cy, w - cx, h - cy);
+  const size = Math.floor(half * 2);
+
+  return sharp(buffer)
+    .extract({
+      left: Math.round(cx - size / 2),
+      top: Math.round(cy - size / 2),
+      width: size,
+      height: size,
+    })
+    .toBuffer();
+}
+
+/**
+ * Turns the medallion (pale linework on a dark ground) into a flat single-colour mark
+ * on a transparent ground, so it can sit on any background instead of carrying its own
+ * black square around. Alpha comes from how bright each pixel was, with the dark ground
+ * mapped to fully transparent; the RGB is replaced with the requested ink or cream.
+ */
+async function flattenLogoTo(buffer, colour) {
+  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h, channels: ch } = info;
+  const out = Buffer.alloc(w * h * 4);
+
+  // The ground sits at --color-ink after levelling, not pure black.
+  const floor = 0.2126 * INK.r + 0.7152 * INK.g + 0.0722 * INK.b;
+  // Strokes in the source are thin and anti-aliased, so most of their pixels sit at
+  // mid luminance. Mapping that straight to alpha renders the mark grey and washed
+  // out. This knee drives anything above roughly a third brightness to fully opaque,
+  // keeping the linework solid while the very softest edges still feather.
+  const knee = floor + (255 - floor) * 0.38;
+  const span = knee - floor;
+
+  for (let p = 0, q = 0; p < data.length; p += ch, q += 4) {
+    const lum = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
+    const alpha = Math.max(0, Math.min(255, Math.round(((lum - floor) / span) * 255)));
+    out[q] = colour.r;
+    out[q + 1] = colour.g;
+    out[q + 2] = colour.b;
+    out[q + 3] = alpha;
+  }
+
+  return sharp(out, { raw: { width: w, height: h, channels: 4 } })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
+
 const hex = (c) =>
   '#' + [c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
 
@@ -191,7 +274,43 @@ for (const file of files) {
     await sharp(buf).toFile(live);
 
     const after = await sampleFloor(live);
-    console.log(`${file.padEnd(34)} dark ground ${hex(floor)} -> ${hex(after)}  (levels to ink)`);
+    let logoNote = '';
+
+    if (file === LOGO.from) {
+      await mkdir(PUBLIC_ART_DIR, { recursive: true });
+      const cropped = await extractLogo(buf);
+      const meta = await sharp(cropped).metadata();
+
+      // Two flat variants on transparent grounds: ink for pale backgrounds, cream for
+      // dark ones. The original pale-on-black coin is kept for anywhere that wants it.
+      const variants = [
+        { name: LOGO.out, source: cropped },
+        { name: `${LOGO.out}-ink`, source: await flattenLogoTo(cropped, INK) },
+        { name: `${LOGO.out}-cream`, source: await flattenLogoTo(cropped, TARGET) },
+      ];
+
+      const notes = [];
+      for (const variant of variants) {
+        const sizes = [];
+        for (const width of LOGO.widths) {
+          const target = path.join(PUBLIC_ART_DIR, `${variant.name}-${width}.webp`);
+          const out = await sharp(variant.source)
+            .resize({ width })
+            .webp({ quality: 90, alphaQuality: 100 })
+            .toFile(target);
+          sizes.push(`${width}px ${Math.round(out.size / 1024)}kB`);
+        }
+        notes.push(`${variant.name}-*.webp (${sizes.join(', ')})`);
+      }
+
+      logoNote =
+        `\n${' '.repeat(36)}brand mark cropped ${meta.width}x${meta.height} -> public/art/` +
+        notes.map((n) => `\n${' '.repeat(38)}${n}`).join('');
+    }
+
+    console.log(
+      `${file.padEnd(34)} dark ground ${hex(floor)} -> ${hex(after)}  (levels to ink)${logoNote}`,
+    );
     continue;
   }
 

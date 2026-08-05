@@ -1,0 +1,51 @@
+---
+// Silhouetted pine treeline used as a decorative band at the foot of dark sections.
+interface Props {
+  class?: string;
+  fill?: string;
+}
+
+const { class: className = '', fill = 'currentColor' } = Astro.props;
+
+const width = 1200;
+const height = 120;
+
+// Deterministic so the skyline is stable between builds.
+function rand(i: number) {
+  const n = Math.sin(i * 91.7) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+/** One pine: a stack of widening triangular tiers on a short trunk. */
+function pine(cx: number, h: number, w: number) {
+  const base = height;
+  const tiers = 4;
+  let d = '';
+  for (let t = 0; t < tiers; t++) {
+    const top = base - h + (h / tiers) * t * 0.72;
+    const spread = (w / 2) * (0.42 + (t / (tiers - 1)) * 0.58);
+    const bottom = base - h + (h / tiers) * (t + 1.35);
+    d += `M ${cx} ${top.toFixed(1)} L ${(cx + spread).toFixed(1)} ${bottom.toFixed(1)} L ${(cx - spread).toFixed(1)} ${bottom.toFixed(1)} Z `;
+  }
+  d += `M ${(cx - w * 0.05).toFixed(1)} ${base} L ${(cx - w * 0.05).toFixed(1)} ${(base - h * 0.12).toFixed(1)} L ${(cx + w * 0.05).toFixed(1)} ${(base - h * 0.12).toFixed(1)} L ${(cx + w * 0.05).toFixed(1)} ${base} Z `;
+  return d;
+}
+
+let path = '';
+const count = 26;
+for (let i = 0; i <= count; i++) {
+  const cx = (width / count) * i + (rand(i) - 0.5) * 18;
+  const h = 52 + rand(i * 2.3) * 58;
+  const w = 26 + rand(i * 3.1) * 20;
+  path += pine(cx, h, w);
+}
+---
+
+<svg
+  viewBox={`0 0 ${width} ${height}`}
+  preserveAspectRatio="none"
+  class:list={['pointer-events-none block w-full', className]}
+  aria-hidden="true"
+>
+  <path d={path} fill={fill}></path>
+</svg>

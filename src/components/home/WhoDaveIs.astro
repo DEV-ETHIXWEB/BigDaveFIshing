@@ -1,55 +1,41 @@
 ---
 import { Image } from 'astro:assets';
-import aboutDave from '../../assets/images/about-dave.png';
-import TornBottom from '../TornBottom.astro';
-import { tornMaskUrl } from '../../lib/torn-edge';
+import galleryBackground from '../../assets/images/gallery-background.png';
+import Ornament from '../ui/Ornament.astro';
 
-const tearMask = tornMaskUrl();
+// Screen 7: light section - eyebrow, heading, ornament, the brand medallion, centred
+// copy, solid button, then full-bleed artwork below.
 ---
 
-<!-- Pulled up under the hero so the hero's own torn edge lands on this dark ground.
-     9.6% of page width is the deepest point of that rip (see normalize-paper.mjs);
-     the content is padded past it so nothing sits under the overlap.
+<section class="bg-cream text-ink">
+  <div class="px-6 pt-14 text-center md:px-8 md:pt-20">
+    <p class="eyebrow text-ink/70">About Big Dave</p>
+    <h2 class="mt-4 text-[1.6rem] md:text-4xl">Rooted In<br />Oregon</h2>
+    <Ornament class="mx-auto mt-5" />
 
-     The bottom is masked along its rip rather than filled below it, so the day trip
-     artwork shows through the tear with no band of flat colour between them. -->
-<section
-  class="bg-ink text-cream torn-bottom relative z-20 mt-[-9.6%]"
-  style={`--tear-mask: ${tearMask};`}
->
-  <div
-    class="mx-auto grid max-w-7xl items-center gap-8 px-4 pt-[calc(9.6%+2.5rem)] pb-24 md:grid-cols-2 md:gap-12 md:px-8 md:pt-[calc(9.6%+4rem)] md:pb-32"
-  >
-    <div>
-      <p class="font-ui text-copper text-xs tracking-[0.2em] uppercase md:text-sm">
-        Who You're Fishing With
-      </p>
-      <h2 class="mt-3 text-2xl md:text-4xl">About Big Dave</h2>
-      <p class="text-cream/80 mt-4 max-w-md">
-        Two decades guiding the Wilson, Trask, and Nestucca — the only water he's ever fished. Most
-        bookings are repeat clients who now bring their sons.
-      </p>
-      <a
-        href="/fishing-information"
-        class="border-cream font-ui hover:bg-cream hover:text-ink mt-6 inline-block rounded-full border-2 px-6 py-2.5 text-[11px] tracking-[0.15em] uppercase transition-colors"
-      >
-        Learn More
-      </a>
-    </div>
+    <img
+      src="/art/logo-badge-ink-320.webp"
+      srcset="/art/logo-badge-ink-320.webp 320w, /art/logo-badge-ink-640.webp 640w"
+      sizes="(min-width: 768px) 240px, 190px"
+      width="640"
+      height="640"
+      alt="Etched medallion portrait of Big Dave in a fur trapper hat and sunglasses"
+      class="mx-auto mt-8 h-48 w-48 md:h-60 md:w-60"
+    />
 
-    <!-- The medallion sits in the right half of the artwork, so we crop to it. The
-         illustration's ground is levelled to --color-ink, so its edges are invisible
-         against the section. -->
-    <div class="aspect-square w-full max-w-xs justify-self-center sm:max-w-sm md:justify-self-end">
-      <Image
-        src={aboutDave}
-        alt="Etched medallion portrait of Big Dave in a fur trapper hat and sunglasses, pines behind him"
-        class="h-full w-full object-cover object-right"
-        widths={[500, 800, 1100]}
-        sizes="(min-width: 768px) 50vw, 90vw"
-      />
-    </div>
+    <p class="text-ink/70 mx-auto mt-7 max-w-xs text-sm leading-relaxed md:max-w-md md:text-base">
+      Two decades guiding the Wilson, Trask, and Nestucca — the only water he's ever fished. Most
+      bookings are repeat clients who now bring their sons.
+    </p>
+
+    <a href="/fishing-information" class="btn btn-solid-dark mt-7">Our Story</a>
   </div>
 
-  <TornBottom />
+  <Image
+    src={galleryBackground}
+    alt="Illustrated shoreline of pines along a calm coastal river"
+    class="mt-12 block w-full"
+    widths={[768, 1200, 1536]}
+    sizes="100vw"
+  />
 </section>

@@ -30,12 +30,12 @@ export function tornEdgeLine(points = tornEdgePoints()) {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${fmt(p)}`).join(' ');
 }
 
-/** Everything BELOW the rip — used when the tear is filled with the next colour. */
+/** Everything BELOW the rip - used when the tear is filled with the next colour. */
 export function tornEdgeBelow(points = tornEdgePoints()) {
   return `${tornEdgeLine(points)} L ${TEAR_W},${TEAR_H} L 0,${TEAR_H} Z`;
 }
 
-/** Everything ABOVE the rip — used as a mask so a section ends on the rip. */
+/** Everything ABOVE the rip - used as a mask so a section ends on the rip. */
 export function tornEdgeAbove(points = tornEdgePoints()) {
   const back = [...points]
     .reverse()

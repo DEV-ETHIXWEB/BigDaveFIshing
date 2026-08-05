@@ -2,19 +2,11 @@
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
-@import '@fontsource/oswald/500.css';
-@import '@fontsource/oswald/600.css';
-
-@font-face {
-  font-family: 'Rye';
-  src: url('/fonts/Rye-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@import '@fontsource/playfair-display/400.css';
+@import '@fontsource/playfair-display/500.css';
 
 @theme {
-  /* Big Dave's Fishing brand palette — cream parchment + black ink, matching the illustrated poster art direction */
+  /* Big Dave's Fishing brand palette - cream parchment + black ink, matching the illustrated poster art direction */
   /* --color-cream is the exact parchment tone every illustration is normalised to by
      scripts/normalize-paper.mjs, so artwork and page background are the same colour and
      section boundaries leave no seam. Change this and re-run that script to match. */
@@ -27,27 +19,28 @@
   --color-cedar: #7a5535;
   --color-copper: #c9915c;
 
-  --font-display: 'Rye', 'Arial Narrow', serif;
+  /* Elegant high-contrast serif, set in caps with wide tracking for every heading. */
+  --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
-  /* Condensed caps for navigation, buttons and small labels. */
-  --font-ui: 'Oswald', 'Arial Narrow', sans-serif;
-}
-
-/* Paper tones sampled from each illustration's own parchment, so a section's
-   background continues its artwork exactly instead of butting against a
-   different cream. Each tear is filled with the NEXT section's tone, which is
-   what makes the tonal change land on the rip rather than on a straight line. */
-:root {
-  --paper-hero: #f0e5d6;
-  --paper-about: #ebe1d0;
-  --paper-trip: #eadbc7;
-  --paper-lodge-top: #e7d1b4;
-  --paper-lodge-bottom: #efe0ca;
-  --paper-firsttime: #d1b38b;
-  --paper-gallery: #e7d6c0;
 }
 
 @layer base {
+  /* Site-wide black and white treatment.
+     Applied per region rather than on html/body on purpose: a filter makes the element
+     the containing block for any position:fixed descendant, which would unpin the mobile
+     call/book bar. Filtering an element that is itself fixed is fine, so the bar carries
+     its own .bw-region.
+     Because the artwork and the palette both pass through the same transform, the
+     parchment tones still match the page background exactly and the section seams stay
+     invisible - no need to re-run scripts/normalize-paper.mjs.
+     To go back to colour, delete this rule and the body background override below. */
+  body > header,
+  body > main,
+  body > footer,
+  .bw-region {
+    filter: grayscale(1);
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -69,7 +62,9 @@
   body {
     font-family: var(--font-body);
     color: var(--color-ink);
-    background-color: var(--color-cream);
+    /* grayscale(--color-cream). The body sits outside the filtered regions, so it needs
+       the already-desaturated value to match them. */
+    background-color: #e1e1e1;
     font-size: 18px;
     line-height: 1.6;
   }
@@ -80,7 +75,9 @@
   h4 {
     font-family: var(--font-display);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    /* Headings in the design are airy: wide tracking, tight leading. */
+    letter-spacing: 0.06em;
+    line-height: 1.18;
     font-weight: 400;
   }
 
@@ -91,6 +88,72 @@
 }
 
 @layer components {
+  /* ---- Design system from the mobile mockup -------------------------------- */
+
+  /* Tiny caps eyebrow that sits above most headings. */
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+
+  /* Buttons: small caps, wide tracking, gently rounded. Two fills, two outlines,
+     one pair for dark sections and one for light. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.9rem 1.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      border-color 0.2s;
+  }
+
+  /* On dark sections */
+  .btn-outline-light {
+    border-color: rgb(from var(--color-cream) r g b / 0.55);
+    color: var(--color-cream);
+  }
+  .btn-outline-light:hover {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+  }
+  .btn-solid-light {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+  }
+  .btn-solid-light:hover {
+    background-color: rgb(from var(--color-cream) r g b / 0.85);
+  }
+
+  /* On light sections */
+  .btn-solid-dark {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+  .btn-solid-dark:hover {
+    background-color: rgb(from var(--color-ink) r g b / 0.85);
+  }
+  .btn-outline-dark {
+    border-color: rgb(from var(--color-ink) r g b / 0.35);
+    color: var(--color-ink);
+  }
+  .btn-outline-dark:hover {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+
   /* Cuts a section off along a torn edge instead of filling the area below the rip
      with a flat colour, so the next section shows through the rip immediately.
      Set --tear-mask from tornMaskUrl(). --tear-h must match TornBottom's h-9/md:h-14. */
@@ -118,46 +181,5 @@
     .torn-bottom {
       --tear-h: 3.5rem;
     }
-  }
-
-  /* A couple of the illustrations are vignetted along their top edge, so their
-     parchment reads darker there than the page cream and leaves a faint band at the
-     section join. This dissolves that edge into the page. Only used where the top
-     strip of the artwork is empty sky, so nothing is washed out. */
-  .paper-fade-top::before {
-    content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: -1px;
-    height: 4.5rem;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(to bottom, var(--color-cream) 0%, rgb(236 224 203 / 0) 100%);
-  }
-
-  /* Soft feathered cream halo behind copy that sits on top of the illustrations.
-     Keeps text legible wherever the art crops, without a hard panel edge. */
-  .art-wash {
-    position: relative;
-  }
-
-  .art-wash > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .art-wash::before {
-    content: '';
-    position: absolute;
-    inset: -2rem -3.5rem;
-    z-index: 0;
-    pointer-events: none;
-    /* Opaque core is sized to fully contain the text box, then feathers out to nothing. */
-    background: radial-gradient(
-      ellipse 75% 80% at 45% 50%,
-      var(--color-cream) 0%,
-      var(--color-cream) 72%,
-      rgb(236 224 203 / 0) 100%
-    );
   }
 }

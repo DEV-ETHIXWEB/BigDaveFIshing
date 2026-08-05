@@ -3,11 +3,11 @@ export const business = {
   phone: '(503) 538-5607',
   phoneHref: 'tel:+15035385607',
   facebook: 'https://www.facebook.com/', // TODO: replace with real Facebook URL
-  serviceArea: 'Oregon Coastal Rivers — Wilson, Trask, Nestucca, Tillamook Bay',
+  serviceArea: 'Oregon Coastal Rivers - Wilson, Trask, Nestucca, Tillamook Bay',
 };
 
 /**
- * `label` is the full page name — used in the mobile menu, and as the accessible
+ * `label` is the full page name - used in the mobile menu, and as the accessible
  * name everywhere. `short` is the condensed form shown in the desktop bar, which
  * has to fit seven items on one row alongside the logo and the booking button.
  * The URLs are the ones the brief requires us to preserve, so they never change.

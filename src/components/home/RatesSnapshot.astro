@@ -1,32 +1,35 @@
 ---
-// SAMPLE pricing — replace with real current rates before launch.
+import Ornament from '../ui/Ornament.astro';
+
+// Not one of the mockup's screens, but the brief requires a price up front. Styled with
+// the same eyebrow / serif heading / ornament / outline button pattern as the rest.
+// SAMPLE pricing - replace with real current rates before launch.
 const rates = [
   { label: 'Guided Day Trip', price: '$275', unit: 'per angler' },
-  { label: 'Wilson River Lodge Package', price: '$650', unit: 'per person, 2-night' },
+  { label: 'Wilson River Lodge', price: '$650', unit: 'per person, 2-night' },
 ];
 ---
 
-<section class="bg-cream py-16 md:py-24">
-  <div class="mx-auto max-w-7xl px-4 md:px-8">
-    <h2 class="text-3xl md:text-4xl">Rates, Up Front</h2>
-    <div class="mt-10 grid gap-6 sm:grid-cols-2">
+<section class="bg-ink text-cream">
+  <div class="mx-auto max-w-md px-6 pt-14 pb-14 text-center md:px-8 md:pt-20 md:pb-20">
+    <p class="eyebrow text-cream/60">Rates</p>
+    <h2 class="mt-4 text-[1.6rem] md:text-4xl">No Hunting<br />For A Number</h2>
+    <Ornament tone="light" class="mx-auto mt-5" />
+
+    <ul class="mt-9 space-y-3">
       {
         rates.map((rate) => (
-          <div class="border-cedar/30 bg-cream-dark/40 rounded-sm border p-8">
-            <p class="font-display text-ink/60 tracking-widest">{rate.label}</p>
-            <p class="font-display text-ink mt-2 text-4xl">
-              {rate.price}
-              <span class="font-body text-ink/60 text-base font-normal"> {rate.unit}</span>
-            </p>
-          </div>
+          <li class="border-cream/15 bg-cream/[0.06] flex items-baseline justify-between rounded border px-5 py-4 text-left">
+            <span class="eyebrow text-cream/60">{rate.label}</span>
+            <span class="text-right">
+              <span class="font-display text-xl tracking-[0.04em]">{rate.price}</span>
+              <span class="text-cream/55 ml-1 text-[0.6875rem]">{rate.unit}</span>
+            </span>
+          </li>
         ))
       }
-    </div>
-    <a
-      href="/rates-packages"
-      class="font-display text-cedar mt-8 inline-block tracking-wide hover:underline"
-    >
-      See Full Rates &amp; Packages &rarr;
-    </a>
+    </ul>
+
+    <a href="/rates-packages" class="btn btn-outline-light mt-8">Full Rates &amp; Packages</a>
   </div>
 </section>

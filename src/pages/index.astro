@@ -1,27 +1,28 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/home/Hero.astro';
-import WhoDaveIs from '../components/home/WhoDaveIs.astro';
 import Offerings from '../components/home/Offerings.astro';
-import DayLooksLike from '../components/home/DayLooksLike.astro';
-import Gallery from '../components/home/Gallery.astro';
+import BookingCTA from '../components/home/BookingCTA.astro';
 import Proof from '../components/home/Proof.astro';
+import Gallery from '../components/home/Gallery.astro';
+import WhoDaveIs from '../components/home/WhoDaveIs.astro';
 import RatesSnapshot from '../components/home/RatesSnapshot.astro';
 import Sponsors from '../components/home/Sponsors.astro';
-import BookingCTA from '../components/home/BookingCTA.astro';
 ---
 
 <Layout
   title="Big Dave's Fishing Adventures | Guided Steelhead & Salmon Trips, Oregon Coast"
   description="Guided steelhead and salmon fishing trips on Oregon's coastal rivers, plus lodging at the Wilson River Lodge. Book a trip with Big Dave's Fishing Adventures."
 >
+  <!-- Section order follows the mockup's screens 1-8. Rates and Sponsors are not in
+       the mockup but are kept: the brief requires a price up front, and the sponsor row
+       was an existing requirement. Both use the same type scale and buttons. -->
   <Hero />
-  <WhoDaveIs />
   <Offerings />
-  <DayLooksLike />
-  <Gallery />
-  <Proof />
   <RatesSnapshot />
-  <Sponsors />
   <BookingCTA />
+  <Proof />
+  <Gallery />
+  <WhoDaveIs />
+  <Sponsors />
 </Layout>

@@ -1,51 +1,44 @@
 ---
-import { Image } from 'astro:assets';
-import galleryBackground from '../../assets/images/gallery-background.png';
 import PlaceholderPhoto from '../PlaceholderPhoto.astro';
-import TornEdge from '../TornEdge.astro';
+import Ornament from '../ui/Ornament.astro';
 
-const catchPhotos = ['steelhead catch', 'salmon catch', 'group on the boat'];
+// Screen 6: staggered two-column mosaic. The columns are offset so the tiles
+// interlock rather than lining up in rows.
+const left = [
+  { label: 'river run at first light', ratio: 'aspect-[3/4]' },
+  { label: 'client with a steelhead', ratio: 'aspect-square' },
+];
+const right = [
+  { label: 'chrome steelhead in the net', ratio: 'aspect-square' },
+  { label: 'wading the far bank', ratio: 'aspect-[3/4]' },
+];
 ---
 
-<section class="bg-cream relative min-h-[560px] overflow-hidden md:min-h-[680px]">
-  <Image
-    src={galleryBackground}
-    alt="Illustrated shoreline of pines along a calm coastal river"
-    class="absolute inset-0 h-full w-full object-cover object-right-top"
-    widths={[768, 1200, 1536]}
-    sizes="100vw"
-  />
-  <TornEdge class="absolute inset-x-0 bottom-0" fill="var(--color-ink)" />
+<section class="bg-cream text-ink">
+  <div class="px-6 pt-14 text-center md:px-8 md:pt-20">
+    <p class="eyebrow text-ink/70">Gallery</p>
+    <h2 class="mt-4 text-[1.6rem] md:text-4xl">Moments That<br />Matter</h2>
+    <Ornament class="mx-auto mt-5" />
+  </div>
 
-  <div class="relative mx-auto max-w-7xl px-4 pt-20 pb-24 md:px-8 md:pt-28">
-    <div class="art-wash max-w-sm">
-      <p class="font-display text-cedar tracking-widest">The Proof</p>
-      <h2 class="text-ink mt-2 text-3xl md:text-4xl">Gallery</h2>
-      <p class="text-ink/80 mt-4">
-        Some of the great catches and memories from past adventures on the water.
-      </p>
-      <a
-        href="/video-gallery"
-        class="border-ink font-display hover:bg-ink hover:text-cream mt-6 inline-block rounded-full border-2 px-6 py-2.5 text-xs tracking-[0.15em] transition-colors"
-      >
-        View Gallery
-      </a>
-    </div>
-
-    <div class="mt-10 flex max-w-lg gap-3 md:mt-14">
+  <div class="mx-auto mt-9 grid max-w-md grid-cols-2 gap-3 px-6 md:px-8">
+    <div class="space-y-3">
       {
-        catchPhotos.map((label, i) => (
-          <PlaceholderPhoto
-            label={label}
-            class:list={[
-              'border-cream aspect-square w-1/3 rounded-sm border-4 shadow-lg',
-              i === 0 && '-rotate-3',
-              i === 1 && 'translate-y-2',
-              i === 2 && 'rotate-3',
-            ]}
-          />
+        left.map((photo) => (
+          <PlaceholderPhoto label={photo.label} class:list={['w-full rounded-sm', photo.ratio]} />
         ))
       }
     </div>
+    <div class="space-y-3 pt-8">
+      {
+        right.map((photo) => (
+          <PlaceholderPhoto label={photo.label} class:list={['w-full rounded-sm', photo.ratio]} />
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="px-6 pt-10 pb-14 text-center md:px-8 md:pb-20">
+    <a href="/video-gallery" class="btn btn-outline-dark">View Full Gallery</a>
   </div>
 </section>

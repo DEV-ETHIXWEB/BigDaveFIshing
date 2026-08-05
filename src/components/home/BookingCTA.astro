@@ -1,24 +1,66 @@
 ---
+import { UserRound, Package, Sunrise } from 'lucide-react';
 import BookingForm from './BookingForm';
 import { business } from '../../lib/business';
+import Ornament from '../ui/Ornament.astro';
+import Treeline from '../ui/Treeline.astro';
+import TornEdge from '../TornEdge.astro';
+
+// Screen 4: dark booking block, torn transition, then the light "what's included"
+// band of tiles and a treeline running into the next dark section.
+const included = [
+  { icon: UserRound, label: 'Expert Guide' },
+  { icon: Package, label: 'Rods & Tackle' },
+  { icon: Sunrise, label: 'Dawn Start' },
+];
 ---
 
-<section id="book" class="bg-ink text-cream py-16 md:py-24">
-  <div class="mx-auto grid max-w-7xl gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-8">
-    <div>
-      <p class="font-display text-copper tracking-widest">Ready to Go</p>
-      <h2 class="mt-2 text-3xl md:text-4xl">Book Your Trip</h2>
-      <p class="text-cream/75 mt-4 max-w-md">
-        Call or send an enquiry — Dave books trips out weeks in advance during peak season, so the
-        earlier you reach out, the better your pick of dates.
-      </p>
+<section id="book" class="bg-ink text-cream relative">
+  <div class="mx-auto max-w-lg px-6 pt-14 pb-20 md:px-8 md:pt-20">
+    <div class="text-center">
+      <h2 class="text-[1.6rem] md:text-4xl">Book Your<br />Adventure</h2>
+      <Ornament tone="light" class="mx-auto mt-5" />
+    </div>
+
+    <div class="mt-9">
+      <BookingForm client:visible />
+    </div>
+
+    <p class="mt-6 text-center">
       <a
         href={business.phoneHref}
-        class="font-display hover:text-copper mt-6 inline-block text-2xl tracking-wide"
+        class="font-body text-cream/70 hover:text-cream text-sm tracking-wide"
       >
-        {business.phone}
+        Or call {business.phone}
       </a>
-    </div>
-    <BookingForm client:visible />
+    </p>
   </div>
+
+  <TornEdge class="absolute inset-x-0 bottom-0" fill="var(--color-cream)" />
+</section>
+
+<section class="bg-cream text-ink">
+  <div class="px-6 pt-10 pb-12 text-center md:px-8 md:pt-14">
+    <p class="eyebrow text-ink/70">What's Included</p>
+
+    <ul class="mt-7 flex items-start justify-center gap-4">
+      {
+        included.map((item) => (
+          <li class="w-24">
+            <div class="bg-ink text-cream mx-auto flex h-16 w-16 items-center justify-center rounded">
+              <item.icon size={24} strokeWidth={1.25} aria-hidden="true" />
+            </div>
+            <p class="text-ink/75 mt-2.5 text-[0.6875rem] leading-snug">{item.label}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="text-ink/65 mx-auto mt-8 max-w-xs text-sm">
+      Full day on the water, 6–8 hours. What to pack and licensing are on the
+      <a href="/fishing-information" class="underline underline-offset-2">trip info</a> page.
+    </p>
+  </div>
+
+  <Treeline class="text-ink -mb-px h-20 md:h-28" />
 </section>

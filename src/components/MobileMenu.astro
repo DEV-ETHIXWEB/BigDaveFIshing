@@ -1,0 +1,110 @@
+---
+import { X } from 'lucide-react';
+import { business, nav } from '../lib/business';
+
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+
+<!-- Screen 9: dark panel sliding in from the left over the page, divided nav list,
+     solid Book button pinned near the bottom. -->
+<div
+  id="mobile-menu"
+  class="fixed inset-0 z-50 hidden xl:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Menu"
+>
+  <div id="menu-scrim" class="bg-ink/50 absolute inset-0" aria-hidden="true"></div>
+
+  <div
+    id="menu-panel"
+    class="bg-ink text-cream bw-region absolute inset-y-0 left-0 flex w-[82%] max-w-xs -translate-x-full flex-col px-6 pt-6 pb-8 transition-transform duration-300 ease-out"
+  >
+    <button
+      id="menu-close"
+      type="button"
+      class="text-cream/80 hover:text-cream -ml-2 self-start p-2"
+      aria-label="Close menu"
+    >
+      <X size={24} aria-hidden="true" />
+    </button>
+
+    <nav aria-label="Mobile" class="mt-6">
+      <ul>
+        {
+          nav.map((item) => (
+            <li class="border-cream/12 border-b">
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class:list={[
+                  'font-body block py-4 text-sm tracking-[0.18em] uppercase transition-colors',
+                  isActive(item.href) ? 'text-cream' : 'text-cream/75 hover:text-cream',
+                ]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="mt-auto pt-8">
+      <a href="#book" class="btn btn-solid-light w-full" data-menu-dismiss>Book A Trip</a>
+      <a
+        href={business.phoneHref}
+        class="text-cream/60 hover:text-cream mt-4 block text-center text-sm"
+      >
+        {business.phone}
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const menu = document.getElementById('mobile-menu');
+  const panel = document.getElementById('menu-panel');
+  const toggle = document.getElementById('menu-toggle');
+  const close = document.getElementById('menu-close');
+  const scrim = document.getElementById('menu-scrim');
+
+  let lastFocused: HTMLElement | null = null;
+
+  function open() {
+    if (!menu || !panel) return;
+    lastFocused = document.activeElement as HTMLElement;
+    menu.classList.remove('hidden');
+    // Force a reflow so the browser sees the off-screen start position before we
+    // change it, otherwise the two style changes coalesce and the panel just appears.
+    // A synchronous reflow rather than requestAnimationFrame, which does not fire
+    // while the page is not being composited.
+    void panel.offsetWidth;
+    panel.classList.remove('-translate-x-full');
+    toggle?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    close?.focus();
+  }
+
+  function shut() {
+    if (!menu || !panel) return;
+    panel.classList.add('-translate-x-full');
+    toggle?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    const done = () => {
+      menu.classList.add('hidden');
+      panel.removeEventListener('transitionend', done);
+    };
+    panel.addEventListener('transitionend', done);
+    lastFocused?.focus();
+  }
+
+  toggle?.addEventListener('click', open);
+  close?.addEventListener('click', shut);
+  scrim?.addEventListener('click', shut);
+  menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', shut));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menu && !menu.classList.contains('hidden')) shut();
+  });
+</script>
