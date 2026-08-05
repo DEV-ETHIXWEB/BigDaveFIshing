@@ -1,0 +1,23 @@
+---
+import TornEdge from '../TornEdge.astro';
+
+// Placeholder sponsor marks — swap for real logo files.
+const sponsors = ['Sponsor One', 'Sponsor Two', 'Sponsor Three', 'Sponsor Four', 'Sponsor Five'];
+---
+
+<section class="bg-cream relative pt-4 pb-24">
+  <div class="mx-auto max-w-7xl px-4 md:px-8">
+    <p class="font-display text-ink/50 text-center tracking-widest">Trusted By</p>
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+      {
+        sponsors.map((name) => (
+          <span class="font-display text-ink/40 hover:text-cedar text-lg tracking-wide grayscale transition-all hover:grayscale-0">
+            {name}
+          </span>
+        ))
+      }
+    </div>
+  </div>
+
+  <TornEdge class="absolute inset-x-0 bottom-0" fill="var(--color-ink)" />
+</section>

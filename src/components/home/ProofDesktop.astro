@@ -1,0 +1,40 @@
+---
+import TornEdge from '../TornEdge.astro';
+
+// SAMPLE testimonials — replace with real client quotes before launch.
+const testimonials = [
+  {
+    quote: "Put us on fish inside the first hour. Best guided trip we've booked on the coast.",
+    name: 'Mike',
+    state: 'WA',
+  },
+  {
+    quote: 'My dad and I have gone out with Dave three years running now.',
+    name: 'Chris',
+    state: 'OR',
+  },
+  { quote: 'Boat, gear, patience with beginners — all dialed in.', name: 'Ron', state: 'ID' },
+];
+---
+
+<section class="bg-ink text-cream relative pt-16 pb-24 md:pt-24 md:pb-32">
+  <div class="mx-auto max-w-7xl px-4 md:px-8">
+    <p class="font-display text-copper tracking-widest">Reviews</p>
+    <h2 class="mt-2 text-3xl md:text-4xl">What Clients Say</h2>
+
+    <div class="mt-10 grid gap-6 md:grid-cols-3">
+      {
+        testimonials.map((t) => (
+          <blockquote class="border-cream/15 bg-cream/5 rounded-sm border p-6">
+            <p class="text-cream/90 text-lg">&ldquo;{t.quote}&rdquo;</p>
+            <footer class="font-display text-copper mt-4 tracking-wide">
+              {t.name}, {t.state}
+            </footer>
+          </blockquote>
+        ))
+      }
+    </div>
+  </div>
+
+  <TornEdge class="absolute inset-x-0 bottom-0" fill="var(--color-cream)" />
+</section>

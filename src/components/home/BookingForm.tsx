@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,6 +22,11 @@ const control =
   'mt-1 w-full bg-transparent text-sm text-cream outline-none placeholder:text-cream/40';
 
 export default function BookingForm() {
+  // The mobile and desktop layouts each render this form, and both are in the DOM at
+  // once (one is display:none), so the field ids have to be unique per instance or the
+  // labels all point at the first copy's inputs.
+  const uid = useId();
+  const fieldId = (name: string) => `${uid}-${name}`;
   const [submitted, setSubmitted] = useState(false);
   const {
     register,
@@ -52,11 +57,11 @@ export default function BookingForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3" noValidate>
       <div className={field}>
-        <label htmlFor="name" className={label}>
+        <label htmlFor={fieldId('name')} className={label}>
           Your Name
         </label>
         <input
-          id="name"
+          id={fieldId('name')}
           type="text"
           placeholder="Full name"
           className={control}
@@ -66,11 +71,11 @@ export default function BookingForm() {
       {errors.name && <p className="text-cream/90 -mt-1 text-xs">{errors.name.message}</p>}
 
       <div className={field}>
-        <label htmlFor="phone" className={label}>
+        <label htmlFor={fieldId('phone')} className={label}>
           Phone
         </label>
         <input
-          id="phone"
+          id={fieldId('phone')}
           type="tel"
           placeholder="Best number to reach you"
           className={control}
@@ -80,11 +85,11 @@ export default function BookingForm() {
       {errors.phone && <p className="text-cream/90 -mt-1 text-xs">{errors.phone.message}</p>}
 
       <div className={field}>
-        <label htmlFor="email" className={label}>
+        <label htmlFor={fieldId('email')} className={label}>
           Email (optional)
         </label>
         <input
-          id="email"
+          id={fieldId('email')}
           type="email"
           placeholder="you@example.com"
           className={control}
@@ -94,11 +99,11 @@ export default function BookingForm() {
       {errors.email && <p className="text-cream/90 -mt-1 text-xs">{errors.email.message}</p>}
 
       <div className={`${field} relative`}>
-        <label htmlFor="tripType" className={label}>
+        <label htmlFor={fieldId('tripType')} className={label}>
           Trip Type
         </label>
         <select
-          id="tripType"
+          id={fieldId('tripType')}
           className={`${control} appearance-none pr-6`}
           defaultValue="day-trip"
           {...register('tripType')}
@@ -115,11 +120,11 @@ export default function BookingForm() {
       </div>
 
       <div className={field}>
-        <label htmlFor="message" className={label}>
+        <label htmlFor={fieldId('message')} className={label}>
           Message (optional)
         </label>
         <textarea
-          id="message"
+          id={fieldId('message')}
           rows={3}
           placeholder="Dates you have in mind, group size…"
           className={`${control} resize-none`}

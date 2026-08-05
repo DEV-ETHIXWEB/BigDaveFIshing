@@ -1,7 +1,9 @@
 ---
 import '../styles/global.css';
 import Header from '../components/Header.astro';
+import HeaderDesktop from '../components/HeaderDesktop.astro';
 import Footer from '../components/Footer.astro';
+import FooterDesktop from '../components/FooterDesktop.astro';
 import MobileMenu from '../components/MobileMenu.astro';
 import BottomTabBar from '../components/BottomTabBar.astro';
 import { business } from '../lib/business';
@@ -45,12 +47,17 @@ const localBusinessSchema = {
        background comes from the already-desaturated value in global.css. -->
   <body class="text-ink">
     <span id="top"></span>
-    <!-- The header is absolutely positioned over the hero, so main is the page top. -->
+    <!-- Two chromes, one per breakpoint. Below xl: the mockup's transparent overlay
+         header plus the slide-in menu and bottom tab bar. At xl+: the original dark
+         sticky bar. Each is hidden at the other's widths, so only one is ever visible;
+         the page body does the same in index.astro. -->
+    <HeaderDesktop />
     <main class="relative">
       <Header />
       <slot />
     </main>
     <Footer />
+    <FooterDesktop />
     <MobileMenu />
     <BottomTabBar />
   </body>

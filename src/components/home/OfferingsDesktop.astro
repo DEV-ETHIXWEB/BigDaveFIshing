@@ -1,0 +1,116 @@
+---
+import { Image } from 'astro:assets';
+import guidedTripA from '../../assets/images/guided-fishing-trip-1.png';
+import guidedTripB from '../../assets/images/guided-fishing-trip-2.png';
+import lodgeBackground from '../../assets/images/lodge-background.png';
+---
+
+<!-- Pulled up far enough that the About sheet covers the tear's own body AND the empty
+     sky at the top of this artwork, so the rip lands on the scene itself and no pale
+     band shows between them. The percentage tracks the artwork (which scales with page
+     width); the rem accounts for the tear's fixed pixel height.
+     Sits below About so the tear stays on top. -->
+<section id="trips-desktop" class="bg-cream relative z-10 mt-[calc(-15%-1rem)]">
+  <!-- Two near-identical frames crossfaded on an infinite loop, so the illustration
+       gently "breathes" rather than sitting static. -->
+  <Image
+    src={guidedTripA}
+    alt="Illustrated angler casting a fly rod from the riverbank toward a drift boat"
+    class="block h-auto w-full"
+    widths={[768, 1200, 1536]}
+    sizes="100vw"
+  />
+  <Image
+    src={guidedTripB}
+    alt=""
+    aria-hidden="true"
+    class="trip-crossfade absolute inset-0 block h-full w-full object-cover"
+    widths={[768, 1200, 1536]}
+    sizes="100vw"
+  />
+
+  <!-- The illustration emerges out of the dark section above rather than starting on a
+       flat patch of sky. Sized in vw so it scales with the artwork. -->
+  <div
+    class="from-ink pointer-events-none absolute inset-x-0 top-0 h-[26vw] bg-gradient-to-b to-transparent"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="absolute inset-0 flex items-center">
+    <div class="mx-auto w-full max-w-7xl px-4 md:px-8">
+      <div class="ml-auto max-w-xs text-right md:max-w-sm">
+        <p class="font-display text-cedar text-xs tracking-widest md:text-base">The Day Trip</p>
+        <h2 class="text-cream mt-1 text-xl md:mt-2 md:text-3xl">Guided Fishing Trips</h2>
+        <p class="text-cream/80 mt-2 hidden text-sm sm:block md:mt-3 md:text-base">
+          Half-day, full-day, and custom trips for steelhead and salmon. Boat, tackle, and know-how
+          included.
+        </p>
+        <a
+          href="/rates-packages"
+          class="border-cream text-cream font-display hover:bg-cream hover:text-ink mt-3 inline-block rounded-full border-2 px-4 py-1.5 text-[10px] tracking-[0.15em] transition-colors md:mt-5 md:px-5 md:py-2 md:text-[11px]"
+        >
+          View Trips
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bg-cream paper-fade-top relative">
+  <Image
+    src={lodgeBackground}
+    alt="Illustrated log cabin lodge on the bank of the Wilson River, mountains behind"
+    class="block h-auto w-full"
+    widths={[768, 1200, 1536]}
+    sizes="100vw"
+  />
+
+  <div class="absolute inset-0 z-10 flex items-center">
+    <div class="mx-auto w-full max-w-7xl px-4 md:px-8">
+      <div class="ml-auto max-w-xs md:max-w-sm">
+        <p class="font-display text-cedar text-xs tracking-widest md:text-base">The Lodge Stay</p>
+        <h2 class="text-ink mt-1 text-xl md:mt-2 md:text-3xl">Wilson River Lodge</h2>
+        <p class="text-ink/80 mt-2 hidden text-sm sm:block md:mt-3 md:text-base">
+          Lodging and fishing packages for groups who want to make a weekend of it — bunk close to
+          the water and fish right from the lodge.
+        </p>
+        <a
+          href="/wilson-river-lodge"
+          class="border-ink font-display hover:bg-ink hover:text-cream mt-3 inline-block rounded-full border-2 px-4 py-1.5 text-[10px] tracking-[0.15em] transition-colors md:mt-5 md:px-5 md:py-2 md:text-[11px]"
+        >
+          See the Lodge
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .trip-crossfade {
+    opacity: 0;
+    animation: trip-crossfade 4s ease-in-out infinite;
+    will-change: opacity;
+  }
+
+  /* Continuously alternates between the two poses: 2s to fade across, 2s to fade
+     back, with no hold in between, so the rod never sits still. */
+  @keyframes trip-crossfade {
+    0% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trip-crossfade {
+      animation: none;
+      opacity: 0;
+    }
+  }
+</style>

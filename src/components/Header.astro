@@ -1,15 +1,12 @@
 ---
 import { Menu } from 'lucide-react';
-import { business, nav } from '../lib/business';
-
-const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
-const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+import { business } from '../lib/business';
 ---
 
 <!-- Sits transparently over the hero artwork, as in the design: stacked wordmark on the
-     left, menu button on the right. The desktop nav is additive - the mockup only
-     specifies mobile, and dropping the nav entirely on a wide screen would be worse. -->
-<header class="absolute inset-x-0 top-0 z-40">
+     left, menu button on the right. Below xl only - at xl+ HeaderDesktop takes over with
+     the original dark sticky bar. -->
+<header class="absolute inset-x-0 top-0 z-40 xl:hidden">
   <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
     <a href="/" class="flex items-center gap-2.5" aria-label={`${business.name} — home`}>
       <!-- Ink linework on a transparent ground, so the mark sits on the pale artwork
@@ -27,27 +24,6 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         Big Dave's<br /><span class="text-[0.7rem] tracking-[0.3em]">Fishing Co.</span>
       </span>
     </a>
-
-    <nav aria-label="Primary" class="hidden xl:block">
-      <ul class="font-body flex items-center gap-7 text-[0.7rem] tracking-[0.2em] uppercase">
-        {
-          nav.map((item) => (
-            <li>
-              <a
-                href={item.href}
-                aria-current={isActive(item.href) ? 'page' : undefined}
-                class:list={[
-                  'hover:text-ink transition-colors',
-                  isActive(item.href) ? 'text-ink' : 'text-ink/70',
-                ]}
-              >
-                {item.short}
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
 
     <!-- Filled rather than a bare icon: the mockup's hero photos are dark, but this
          artwork is pale parchment at the top, so a light icon on its own disappears.

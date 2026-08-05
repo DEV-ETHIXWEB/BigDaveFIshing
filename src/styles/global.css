@@ -4,6 +4,17 @@
 @import '@fontsource/inter/600.css';
 @import '@fontsource/playfair-display/400.css';
 @import '@fontsource/playfair-display/500.css';
+/* Rye + Oswald are the desktop (xl+) layout's type. See the xl override below. */
+@import '@fontsource/oswald/500.css';
+@import '@fontsource/oswald/600.css';
+
+@font-face {
+  font-family: 'Rye';
+  src: url('/fonts/Rye-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme {
   /* Big Dave's Fishing brand palette - cream parchment + black ink, matching the illustrated poster art direction */
@@ -19,9 +30,21 @@
   --color-cedar: #7a5535;
   --color-copper: #c9915c;
 
-  /* Elegant high-contrast serif, set in caps with wide tracking for every heading. */
+  /* Elegant high-contrast serif, set in caps with wide tracking for every heading.
+     This is the mobile design's face; the desktop layout swaps it for Rye at xl+. */
   --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
+  /* Condensed caps for the desktop nav, buttons and small labels. */
+  --font-ui: 'Oswald', 'Arial Narrow', sans-serif;
+}
+
+/* The desktop layout (xl+) is the original design and keeps its own type. Only one of
+   the two stacks is visible at any width, so overriding the theme variables wholesale
+   here is enough - no per-component scoping needed. */
+@media (min-width: 80rem) {
+  :root {
+    --font-display: 'Rye', 'Arial Narrow', serif;
+  }
 }
 
 @layer base {
@@ -79,6 +102,18 @@
     letter-spacing: 0.06em;
     line-height: 1.18;
     font-weight: 400;
+  }
+
+  /* Rye is already wide and heavy, so the desktop layout uses the original tighter
+     tracking and default leading. */
+  @media (min-width: 80rem) {
+    h1,
+    h2,
+    h3,
+    h4 {
+      letter-spacing: 0.02em;
+      line-height: inherit;
+    }
   }
 
   :focus-visible {
@@ -181,5 +216,48 @@
     .torn-bottom {
       --tear-h: 3.5rem;
     }
+  }
+
+  /* ---- Desktop (xl+) layout only ------------------------------------------- */
+
+  /* A couple of the illustrations are vignetted along their top edge, so their
+     parchment reads darker there than the page cream and leaves a faint band at the
+     section join. This dissolves that edge into the page. Only used where the top
+     strip of the artwork is empty sky, so nothing is washed out. */
+  .paper-fade-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -1px;
+    height: 4.5rem;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--color-cream) 0%, rgb(236 224 203 / 0) 100%);
+  }
+
+  /* Soft feathered cream halo behind copy that sits on top of the illustrations.
+     Keeps text legible wherever the art crops, without a hard panel edge. */
+  .art-wash {
+    position: relative;
+  }
+
+  .art-wash > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .art-wash::before {
+    content: '';
+    position: absolute;
+    inset: -2rem -3.5rem;
+    z-index: 0;
+    pointer-events: none;
+    /* Opaque core is sized to fully contain the text box, then feathers out to nothing. */
+    background: radial-gradient(
+      ellipse 75% 80% at 45% 50%,
+      var(--color-cream) 0%,
+      var(--color-cream) 72%,
+      rgb(236 224 203 / 0) 100%
+    );
   }
 }

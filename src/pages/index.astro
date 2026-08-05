@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+// Mobile (below xl) — the redesign built from the mockup.
 import Hero from '../components/home/Hero.astro';
 import Offerings from '../components/home/Offerings.astro';
 import BookingCTA from '../components/home/BookingCTA.astro';
@@ -8,21 +10,51 @@ import Gallery from '../components/home/Gallery.astro';
 import WhoDaveIs from '../components/home/WhoDaveIs.astro';
 import RatesSnapshot from '../components/home/RatesSnapshot.astro';
 import Sponsors from '../components/home/Sponsors.astro';
+
+// Desktop (xl+) — the original wide layout, restored.
+import HeroDesktop from '../components/home/HeroDesktop.astro';
+import WhoDaveIsDesktop from '../components/home/WhoDaveIsDesktop.astro';
+import OfferingsDesktop from '../components/home/OfferingsDesktop.astro';
+import DayLooksLikeDesktop from '../components/home/DayLooksLikeDesktop.astro';
+import GalleryDesktop from '../components/home/GalleryDesktop.astro';
+import ProofDesktop from '../components/home/ProofDesktop.astro';
+import RatesSnapshotDesktop from '../components/home/RatesSnapshotDesktop.astro';
+import SponsorsDesktop from '../components/home/SponsorsDesktop.astro';
+import BookingCTADesktop from '../components/home/BookingCTADesktop.astro';
 ---
 
 <Layout
   title="Big Dave's Fishing Adventures | Guided Steelhead & Salmon Trips, Oregon Coast"
   description="Guided steelhead and salmon fishing trips on Oregon's coastal rivers, plus lodging at the Wilson River Lodge. Book a trip with Big Dave's Fishing Adventures."
 >
-  <!-- Section order follows the mockup's screens 1-8. Rates and Sponsors are not in
-       the mockup but are kept: the brief requires a price up front, and the sponsor row
-       was an existing requirement. Both use the same type scale and buttons. -->
-  <Hero />
-  <Offerings />
-  <RatesSnapshot />
-  <BookingCTA />
-  <Proof />
-  <Gallery />
-  <WhoDaveIs />
-  <Sponsors />
+  <!-- The two designs are different enough — different section set, order, artwork
+       crops and type scale — that they can't be reconciled with breakpoints on one
+       markup tree, so each renders its own stack and one is hidden. Anchors in the
+       desktop stack are suffixed -desktop to keep ids unique across both. -->
+
+  <!-- Mobile: section order follows the mockup's screens 1-8. Rates and Sponsors are
+       not in the mockup but are kept: the brief requires a price up front, and the
+       sponsor row was an existing requirement. -->
+  <div class="xl:hidden">
+    <Hero />
+    <Offerings />
+    <RatesSnapshot />
+    <BookingCTA />
+    <Proof />
+    <Gallery />
+    <WhoDaveIs />
+    <Sponsors />
+  </div>
+
+  <div class="hidden xl:block">
+    <HeroDesktop />
+    <WhoDaveIsDesktop />
+    <OfferingsDesktop />
+    <DayLooksLikeDesktop />
+    <GalleryDesktop />
+    <ProofDesktop />
+    <RatesSnapshotDesktop />
+    <SponsorsDesktop />
+    <BookingCTADesktop />
+  </div>
 </Layout>
