@@ -8,7 +8,7 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist/**', '.astro/**', 'node_modules/**'] },
+  { ignores: ['dist/**', '.astro/**', 'node_modules/**', '.vercel/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...eslintPluginAstro.configs['flat/recommended'],

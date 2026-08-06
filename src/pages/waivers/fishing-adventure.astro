@@ -1,0 +1,41 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Ornament from '../../components/ui/Ornament.astro';
+import WaiverForm from '../../components/waivers/WaiverForm';
+
+// SAMPLE liability waiver text — this is placeholder copy, not legal language.
+// Replace with wording drafted or reviewed by a lawyer before this goes live.
+const waiverBodyHtml = `
+  <p class="mb-2">I understand that guided fishing trips involve inherent risks, including
+  but not limited to slips on wet or uneven terrain, cold water exposure, watercraft travel,
+  and handling of fishing equipment. I voluntarily assume these risks for myself and any
+  minors in my party.</p>
+  <p class="mb-2">I release Big Dave's Fishing Adventures, its guides, and staff from
+  liability for injury, loss, or damage arising from participation in this trip, except
+  where caused by gross negligence.</p>
+  <p>I confirm I hold a valid Oregon fishing license where required, and that the
+  information I have provided above is accurate.</p>
+`;
+---
+
+<Layout
+  title="Fishing Adventure Waiver | Big Dave's Fishing Adventures"
+  description="Sign the waiver before your guided fishing trip with Big Dave's Fishing Adventures."
+>
+  <section class="bg-cream px-6 pt-28 pb-10 text-center md:px-8 md:pt-36 md:pb-14 xl:pt-20">
+    <p class="eyebrow text-ink/70">Before Your Trip</p>
+    <h1 class="mt-4 text-[1.6rem] md:text-4xl">Fishing Adventure<br />Waiver</h1>
+    <Ornament class="mx-auto mt-5" />
+  </section>
+
+  <section class="bg-ink px-6 py-10 md:px-8 md:py-14">
+    <div class="mx-auto max-w-lg">
+      <WaiverForm
+        client:visible
+        waiverType="fishing-adventure"
+        waiverTitle="Assumption of Risk & Release"
+        waiverBodyHtml={waiverBodyHtml}
+      />
+    </div>
+  </section>
+</Layout>

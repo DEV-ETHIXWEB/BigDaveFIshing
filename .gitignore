@@ -17,8 +17,12 @@ pnpm-debug.log*
 .env
 .env.production
 
+# local waiver database (contains signatures and contact info — never commit)
+data/
+
 # macOS-specific files
 .DS_Store
 
 # jetbrains setting folder
 .idea/
+.vercel

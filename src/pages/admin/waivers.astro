@@ -1,0 +1,77 @@
+---
+// On-demand so the middleware above actually runs against it — prerendered pages are
+// built ahead of time with no request to gate, so basic auth would never fire.
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import { db, ensureSchema, type WaiverRecord } from '../../lib/db';
+
+await ensureSchema();
+const result = await db.execute('SELECT * FROM waivers ORDER BY signed_at DESC');
+const waivers = result.rows as unknown as WaiverRecord[];
+
+// Group by group_code (falling back to the typed leader name, or "Ungrouped"), so
+// this actually solves the original problem: seeing who belongs to which trip at a
+// glance instead of a flat list.
+const groups = new Map<string, WaiverRecord[]>();
+for (const w of waivers) {
+  const key = w.group_code || w.group_leader_name || 'Ungrouped';
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key)!.push(w);
+}
+---
+
+<Layout title="Waivers — Admin" description="Signed waiver submissions.">
+  <section class="bg-cream px-6 pt-28 pb-16 md:px-8 md:pt-36 xl:pt-20">
+    <div class="mx-auto max-w-3xl">
+      <p class="eyebrow text-ink/70">Admin</p>
+      <h1 class="mt-3 text-2xl md:text-4xl">Signed Waivers</h1>
+      <p class="text-ink/60 mt-2 text-sm">{waivers.length} total</p>
+
+      {groups.size === 0 && <p class="text-ink/60 mt-8 text-sm">No waivers signed yet.</p>}
+
+      <div class="mt-8 space-y-8">
+        {
+          [...groups.entries()].map(([key, group]) => (
+            <div class="border-ink/15 rounded border">
+              <div class="border-ink/15 bg-ink/5 flex items-baseline justify-between border-b px-5 py-3">
+                <p class="font-display text-lg tracking-[0.04em]">{key}</p>
+                <p class="text-ink/55 text-xs">
+                  {group.length} {group.length === 1 ? 'signature' : 'signatures'}
+                  {group[0].trip_date ? ` · ${group[0].trip_date}` : ''}
+                </p>
+              </div>
+              <ul class="divide-ink/10 divide-y">
+                {group.map((w) => (
+                  <li class="flex flex-wrap items-center gap-4 px-5 py-4">
+                    <img
+                      src={w.signature_png}
+                      alt={`Signature of ${w.guest_name}`}
+                      class="h-10 w-24 rounded border border-ink/10 bg-white object-contain"
+                    />
+                    <div class="min-w-40 flex-1">
+                      <p class="font-medium">{w.guest_name}</p>
+                      <p class="text-ink/55 text-xs">
+                        {w.guest_phone}
+                        {w.guest_email ? ` · ${w.guest_email}` : ''}
+                      </p>
+                    </div>
+                    <div class="text-ink/55 text-xs">
+                      <p>
+                        Emergency: {w.emergency_contact_name} — {w.emergency_contact_phone}
+                      </p>
+                      <p class="mt-0.5">
+                        {w.waiver_type === 'lodge' ? 'Lodge' : 'Fishing Adventure'} ·{' '}
+                        {new Date(w.signed_at + 'Z').toLocaleString()}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Layout>

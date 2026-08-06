@@ -1,0 +1,46 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Ornament from '../../components/ui/Ornament.astro';
+
+const links = [
+  {
+    href: '/waivers/fishing-adventure',
+    title: 'Fishing Adventure Waiver',
+    copy: 'For guided day trips on the Wilson, Trask, and Nestucca.',
+  },
+  {
+    href: '/waivers/lodge',
+    title: 'Wilson River Lodge Waiver',
+    copy: 'For guests staying at the lodge.',
+  },
+];
+---
+
+<Layout
+  title="Waivers | Big Dave's Fishing Adventures"
+  description="Sign the fishing adventure or Wilson River Lodge waiver before your trip."
+>
+  <section class="bg-cream px-6 pt-28 pb-16 text-center md:px-8 md:pt-36 md:pb-24 xl:pt-20">
+    <p class="eyebrow text-ink/70">Before Your Trip</p>
+    <h1 class="mt-4 text-[1.6rem] md:text-4xl">Waivers</h1>
+    <Ornament class="mx-auto mt-5" />
+    <p class="text-ink/70 mx-auto mt-5 max-w-xs text-sm md:max-w-md md:text-base">
+      If Dave sent you a link with your group's code on it, use that — it's faster. Otherwise pick
+      the right waiver below.
+    </p>
+
+    <div class="mx-auto mt-9 grid max-w-md gap-4">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="border-ink/15 hover:border-ink/40 block rounded border p-5 text-left transition-colors"
+          >
+            <p class="font-display text-lg tracking-[0.04em]">{link.title}</p>
+            <p class="text-ink/65 mt-1 text-sm">{link.copy}</p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</Layout>

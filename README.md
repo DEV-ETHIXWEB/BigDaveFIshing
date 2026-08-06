@@ -132,6 +132,34 @@ side or the other. Pick by background.
 Pass `className`, never `class` - these are React components and silently drop an unknown
 `class` prop. lucide also ships no brand icons, so the Facebook mark is an inline SVG.
 
+### Waivers are a real, working system - not a mockup
+
+`/waivers`, `/waivers/fishing-adventure`, and `/waivers/lodge` write real signed records to a
+database, not a contact-form stand-in. This exists because Dave couldn't tell which guests
+belonged to which group from a flat inbox of submissions.
+
+- **Group linking.** Dave sends the group leader a link with a code on it -
+  `…/waivers/fishing-adventure?g=turner-0814` - so every guest who signs through it is
+  automatically stamped with that group. Nothing to type, nothing to typo. Anyone who lands on
+  the page without a code still sees a manual "who booked your trip" fallback field.
+- **Storage: libSQL, not a plain SQLite file.** This deploys to Vercel, whose functions have a
+  read-only filesystem outside of a request and don't persist `/tmp` between invocations - a
+  file-based DB (e.g. better-sqlite3) would lose every submission. libSQL speaks the same SQL
+  and defaults to a local file (`./data/waivers.db`), so it works with zero setup right now.
+  For a real deployment, create a free database at [turso.tech](https://turso.tech) and set
+  `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` - same code, no changes, see `.env.example`.
+- **Signature is a real drawn signature**, not a typed name - `SignaturePad.tsx`, plain
+  Pointer Events (covers mouse/touch/pen in one path), exported as a PNG with the submission.
+- **`/admin/waivers`** lists every signature grouped by group code, with a signature thumbnail
+  and emergency contact per guest - the actual fix for the original problem. Gated by HTTP
+  Basic Auth (`src/middleware.ts`) against `ADMIN_USER` / `ADMIN_PASSWORD`; the admin area
+  refuses to load if either is unset rather than defaulting to open.
+- The rest of the site stays fully static (`output: 'static'`); only `/api/waivers` and
+  `/admin/waivers` opt into on-demand rendering (`export const prerender = false`), which is
+  why an adapter (`@astrojs/vercel`) is installed at all.
+- Waiver body text in both pages is placeholder liability language, clearly marked `SAMPLE` in
+  the source - replace with wording a lawyer has actually reviewed before this goes live.
+
 ## Accessibility and performance
 
 Checked as the build went, by measuring the rendered page rather than by eye:
@@ -154,8 +182,13 @@ Checked as the build went, by measuring the rendered page rather than by eye:
   pristine checkout too, so it is the toolchain, not the code. It also fails the Husky
   pre-commit hook. Drop the plugin from `.prettierrc.json` to unblock, at the cost of
   automatic class sorting. ESLint and the build are unaffected.
-- **Only `/` exists.** The other seven pages the nav links to (Lodge, Rates & Packages,
-  Oregon Fishing, Video Gallery, Fishing Information, Contact, Waivers) are still to build,
-  and the live site's real URL slugs should be confirmed so they can be preserved.
+- **Only `/` and the three `/waivers` pages exist.** The other six pages the nav links to
+  (Lodge, Rates & Packages, Oregon Fishing, Video Gallery, Fishing Information, Contact) are
+  still to build, and the live site's real URL slugs should be confirmed so they can be
+  preserved.
+- **Waiver liability text needs legal review** before launch - see above.
+- **The Turso database doesn't exist yet.** Local dev works out of the box against a file; a
+  real deployment needs a free Turso account and two env vars set on the host, or submissions
+  won't persist.
 - Facebook URL, street address, geo coordinates and opening hours are placeholders in
   `lib/business.ts` and the JSON-LD.
