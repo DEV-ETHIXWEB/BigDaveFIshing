@@ -216,16 +216,20 @@ async function flattenLogoTo(buffer, colour) {
 
   // The ground sits at --color-ink after levelling, not pure black.
   const floor = 0.2126 * INK.r + 0.7152 * INK.g + 0.0722 * INK.b;
-  // Strokes in the source are thin and anti-aliased, so most of their pixels sit at
-  // mid luminance. Mapping that straight to alpha renders the mark grey and washed
-  // out. This knee drives anything above roughly a third brightness to fully opaque,
-  // keeping the linework solid while the very softest edges still feather.
-  const knee = floor + (255 - floor) * 0.38;
-  const span = knee - floor;
+  // Black point. The illustration's ground carries fine grain, and mapping luminance
+  // straight to alpha turned every speck of it into a faintly visible pixel — which is
+  // what showed up as a grey halo of stray dots around the mark. Anything below this
+  // is forced fully transparent.
+  const toe = floor + (255 - floor) * 0.16;
+  // White point. Strokes are thin and anti-aliased, so most of their pixels sit at mid
+  // luminance; without this the mark renders grey and washed out. Anything above is
+  // fully opaque, leaving only the softest edges to feather.
+  const knee = floor + (255 - floor) * 0.46;
+  const span = knee - toe;
 
   for (let p = 0, q = 0; p < data.length; p += ch, q += 4) {
     const lum = 0.2126 * data[p] + 0.7152 * data[p + 1] + 0.0722 * data[p + 2];
-    const alpha = Math.max(0, Math.min(255, Math.round(((lum - floor) / span) * 255)));
+    const alpha = Math.max(0, Math.min(255, Math.round(((lum - toe) / span) * 255)));
     out[q] = colour.r;
     out[q + 1] = colour.g;
     out[q + 2] = colour.b;
@@ -296,7 +300,11 @@ for (const file of files) {
           const target = path.join(PUBLIC_ART_DIR, `${variant.name}-${width}.webp`);
           const out = await sharp(variant.source)
             .resize({ width })
-            .webp({ quality: 90, alphaQuality: 100 })
+            // Lossless: this is two-tone line art on a flat/transparent ground, and
+            // lossy WebP puts ringing noise around the high-contrast strokes and in
+            // the alpha channel, which shows as a grey halo of stray pixels around
+            // the medallion. Lossless costs a little size and removes it entirely.
+            .webp({ lossless: true, effort: 6 })
             .toFile(target);
           sizes.push(`${width}px ${Math.round(out.size / 1024)}kB`);
         }

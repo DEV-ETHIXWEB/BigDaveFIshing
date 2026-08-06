@@ -1,0 +1,30 @@
+---
+// Rod, reel and line. lucide has no fishing rod, and the card set calls for one.
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.25"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  class:list={[className]}
+  aria-hidden="true"
+>
+  <!-- rod, butt to tip -->
+  <path d="M4.5 19.5 19 5"></path>
+  <!-- grip -->
+  <path d="M4 20.2 6.4 17.8"></path>
+  <!-- reel -->
+  <circle cx="8.6" cy="15.4" r="2.1"></circle>
+  <circle cx="8.6" cy="15.4" r="0.45" fill="currentColor" stroke="none"></circle>
+  <!-- line falling from the tip, with a hook -->
+  <path d="M19 5c1.6 2.6 1.9 5.5.7 8.2"></path>
+  <path d="M19.7 13.2a1.5 1.5 0 1 1-2.3 1.2"></path>
+</svg>
