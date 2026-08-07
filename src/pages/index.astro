@@ -1,60 +1,172 @@
 ---
+import { Image } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
-
-// Mobile (below xl) — the redesign built from the mockup.
 import Hero from '../components/home/Hero.astro';
-import Offerings from '../components/home/Offerings.astro';
-import BookingCTA from '../components/home/BookingCTA.astro';
-import Proof from '../components/home/Proof.astro';
+import Checkerboard from '../components/home/Checkerboard.astro';
+import type { Row } from '../components/home/Checkerboard.astro';
+import SectionHeading from '../components/home/SectionHeading.astro';
 import Gallery from '../components/home/Gallery.astro';
-import WhoDaveIs from '../components/home/WhoDaveIs.astro';
-import RatesSnapshot from '../components/home/RatesSnapshot.astro';
+import VideoTeaser from '../components/home/VideoTeaser.astro';
 import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { business, seasons } from '../lib/business';
 
-// Desktop (xl+) — the original wide layout, restored.
-import HeroDesktop from '../components/home/HeroDesktop.astro';
-import WhoDaveIsDesktop from '../components/home/WhoDaveIsDesktop.astro';
-import OfferingsDesktop from '../components/home/OfferingsDesktop.astro';
-import DayLooksLikeDesktop from '../components/home/DayLooksLikeDesktop.astro';
-import GalleryDesktop from '../components/home/GalleryDesktop.astro';
-import ProofDesktop from '../components/home/ProofDesktop.astro';
-import RatesSnapshotDesktop from '../components/home/RatesSnapshotDesktop.astro';
-import SponsorsDesktop from '../components/home/SponsorsDesktop.astro';
-import BookingCTADesktop from '../components/home/BookingCTADesktop.astro';
+// All prose below is the client's own copy, lifted verbatim (or trimmed, never
+// reworded) from the live site's Oregon Fishing, Wilson River Lodge and Rates pages.
+// The live homepage is only a slider and a sponsor rail, so it gives a visitor nothing
+// to read and nothing for search to index; these are the pages that already rank.
+const intro: Row[] = [
+  {
+    photo: photos.daveSalmonTillamook,
+    eyebrow: 'Oregon coast',
+    heading: 'Guided Salmon & Steelhead Trips',
+    body: [
+      "Big Dave's Fishing Adventures along the Oregon coast offers guided fishing trips for Steelhead and Salmon. We have trips for the most avid angler to the beginner. Big Dave mainly fishes Buoy 10, Tillamook Bay, tide waters, and the Wilson, Kilchis and Trask Rivers in Tillamook, Oregon.",
+      'All of our trips are fully guided in sleds and drift boats, using Lamiglas rods. We provide all Salmon/Steelhead tackle.',
+    ],
+    cta: { label: 'Oregon Fishing', href: '/oregon-fishing' },
+  },
+  {
+    photo: photos.rainbowTrout,
+    eyebrow: 'The main event',
+    heading: 'Chinook & Steelhead',
+    body: [
+      'If you are after the tackle busting Chinook Salmon, they are no joke. These fish can average 25-30 lb. with the occasional 50 lb. hog. Experienced or novice, Big Dave can explain any technique or strategy needed to catch that trophy fish of a lifetime.',
+      'Steelhead are considered by some to be the crème de la crème of Oregon’s coastal rivers. These Steelhead can average 8-13 lb. with the occasional 20+lb. fish.',
+    ],
+  },
+];
+
+const lodgeAndSeasons: Row[] = [
+  {
+    photo: photos.lodgeRiver,
+    eyebrow: 'Stay on the water',
+    heading: 'Wilson River Lodge',
+    body: [
+      'The Wilson River Lodge is located 8 miles east of Tillamook along the majestic Wilson River, with comfortable lodging for up to 6 guests.',
+      `Along with lodging we offer private river access with fantastic fishing opportunities. In the summer this same stretch of water has an amazing swimming hole that will provide pleasure for the whole family. Come meet hosts ${business.hosts}!`,
+      `Nightly rate ${business.lodgeNightlyRate}. Call for group discounts.`,
+    ],
+    cta: { label: 'About the Lodge', href: '/wilson-river-lodge' },
+  },
+  {
+    photo: photos.cohoKing,
+    eyebrow: 'When to come',
+    heading: 'The Season',
+    body: [
+      'Conditions can change from day to day, river to river. Call to book a date and rely on us to select the location with the best opportunity to put you on fish.',
+    ],
+    list: seasons.map((season) => ({ term: season.fish, detail: season.window })),
+    cta: { label: 'Rates & Packages', href: '/oregon-rates-packages' },
+  },
+];
+
+// The three species from the live Fishing Information page, verbatim.
+const species = [
+  {
+    photo: photos.bayChinookPair,
+    name: 'King/Chinook Salmon',
+    body: 'King Salmon may spend between 1 to 5 years in the ocean before returning to their native streams to spawn. They reach up to 60 inches and 70 pounds, although King Salmon is generally up to 36 inches and up to 30 pounds.',
+  },
+  {
+    photo: photos.silverSalmon,
+    name: 'Silver/Coho Salmon',
+    body: 'Silver Salmon are found in coastal waters from Alaska to northern California. Silvers are extremely adaptable and are found in nearly all accessible bodies of fresh water, from large trans-boundary watersheds to small tributaries.',
+  },
+  {
+    photo: photos.chumSalmon,
+    name: 'Chum Salmon',
+    body: 'Chum Salmon spawn in the lowermost reaches of rivers and streams, typically within 100 km of the ocean. Found from Alaska to Oregon and ranging from 12-20 lbs, they have unique calliquo markings and are fun fish to catch.',
+  },
+];
 ---
 
 <Layout
-  title="Big Dave's Fishing Adventures | Guided Steelhead & Salmon Trips, Oregon Coast"
-  description="Guided steelhead and salmon fishing trips on Oregon's coastal rivers, plus lodging at the Wilson River Lodge. Book a trip with Big Dave's Fishing Adventures."
+  title="Big Dave's Fishing Adventures | Guided Salmon & Steelhead Trips, Tillamook Oregon"
+  description="Guided Salmon and Steelhead fishing trips on Oregon's coastal rivers — Tillamook Bay, the Wilson, Kilchis and Trask — plus lodging at the Wilson River Lodge. Book with Big Dave's Fishing Adventures."
 >
-  <!-- The two designs are different enough — different section set, order, artwork
-       crops and type scale — that they can't be reconciled with breakpoints on one
-       markup tree, so each renders its own stack and one is hidden. Anchors in the
-       desktop stack are suffixed -desktop to keep ids unique across both. -->
+  <Hero />
 
-  <!-- Mobile: section order follows the mockup's screens 1-8. Rates and Sponsors are
-       not in the mockup but are kept: the brief requires a price up front, and the
-       sponsor row was an existing requirement. -->
-  <div class="xl:hidden">
-    <Hero />
-    <Offerings />
-    <RatesSnapshot />
-    <BookingCTA />
-    <Proof />
-    <Gallery />
-    <WhoDaveIs />
-    <Sponsors />
-  </div>
+  <!-- startIndex continues the count across the two blocks, so the section numerals run
+       01-04 down the page and the photo/copy sides keep alternating rather than both
+       blocks restarting photo-left. -->
+  <Checkerboard rows={intro} startIndex={0} />
 
-  <div class="hidden xl:block">
-    <HeroDesktop />
-    <WhoDaveIsDesktop />
-    <OfferingsDesktop />
-    <DayLooksLikeDesktop />
-    <GalleryDesktop />
-    <ProofDesktop />
-    <RatesSnapshotDesktop />
-    <SponsorsDesktop />
-    <BookingCTADesktop />
-  </div>
+  <Checkerboard rows={lodgeAndSeasons} startIndex={intro.length} />
+
+  <Gallery />
+
+  <!-- Species cards rather than another checkerboard: three items read better as a row
+       of equals than as three more full-width zig-zag tiles, and it breaks the rhythm
+       before the page starts to feel like one long pattern. -->
+  <section class="bg-paper py-16 lg:py-20">
+    <SectionHeading
+      eyebrow="Know your fish"
+      title="What You'll Be Catching"
+      intro="Three of the runs that come through Tillamook Bay and the coastal rivers."
+    />
+
+    <div
+      class="mx-auto mt-10 grid max-w-6xl gap-6 px-6 sm:px-10 lg:grid-cols-3 lg:gap-8"
+      data-reveal
+    >
+      {
+        species.map((fish) => (
+          <article class="group bg-cream flex flex-col overflow-hidden">
+            <div class="overflow-hidden">
+              <Image
+                src={fish.photo.src}
+                alt={fish.photo.alt}
+                widths={[400, 800]}
+                sizes="(min-width: 1024px) 33vw, 100vw"
+                loading="lazy"
+                class="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+              />
+            </div>
+            <div class="flex flex-1 flex-col p-6 lg:p-7">
+              <h3 class="text-ink text-[1.35rem]">{fish.name}</h3>
+              <p class="text-ink/70 mt-3 text-[0.95rem] leading-relaxed">{fish.body}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="mt-10 text-center">
+      <a href="/fishing-information" class="btn btn-outline-dark">More Fishing Information</a>
+    </div>
+  </section>
+
+  <VideoTeaser />
+
+  <!-- Closing call to action. The live site has none: it relies entirely on the black
+       bar, which asks a visitor to dial a number from memory at the exact moment they
+       are most convinced. -->
+  <section class="relative isolate overflow-hidden">
+    <Image
+      src={photos.threeAnglers.src}
+      alt=""
+      widths={[900, 1600]}
+      sizes="100vw"
+      loading="lazy"
+      class="absolute inset-0 h-full w-full object-cover"
+    />
+    <div class="absolute inset-0 bg-black/60" aria-hidden="true"></div>
+
+    <div class="relative mx-auto max-w-2xl px-6 py-20 text-center lg:py-24" data-reveal>
+      <h2 class="text-[1.9rem] leading-tight text-white sm:text-[2.4rem]">
+        Ready to book your trip?
+      </h2>
+      <p class="mt-4 text-white/80">
+        Call to check dates and river conditions, and we&rsquo;ll pick the water with the best shot
+        at putting you on fish.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+        <a href={business.phoneHref} class="btn btn-solid-light">Call {business.phone}</a>
+        <a href="/contact" class="btn btn-outline-light">Send a Message</a>
+      </div>
+    </div>
+  </section>
+
+  <Sponsors />
 </Layout>

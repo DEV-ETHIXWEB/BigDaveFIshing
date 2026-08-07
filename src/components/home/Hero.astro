@@ -1,63 +1,156 @@
 ---
+import { Image } from 'astro:assets';
 import { business } from '../../lib/business';
-import Ornament from '../ui/Ornament.astro';
+import { photos } from '../../lib/photos';
 
-// Screen 1: full-bleed artwork under a transparent header, then the wordmark block on
-// black, then the promise strip with the badge on the right.
-const promise = ['Small groups.', 'Wild rivers.', 'Fish you remember.'];
+// The live site's hero is a full-bleed slider of catch photos with one line of script
+// type and a Book Now button over it. That is kept exactly. What is added: a scrim so
+// the type actually passes contrast over a bright sky, a slow scale drift so a still
+// reads as footage, and a crossfade instead of a hard cut.
+const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
 ---
 
-<section class="bg-ink text-cream relative">
-  <img
-    src="/art/hero-background-1536.webp"
-    srcset="
-      /art/hero-background-768.webp   768w,
-      /art/hero-background-1200.webp 1200w,
-      /art/hero-background-1536.webp 1536w
-    "
-    sizes="100vw"
-    width="1536"
-    height="1024"
-    alt="Illustrated view of a quiet Oregon coastal river winding through pine forest"
-    class="block h-[46vh] max-h-[420px] min-h-[260px] w-full object-cover object-top md:h-[62vh] md:max-h-none"
-    loading="eager"
-    fetchpriority="high"
-  />
+<!-- Height is viewport-based on phones, but at xl+ it is driven by aspect ratio instead.
+     The photos are 4:3, and a vh-tall hero on a wide screen makes a box far wider than
+     that, so object-cover eats the top and bottom of every one. Pinning the desktop hero
+     to 3:2 keeps the mismatch to about a tenth rather than a sixth, whatever the window
+     height. max-h stops it running past the fold on short laptops. -->
+<section
+  class="relative isolate h-[70vh] min-h-[28rem] w-full overflow-hidden sm:h-[78vh] xl:h-auto xl:max-h-[88vh] xl:aspect-[7/5]"
+>
+  <div data-hero-slides class="absolute inset-0">
+    {
+      slides.map((slide, i) => (
+        <div
+          data-hero-slide
+          class:list={[
+            'absolute inset-0 transition-opacity duration-1000 ease-out',
+            i === 0 ? 'opacity-100' : 'opacity-0',
+          ]}
+          aria-hidden={i === 0 ? undefined : 'true'}
+        >
+          <Image
+            src={slide.src}
+            alt={i === 0 ? slide.alt : ''}
+            widths={[900, 1400, 1900]}
+            sizes="100vw"
+            {
+            /* Two things pin the top edge, because that is where the faces are and
+                anything trimmed there is the shot ruined:
 
-  <div class="px-6 pt-10 pb-8 text-center md:px-8 md:pt-14">
-    <h1 class="text-[1.75rem] md:text-5xl">Guided Steelhead<br />&amp; Salmon Trips</h1>
-    <Ornament tone="light" class="mx-auto mt-5" />
-    <p class="text-cream/70 mx-auto mt-5 max-w-xs text-sm md:max-w-md md:text-base">
-      Your adventure, my waters. Day trips and lodge stays on Oregon's coastal rivers.
-    </p>
-    <a href="#trips" class="btn btn-outline-light mt-7">Explore Trips</a>
+                object-[50%_12%] sends almost all of object-cover's trim to the bottom,
+                which in these photos is boat, waders and water — and is also where the
+                scrim and the headline sit, so it is covered anyway.
+
+                origin-top makes the drift scale grow downward instead of outward from
+                the centre. Centre-origin was quietly eating a further ~2% off the top at
+                the peak of every cycle, on top of whatever object-cover had taken. */ }
+            class="h-full w-full origin-top object-cover object-[50%_12%] motion-safe:[animation:hero-drift_18s_ease-out_infinite_alternate]"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            fetchpriority={i === 0 ? 'high' : undefined}
+          />
+        </div>
+      ))
+    }
   </div>
 
-  <div class="border-cream/15 mx-6 flex items-center justify-between gap-6 border-t py-7 md:mx-8">
-    <div>
-      <p class="eyebrow text-cream/60">Our Promise</p>
-      <ul class="mt-3 space-y-1 text-sm">
-        {promise.map((line) => <li>{line}</li>)}
-      </ul>
+  <div class="photo-scrim absolute inset-0" aria-hidden="true"></div>
+
+  <div class="absolute inset-x-0 bottom-0 px-6 pb-16 sm:pb-24 lg:px-14">
+    <!-- The lockup is boxed in a hairline rule that breaks for the eyebrow. It gives
+         the type somewhere to sit on a busy photograph without resorting to a panel,
+         and it is the one piece of structure the live hero has none of. -->
+    <div class="relative mx-auto max-w-2xl text-center">
+      <p class="eyebrow mb-5 text-white/85">Tillamook &middot; Oregon Coast</p>
+
+      <div class="border-t border-white/30" aria-hidden="true"></div>
+
+      <h1
+        class="mt-6 text-[2.1rem] leading-[1.12] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.6)] sm:text-[3rem] lg:text-[3.6rem]"
+      >
+        Book Your Adventure Today!
+      </h1>
+
+      <p class="mx-auto mt-5 max-w-lg text-[0.95rem] text-white/85 sm:text-lg">
+        Guided Salmon &amp; Steelhead trips on Oregon&rsquo;s coastal rivers &mdash; Tillamook Bay,
+        the Wilson, Kilchis and Trask.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+        <a href="/contact" class="btn btn-solid-light">Book Now</a>
+        <a href={business.phoneHref} class="btn btn-outline-light">{business.phone}</a>
+      </div>
     </div>
-    <!-- Cream linework: this strip sits on the dark band under the artwork. -->
-    <img
-      src="/art/logo-badge-cream-320.webp"
-      srcset="/art/logo-badge-cream-320.webp 320w, /art/logo-badge-cream-640.webp 640w"
-      sizes="112px"
-      width="640"
-      height="640"
-      alt=""
-      class="h-28 w-28 shrink-0"
-    />
   </div>
 
-  <p class="pb-8 text-center">
-    <a
-      href={business.phoneHref}
-      class="font-body text-cream/70 hover:text-cream text-sm tracking-wide"
-    >
-      {business.phone}
-    </a>
-  </p>
+  <!-- Dots double as the only slider control. Arrows were dropped: at phone widths they
+       sat on top of the photo's subject, and a three-slide loop does not need them. -->
+  <div class="absolute inset-x-0 bottom-4 flex justify-center gap-2.5 sm:bottom-6">
+    {
+      slides.map((_, i) => (
+        <button
+          type="button"
+          data-hero-dot
+          aria-label={`Show slide ${i + 1} of ${slides.length}`}
+          aria-current={i === 0 ? 'true' : 'false'}
+          class:list={[
+            'h-2 w-2 rounded-full transition-all duration-300',
+            i === 0 ? 'w-6 bg-white' : 'bg-white/50 hover:bg-white/80',
+          ]}
+        />
+      ))
+    }
+  </div>
 </section>
+
+<script>
+  const root = document.querySelector('[data-hero-slides]');
+  const slides = Array.from(document.querySelectorAll<HTMLElement>('[data-hero-slide]'));
+  const dots = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hero-dot]'));
+  if (root && slides.length > 1) {
+    let current = 0;
+    let timer: number | undefined;
+
+    const show = (next: number) => {
+      slides[current].classList.replace('opacity-100', 'opacity-0');
+      slides[current].setAttribute('aria-hidden', 'true');
+      dots[current]?.classList.remove('w-6', 'bg-white');
+      dots[current]?.classList.add('bg-white/50', 'hover:bg-white/80');
+      dots[current]?.setAttribute('aria-current', 'false');
+
+      current = next;
+
+      slides[current].classList.replace('opacity-0', 'opacity-100');
+      slides[current].removeAttribute('aria-hidden');
+      dots[current]?.classList.add('w-6', 'bg-white');
+      dots[current]?.classList.remove('bg-white/50', 'hover:bg-white/80');
+      dots[current]?.setAttribute('aria-current', 'true');
+    };
+
+    const start = () => {
+      stop();
+      // Only auto-advance for people who have not asked the OS for less motion.
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      timer = window.setInterval(() => show((current + 1) % slides.length), 6000);
+    };
+    const stop = () => {
+      if (timer) window.clearInterval(timer);
+      timer = undefined;
+    };
+
+    dots.forEach((dot, i) =>
+      dot.addEventListener('click', () => {
+        show(i);
+        start();
+      }),
+    );
+
+    // Cheap wins: don't burn frames animating a hero nobody is looking at, and give
+    // people a chance to read the caption when they hover it.
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', start);
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+
+    start();
+  }
+</script>

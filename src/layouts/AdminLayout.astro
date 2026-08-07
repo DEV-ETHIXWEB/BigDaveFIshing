@@ -1,0 +1,23 @@
+---
+import '../styles/global.css';
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head
+    ><meta charset="utf-8" /><meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    /><title>{title} | Big Dave's Fishing</title></head
+  >
+  <body class="min-h-screen bg-cream text-ink"
+    ><main><slot /></main><footer
+      class="border-ink/15 border-t px-6 py-5 text-center text-xs text-ink/55"
+    >
+      Big Dave&rsquo;s Fishing Adventures &middot; Staff area
+    </footer></body>
+</html>

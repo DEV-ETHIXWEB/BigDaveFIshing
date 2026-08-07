@@ -1,0 +1,265 @@
+/* Floating nav for tablet and phone. Above 1280px the fixed brand rail takes over and
+   this hides itself, so the two are never on screen together. */
+.card-nav-container {
+  position: fixed;
+  top: 1.2em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 800px;
+  z-index: 45;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1280px) {
+  .card-nav-container {
+    display: none;
+  }
+}
+
+.card-nav {
+  display: block;
+  height: 60px;
+  padding: 0;
+  background-color: #f4f4f4;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.25rem;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+  will-change: height;
+}
+
+/* The client's own weathered board, desaturated - the same treatment the desktop rail
+   gets, so the two chromes read as one brand rather than two. --bd-board is set from
+   Astro, which owns the hashed asset URL. */
+.card-nav-board {
+  position: absolute;
+  inset: 0;
+  background-image: var(--bd-board);
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(1) contrast(0.85) brightness(1.18);
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card-nav-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  z-index: 2;
+}
+
+.hamburger-menu {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 6px;
+  /* Undo UA button styling - this is a <button> for its semantics, not its look. */
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0 0.35rem;
+  order: 3;
+}
+
+.hamburger-menu:hover .hamburger-line {
+  opacity: 0.7;
+}
+
+.hamburger-menu:focus-visible {
+  outline: 3px solid #111111;
+  outline-offset: 2px;
+}
+
+.hamburger-line {
+  display: block;
+  width: 28px;
+  height: 2px;
+  background-color: currentColor;
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+  transform-origin: 50% 50%;
+}
+
+.hamburger-menu.open .hamburger-line:first-child {
+  transform: translateY(4px) rotate(45deg);
+}
+
+.hamburger-menu.open .hamburger-line:last-child {
+  transform: translateY(-4px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hamburger-line {
+    transition: none;
+  }
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  order: 1;
+  flex: 0 0 auto;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.card-nav-cta-button {
+  /* Kept on phones, where the original hid it. Booking is the one thing this site
+     exists to do, so it should never be a tap behind a menu. */
+  order: 2;
+  margin-left: auto;
+  background-color: #111111;
+  color: #f4f4f4;
+  border: none;
+  border-radius: 0.125rem;
+  padding: 0 1.1rem;
+  height: calc(100% - 0.5rem);
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-ui, inherit);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.card-nav-cta-button:hover {
+  background-color: #4a4a4a;
+}
+
+.card-nav-content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60px;
+  bottom: 0;
+  padding: 0.5rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* visibility:hidden also takes the links out of the tab order while the panel is
+   closed, so there is no hidden focus trap to manage. */
+.card-nav.open .card-nav-content {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.nav-card {
+  height: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 0.125rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  gap: 8px;
+  user-select: none;
+}
+
+.nav-card-label {
+  font-family: var(--font-display, inherit);
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.nav-card-links {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-card-link {
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-card-link:hover {
+  opacity: 0.72;
+}
+
+.nav-card-link-icon {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .card-nav-container {
+    top: 0.75em;
+    width: calc(100% - 1.5rem);
+  }
+
+  .card-nav-top {
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  }
+
+  .card-nav-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0.5rem;
+    bottom: 0;
+    justify-content: flex-start;
+  }
+
+  .nav-card {
+    height: auto;
+    min-height: 60px;
+    flex: 1 1 auto;
+    max-height: none;
+  }
+
+  .nav-card-label {
+    font-size: 1.05rem;
+  }
+
+  .nav-card-link {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .card-nav-cta-button {
+    padding: 0 0.75rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+  .logo {
+    height: 34px;
+  }
+}

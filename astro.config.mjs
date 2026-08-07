@@ -15,6 +15,15 @@ export default defineConfig({
     ssr: {
       noExternal: ['lucide-react'],
     },
+    // Adding a new React island used to make the dev server discover React's runtime
+    // late, re-optimise mid-session, and then serve a stale bundle: every island on the
+    // site died with `504 (Outdated Optimize Dep)` and `_jsxDEV is not a function`,
+    // including ones that had been working. Pre-declaring these means the dep graph is
+    // known at startup and a new island cannot invalidate it.
+    // Production builds were never affected - they use jsx-runtime, not the dev runtime.
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+    },
   },
 
   adapter: vercel(),

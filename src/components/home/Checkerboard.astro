@@ -1,0 +1,112 @@
+---
+import { Image } from 'astro:assets';
+import type { Photo } from '../../lib/photos';
+
+export interface Row {
+  photo: Photo;
+  eyebrow?: string;
+  heading?: string;
+  body?: string[];
+  /** Rendered as a definition list instead of paragraphs - used for the season table. */
+  list?: { term: string; detail: string }[];
+  cta?: { label: string; href: string };
+  /** Force the photo to a side. By default rows alternate, starting photo-left. */
+  photoSide?: 'left' | 'right';
+}
+
+interface Props {
+  rows: Row[];
+  /** Index of the first row in the page overall, so alternation can continue across
+      two separate Checkerboard blocks without both starting photo-left. */
+  startIndex?: number;
+  class?: string;
+}
+
+const { rows, startIndex = 0, class: className = '' } = Astro.props;
+
+// The live site's core layout: a two-up grid of tiles where photograph and copy trade
+// sides row by row, so the eye zig-zags down the page. Rebuilt data-driven because
+// every content page repeats it - the original hand-rolls each row in the page builder,
+// which is why its tiles drift out of alignment.
+//
+// Each row is its own grid rather than all rows sharing one. CSS `order` sorts across
+// the whole container, so a single grid would let row three's tiles reshuffle into
+// row one's as soon as there were more than two rows.
+const sideFor = (i: number, row: Row) =>
+  row.photoSide ?? ((startIndex + i) % 2 === 0 ? 'left' : 'right');
+---
+
+<div class={className}>
+  {
+    rows.map((row, i) => {
+      const photoLeft = sideFor(i, row) === 'left';
+      return (
+        <div class="grid md:grid-cols-2">
+          {/* On a phone the tiles stack, so source order decides everything and the
+              photo must lead. The order utility only applies once there are two
+              columns to swap between. */}
+          <div class:list={['group relative overflow-hidden', !photoLeft && 'md:order-2']}>
+            <Image
+              src={row.photo.src}
+              alt={row.photo.alt}
+              widths={[600, 900, 1200]}
+              sizes="(min-width: 768px) 50vw, 100vw"
+              class="aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] md:aspect-auto md:min-h-[22rem]"
+            />
+          </div>
+
+          <div
+            class:list={[
+              'bg-paper flex flex-col justify-center px-6 py-12 sm:px-10 md:px-12 lg:px-16 lg:py-16',
+              !photoLeft && 'md:order-1',
+            ]}
+            data-reveal
+          >
+            {/* Index numeral and eyebrow share a line, split by a rule that runs out to
+                the edge of the measure. Numbering the sections is the clearest way to
+                make a repeating grid read as one deliberate sequence rather than as a
+                template repeating itself. */}
+            <div class="mb-5 flex items-center gap-4">
+              <span class="index-num text-ink shrink-0">
+                {String(startIndex + i + 1).padStart(2, '0')}
+              </span>
+              {row.eyebrow && <p class="eyebrow text-graphite shrink-0">{row.eyebrow}</p>}
+              <span class="bg-ink/15 h-px min-w-6 flex-1" aria-hidden="true" />
+            </div>
+
+            {row.heading && (
+              <h2 class="text-ink text-[1.7rem] leading-tight sm:text-[2rem] lg:text-[2.4rem]">
+                {row.heading}
+              </h2>
+            )}
+
+            {row.body?.map((para) => (
+              <p class="text-ink/75 mt-4 text-[0.98rem] leading-relaxed lg:text-base">{para}</p>
+            ))}
+
+            {row.list && (
+              <dl class="mt-6">
+                {row.list.map((item) => (
+                  <div class="border-ink/10 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b py-3 last:border-b-0">
+                    <dt class="font-display text-ink text-[1.05rem]">{item.term}</dt>
+                    <dd class="font-ui text-graphite text-[0.8rem] tracking-[0.12em] uppercase">
+                      {item.detail}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            {row.cta && (
+              <div class="mt-8">
+                <a href={row.cta.href} class="btn btn-solid-dark">
+                  {row.cta.label}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    })
+  }
+</div>

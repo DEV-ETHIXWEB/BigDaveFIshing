@@ -1,69 +1,51 @@
 @import 'tailwindcss';
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/playfair-display/400.css';
-@import '@fontsource/playfair-display/500.css';
-/* Rye + Oswald are the desktop (xl+) layout's type. See the xl override below. */
+
+/* Merienda + PT Sans are the live site's own faces, read straight off
+   bigdavesfishing.com's stylesheet. Keeping them is most of why the rebuild still
+   reads as the client's brand rather than a generic template. Oswald is ours: the
+   condensed caps used for nav, buttons and small labels, where Merienda's bounce
+   turns to mush and PT Sans caps look like a system font. */
+@import '@fontsource/merienda/400.css';
+@import '@fontsource/merienda/700.css';
+@import '@fontsource/pt-sans/400.css';
+@import '@fontsource/pt-sans/700.css';
 @import '@fontsource/oswald/500.css';
 @import '@fontsource/oswald/600.css';
 
-@font-face {
-  font-family: 'Rye';
-  src: url('/fonts/Rye-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme {
-  /* Big Dave's Fishing brand palette - cream parchment + black ink, matching the illustrated poster art direction */
-  /* --color-cream is the exact parchment tone every illustration is normalised to by
-     scripts/normalize-paper.mjs, so artwork and page background are the same colour and
-     section boundaries leave no seam. Change this and re-run that script to match. */
-  --color-cream: #ece0cb;
-  --color-cream-dark: #ddcaa6;
-  --color-ink: #17130f;
-  /* Two weights of the same copper: cedar for accents on cream, copper for accents
-     on ink. Both clear 4.5:1 against their own background; the single mid-tone we
-     used before failed on one side or the other. */
-  --color-cedar: #7a5535;
-  --color-copper: #c9915c;
+  /* Strictly neutral: black, white and greys, no hue anywhere. The photographs supply
+     every bit of colour on the page, so the chrome's whole job is to stay out of their
+     way. Nothing here has a warm cast — the previous cream and copper read as brown
+     beside the photos and pulled attention off them.
+     Anything that must not be grey (a fish, a sponsor's brand mark) is a photograph,
+     never a palette token. */
+  --color-ink: #111111;
+  /* Page ground. A shade off pure white, so a white copy tile still reads as a tile. */
+  --color-cream: #f4f4f4;
+  --color-cream-dark: #e3e3e3;
+  --color-paper: #ffffff;
 
-  /* Elegant high-contrast serif, set in caps with wide tracking for every heading.
-     This is the mobile design's face; the desktop layout swaps it for Rye at xl+. */
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  /* Condensed caps for the desktop nav, buttons and small labels. */
+  /* Two greys, one per ground: graphite is 8:1 on the page ground, silver 10.6:1 on
+     ink. A single mid-grey failed contrast on one side or the other. */
+  --color-graphite: #4a4a4a;
+  --color-silver: #c2c2c2;
+
+  /* Deprecated aliases. The waiver and admin screens still use these names; pointing
+     them at the greys above turned those pages monochrome with no edits. Prefer
+     graphite/silver in new work, and delete these once nothing references them. */
+  --color-cedar: #4a4a4a;
+  --color-copper: #c2c2c2;
+
+  --font-display: 'Merienda', Georgia, serif;
+  --font-body: 'PT Sans', system-ui, sans-serif;
   --font-ui: 'Oswald', 'Arial Narrow', sans-serif;
-}
 
-/* The desktop layout (xl+) is the original design and keeps its own type. Only one of
-   the two stacks is visible at any width, so overriding the theme variables wholesale
-   here is enough - no per-component scoping needed. */
-@media (min-width: 80rem) {
-  :root {
-    --font-display: 'Rye', 'Arial Narrow', serif;
-  }
+  /* Width of the fixed brand rail at xl+. Referenced by the rail itself and by the
+     padding that keeps page content clear of it, so they can never drift apart. */
+  --rail-w: 19rem;
 }
 
 @layer base {
-  /* Site-wide black and white treatment.
-     Applied per region rather than on html/body on purpose: a filter makes the element
-     the containing block for any position:fixed descendant, which would unpin the mobile
-     call/book bar. Filtering an element that is itself fixed is fine, so the bar carries
-     its own .bw-region.
-     Because the artwork and the palette both pass through the same transform, the
-     parchment tones still match the page background exactly and the section seams stay
-     invisible - no need to re-run scripts/normalize-paper.mjs.
-     To go back to colour, delete this rule and the body background override below. */
-  body > header,
-  body > main,
-  body > footer,
-  .bw-region {
-    filter: grayscale(1);
-  }
-
   html {
     scroll-behavior: smooth;
   }
@@ -85,35 +67,22 @@
   body {
     font-family: var(--font-body);
     color: var(--color-ink);
-    /* grayscale(--color-cream). The body sits outside the filtered regions, so it needs
-       the already-desaturated value to match them. */
-    background-color: #e1e1e1;
-    font-size: 18px;
-    line-height: 1.6;
+    background-color: var(--color-cream);
+    font-size: 17px;
+    line-height: 1.65;
   }
 
+  /* Merienda is a bouncy semi-script: it has to be set in sentence case with normal
+     tracking. The uppercase + wide-tracking rule the old display face used would
+     make it illegible, so headings deliberately carry none of it. */
   h1,
   h2,
   h3,
   h4 {
     font-family: var(--font-display);
-    text-transform: uppercase;
-    /* Headings in the design are airy: wide tracking, tight leading. */
-    letter-spacing: 0.06em;
-    line-height: 1.18;
     font-weight: 400;
-  }
-
-  /* Rye is already wide and heavy, so the desktop layout uses the original tighter
-     tracking and default leading. */
-  @media (min-width: 80rem) {
-    h1,
-    h2,
-    h3,
-    h4 {
-      letter-spacing: 0.02em;
-      line-height: inherit;
-    }
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   :focus-visible {
@@ -123,41 +92,44 @@
 }
 
 @layer components {
-  /* ---- Design system from the mobile mockup -------------------------------- */
-
   /* Tiny caps eyebrow that sits above most headings. */
   .eyebrow {
-    font-family: var(--font-body);
-    font-size: 0.625rem;
+    font-family: var(--font-ui);
+    font-size: 0.6875rem;
     font-weight: 500;
-    letter-spacing: 0.28em;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
   }
 
-  /* Buttons: small caps, wide tracking, gently rounded. Two fills, two outlines,
-     one pair for dark sections and one for light. */
+  /* Buttons: condensed caps, wide tracking, square-ish. Two fills, two outlines,
+     one pair for dark grounds and one for light. */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-family: var(--font-body);
-    font-size: 0.6875rem;
+    font-family: var(--font-ui);
+    font-size: 0.8125rem;
     font-weight: 500;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    padding: 0.9rem 1.75rem;
-    border-radius: 0.25rem;
+    padding: 0.85rem 1.9rem;
+    border-radius: 0.125rem;
     border: 1px solid transparent;
     transition:
       background-color 0.2s,
       color 0.2s,
-      border-color 0.2s;
+      border-color 0.2s,
+      transform 0.2s;
   }
 
-  /* On dark sections */
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  /* On dark grounds and over photographs */
   .btn-outline-light {
-    border-color: rgb(from var(--color-cream) r g b / 0.55);
+    border-color: rgb(from var(--color-cream) r g b / 0.7);
     color: var(--color-cream);
   }
   .btn-outline-light:hover {
@@ -169,16 +141,16 @@
     color: var(--color-ink);
   }
   .btn-solid-light:hover {
-    background-color: rgb(from var(--color-cream) r g b / 0.85);
+    background-color: #fff;
   }
 
-  /* On light sections */
+  /* On light grounds */
   .btn-solid-dark {
     background-color: var(--color-ink);
     color: var(--color-cream);
   }
   .btn-solid-dark:hover {
-    background-color: rgb(from var(--color-ink) r g b / 0.85);
+    background-color: var(--color-cedar);
   }
   .btn-outline-dark {
     border-color: rgb(from var(--color-ink) r g b / 0.35);
@@ -189,75 +161,173 @@
     color: var(--color-cream);
   }
 
-  /* Cuts a section off along a torn edge instead of filling the area below the rip
-     with a flat colour, so the next section shows through the rip immediately.
-     Set --tear-mask from tornMaskUrl(). --tear-h must match TornBottom's h-9/md:h-14. */
-  .torn-bottom {
-    --tear-h: 2.25rem;
-    -webkit-mask-image: linear-gradient(#000, #000), var(--tear-mask);
-    mask-image: linear-gradient(#000, #000), var(--tear-mask);
-    -webkit-mask-size:
-      100% calc(100% - var(--tear-h) + 1px),
-      100% var(--tear-h);
-    mask-size:
-      100% calc(100% - var(--tear-h) + 1px),
-      100% var(--tear-h);
-    -webkit-mask-position:
-      top left,
-      bottom left;
-    mask-position:
-      top left,
-      bottom left;
-    -webkit-mask-repeat: no-repeat, no-repeat;
-    mask-repeat: no-repeat, no-repeat;
+  /* Content offset for the fixed brand rail. Applied to the page shell rather than
+     to each section, so full-bleed photos still run edge to edge inside it. */
+  .rail-offset {
+    padding-left: 0;
   }
 
-  @media (min-width: 768px) {
-    .torn-bottom {
-      --tear-h: 3.5rem;
+  @media (min-width: 80rem) {
+    .rail-offset {
+      padding-left: var(--rail-w);
     }
   }
 
-  /* ---- Desktop (xl+) layout only ------------------------------------------- */
-
-  /* A couple of the illustrations are vignetted along their top edge, so their
-     parchment reads darker there than the page cream and leaves a faint band at the
-     section join. This dissolves that edge into the page. Only used where the top
-     strip of the artwork is empty sky, so nothing is washed out. */
-  .paper-fade-top::before {
+  /* A hairline rule with a small mark centred in it - the divider under section
+     headings. Cheaper and crisper than shipping an ornament image. */
+  .rule-diamond {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  .rule-diamond::before,
+  .rule-diamond::after {
     content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: -1px;
-    height: 4.5rem;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(to bottom, var(--color-cream) 0%, rgb(236 224 203 / 0) 100%);
-  }
-
-  /* Soft feathered cream halo behind copy that sits on top of the illustrations.
-     Keeps text legible wherever the art crops, without a hard panel edge. */
-  .art-wash {
-    position: relative;
-  }
-
-  .art-wash > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .art-wash::before {
-    content: '';
-    position: absolute;
-    inset: -2rem -3.5rem;
-    z-index: 0;
-    pointer-events: none;
-    /* Opaque core is sized to fully contain the text box, then feathers out to nothing. */
-    background: radial-gradient(
-      ellipse 75% 80% at 45% 50%,
-      var(--color-cream) 0%,
-      var(--color-cream) 72%,
-      rgb(236 224 203 / 0) 100%
+    height: 1px;
+    width: clamp(2rem, 12vw, 5rem);
+    background: linear-gradient(
+      to right,
+      rgb(from currentColor r g b / 0),
+      rgb(from currentColor r g b / 0.5)
     );
+  }
+  .rule-diamond::after {
+    transform: rotate(180deg);
+  }
+
+  /* The weathered board behind the brand rail and the phone header. The source photo
+     is warm brown, so it is desaturated here rather than swapped for a grey file:
+     it stays the client's own texture, just with the hue taken out.
+     It sits on its own layer because a filter on the rail itself would also grey out
+     nothing useful and would make the rail a containing block for anything fixed
+     inside it. Content goes above it on .board-face. */
+  .board {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .board-tex {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(1) contrast(0.85) brightness(1.18);
+  }
+
+  /* Section index numerals - 01, 02, 03 down the page. Set in the condensed face at a
+     size that reads as a mark rather than as text. */
+  .index-num {
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Scroll reveal. The hidden state is scoped to .js-reveal, which is set on <html> by
+     an inline script in the head - so if that script never runs, or JS is off entirely,
+     every section is simply visible and nothing is lost. */
+  .js-reveal [data-reveal] {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  [data-reveal] {
+    transition:
+      opacity 0.7s ease-out,
+      transform 0.7s ease-out;
+  }
+
+  .js-reveal [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .js-reveal [data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+    [data-reveal] {
+      transition: none;
+    }
+  }
+
+  /* Scrim under text that sits directly on a photograph. Dark enough at the bottom
+     to hold white type at AA, transparent at the top so the picture still reads. */
+  .photo-scrim {
+    background: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0.8) 0%,
+      rgb(0 0 0 / 0.45) 35%,
+      rgb(0 0 0 / 0.1) 65%,
+      rgb(0 0 0 / 0) 100%
+    );
+  }
+
+  /* Marquee used by the sponsor rail. The track holds two identical copies of the
+     logo list, so translating it exactly -50% lands copy two where copy one began
+     and the loop has no visible seam. */
+  .marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 6rem,
+      #000 calc(100% - 6rem),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 6rem,
+      #000 calc(100% - 6rem),
+      transparent
+    );
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee-scroll 48s linear infinite;
+  }
+
+  .marquee:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
+    .marquee {
+      overflow-x: auto;
+    }
+  }
+
+  /* Slow drift over the hero stills. Gives a static photograph a sense of being footage
+     without the weight of an actual video file.
+     Deliberately shallow: the hero already crops these 4:3 photos to fill a much wider
+     box, so every extra percent of zoom comes straight off the subject. The old
+     1.06-1.16 range was cutting heads off on desktop. Starting at 1 means the low point
+     of the cycle shows the photo exactly as object-cover framed it. */
+  @keyframes hero-drift {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.05);
+    }
   }
 }

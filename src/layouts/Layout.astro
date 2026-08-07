@@ -1,12 +1,17 @@
 ---
+import { getImage } from 'astro:assets';
 import '../styles/global.css';
-import Header from '../components/Header.astro';
-import HeaderDesktop from '../components/HeaderDesktop.astro';
+import BrandRail from '../components/BrandRail.astro';
 import Footer from '../components/Footer.astro';
-import FooterDesktop from '../components/FooterDesktop.astro';
-import MobileMenu from '../components/MobileMenu.astro';
-import BottomTabBar from '../components/BottomTabBar.astro';
-import { business } from '../lib/business';
+import BookBar from '../components/BookBar.astro';
+import CardNav from '../components/ui/CardNav.tsx';
+import { business, nav, navCards, waiverLinks } from '../lib/business';
+import badge from '../assets/photos/logo-badge.png';
+import wood from '../assets/photos/wood-texture.png';
+
+// Both resolved here rather than inside the island: Astro owns the hashed asset URLs,
+// and this way no image imports ship to the client.
+const badgeImg = await getImage({ src: badge, width: 120, format: 'webp' });
 
 interface Props {
   title: string;
@@ -20,8 +25,17 @@ const localBusinessSchema = {
   '@type': 'LocalBusiness',
   name: business.name,
   telephone: business.phone,
+  email: business.email,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: business.address.street,
+    addressLocality: business.address.locality,
+    addressRegion: business.address.region,
+    postalCode: business.address.postalCode,
+    addressCountry: business.address.country,
+  },
   areaServed: business.serviceArea,
-  // TODO: replace with real street address, geo coordinates, and hours once confirmed
+  // TODO: replace with real geo coordinates and confirmed hours
   openingHoursSpecification: {
     '@type': 'OpeningHoursSpecification',
     dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -37,28 +51,118 @@ const localBusinessSchema = {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Generated from the brand badge by scripts/make-favicon.mjs. The .ico carries
+         16/32/48 for the tab strip and for browsers that probe /favicon.ico directly;
+         the 96px PNG is what high-DPI tabs and bookmark lists pick up. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
     <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
+
+    <!-- Arms the reveal animation before first paint, so sections start hidden rather
+         than flashing in once the observer attaches. Deliberately the only thing that
+         sets this class: if the script is blocked, the CSS hidden state never applies
+         and the page is simply visible. -->
+    <script is:inline>
+      document.documentElement.classList.add('js-reveal');
+    </script>
   </head>
-  <!-- No bg utility here: the body sits outside the grayscale regions, so its
-       background comes from the already-desaturated value in global.css. -->
-  <body class="text-ink">
+
+  <body class="bg-cream text-ink">
     <span id="top"></span>
-    <!-- Two chromes, one per breakpoint. Below xl: the mockup's transparent overlay
-         header plus the slide-in menu and bottom tab bar. At xl+: the original dark
-         sticky bar. Each is hidden at the other's widths, so only one is ever visible;
-         the page body does the same in index.astro. -->
-    <HeaderDesktop />
-    <main class="relative">
-      <Header />
-      <slot />
-    </main>
-    <Footer />
-    <FooterDesktop />
-    <MobileMenu />
-    <BottomTabBar />
+
+    <!-- One chrome, two shapes. The fixed rail is the nav at xl+; below that it hides
+         and the floating CardNav takes over. Each hides itself at the other's widths,
+         so they are never both on screen.
+
+         CardNav floats over the page rather than pushing it down, which is why the
+         homepage hero starts flush at the top. Inner pages already carry pt-28/md:pt-36
+         below xl, which clears it. -->
+    <BrandRail />
+
+    <div style={`--bd-board: url(${wood.src});`}>
+      <CardNav
+        client:load
+        logo={badgeImg.src}
+        logoAlt=""
+        items={navCards}
+        baseColor="#f4f4f4"
+        menuColor="#111111"
+        buttonBgColor="#111111"
+        buttonTextColor="#f4f4f4"
+        ctaLabel="Book Now"
+        ctaHref="/contact"
+      />
+
+      <!-- The nav is a React island, so without JS there is no menu at all below xl.
+           This is the whole site in plain markup for that case; it costs nothing and
+           renders only when scripting is off. -->
+      <noscript>
+        <nav aria-label="Primary" class="bg-ink text-cream xl:hidden">
+          <ul class="flex flex-wrap justify-center gap-x-5 gap-y-2 px-4 py-3 text-sm">
+            {
+              [...nav, ...waiverLinks].map((link) => (
+                <li>
+                  <a href={link.href} class="underline underline-offset-2">
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </noscript>
+    </div>
+
+    <div class="rail-offset flex min-h-screen flex-col">
+      <main class="flex-1"><slot /></main>
+      <Footer />
+    </div>
+    <BookBar />
+
+    <script>
+      // Reveal each [data-reveal] block once it comes into view, then stop watching it.
+      // rootMargin pulls the trigger line up from the bottom edge so a section has
+      // finished animating by the time it is properly on screen.
+      const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      const revealAll = () => targets.forEach((el) => el.classList.add('is-in'));
+
+      if (!('IntersectionObserver' in window)) {
+        revealAll();
+      } else {
+        // The failure mode here is the worst one available - a section that never
+        // animates in is a section nobody can read - so the effect is treated as
+        // strictly optional. IntersectionObserver delivers an initial callback for
+        // every target shortly after observe(), whether or not it is on screen, so
+        // if nothing has arrived at all within a beat, observation is not running
+        // (a hidden or non-compositing tab will do this) and everything is simply
+        // shown. Once a single callback lands, the effect is known to work and the
+        // safety net is dropped.
+        let delivered = false;
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            delivered = true;
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.classList.add('is-in');
+              observer.unobserve(entry.target);
+            }
+          },
+          { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+        );
+
+        targets.forEach((el) => observer.observe(el));
+
+        window.setTimeout(() => {
+          if (delivered) return;
+          observer.disconnect();
+          revealAll();
+        }, 1500);
+      }
+    </script>
   </body>
 </html>

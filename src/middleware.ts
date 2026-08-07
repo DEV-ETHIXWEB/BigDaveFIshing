@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { validAdminSession } from './lib/admin-auth';
 
 /**
  * Gates /admin/* behind HTTP Basic Auth. This is a small internal tool for one
@@ -11,7 +12,9 @@ import { defineMiddleware } from 'astro:middleware';
  * mean "no password required."
  */
 export const onRequest = defineMiddleware(async (context, next) => {
-  if (!context.url.pathname.startsWith('/admin')) return next();
+  const { pathname } = context.url;
+  if (pathname === '/admin/login') return next();
+  if (!pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) return next();
 
   const user = import.meta.env.ADMIN_USER;
   const pass = import.meta.env.ADMIN_PASSWORD;
@@ -22,19 +25,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     });
   }
 
-  const authHeader = context.request.headers.get('authorization');
-  if (authHeader?.startsWith('Basic ')) {
-    const decoded = atob(authHeader.slice(6));
-    const sep = decoded.indexOf(':');
-    const suppliedUser = decoded.slice(0, sep);
-    const suppliedPass = decoded.slice(sep + 1);
-    if (suppliedUser === user && suppliedPass === pass) {
-      return next();
-    }
-  }
-
-  return new Response('Authentication required', {
-    status: 401,
-    headers: { 'WWW-Authenticate': 'Basic realm="Admin"' },
-  });
+  if (await validAdminSession(context.cookies.get('big_dave_admin')?.value, pass)) return next();
+  if (pathname.startsWith('/api/')) return new Response('Authentication required', { status: 401 });
+  return context.redirect(`/admin/login?next=${encodeURIComponent(pathname)}`, 303);
 });

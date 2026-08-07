@@ -9,9 +9,15 @@ const schema = z.object({
   tripDate: z.string().trim().max(50).optional(),
   guestName: z.string().trim().min(2, 'Enter your name'),
   guestEmail: z.string().trim().email('Enter a valid email').optional().or(z.literal('')),
-  guestPhone: z.string().trim().min(7, 'Enter a phone number'),
+  guestPhone: z
+    .string()
+    .trim()
+    .regex(/^\d{7,15}$/, 'Enter 7–15 numbers only'),
   emergencyContactName: z.string().trim().min(2, "Enter a contact's name"),
-  emergencyContactPhone: z.string().trim().min(7, 'Enter a phone number'),
+  emergencyContactPhone: z
+    .string()
+    .trim()
+    .regex(/^\d{7,15}$/, 'Enter 7–15 numbers only'),
   agree: z.literal(true, { error: 'You must agree to continue' }),
 });
 
@@ -83,7 +89,12 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           signaturePng,
         }),
       });
-      if (!res.ok) throw new Error('Submission failed');
+      const response = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(response.error || 'Submission failed');
+      window.localStorage.setItem(
+        `big-dave-waiver:${waiverType}:${groupCode || 'individual'}:${data.guestPhone}`,
+        'signed',
+      );
       setSubmitted(true);
     } catch {
       setSubmitError(
@@ -161,7 +172,14 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           <label htmlFor="guestPhone" className={label}>
             Phone
           </label>
-          <input id="guestPhone" type="tel" className={control} {...register('guestPhone')} />
+          <input
+            id="guestPhone"
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className={control}
+            {...register('guestPhone', { setValueAs: (value) => String(value).replace(/\D/g, '') })}
+          />
         </div>
         <div className={field}>
           <label htmlFor="guestEmail" className={label}>
@@ -197,8 +215,12 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           <input
             id="emergencyContactPhone"
             type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
             className={control}
-            {...register('emergencyContactPhone')}
+            {...register('emergencyContactPhone', {
+              setValueAs: (value) => String(value).replace(/\D/g, ''),
+            })}
           />
         </div>
       </div>

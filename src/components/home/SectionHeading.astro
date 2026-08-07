@@ -1,0 +1,45 @@
+---
+interface Props {
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+  tone?: 'dark' | 'light';
+  class?: string;
+}
+
+const { eyebrow, title, intro, tone = 'dark', class: className = '' } = Astro.props;
+// tone describes the *text*, matching how the button classes read: 'dark' is ink type
+// on the cream page, 'light' is cream type on an ink section.
+const isDark = tone === 'dark';
+---
+
+<div class:list={['mx-auto max-w-2xl px-6 text-center', className]}>
+  {
+    eyebrow && (
+      <p class:list={['eyebrow mb-3', isDark ? 'text-graphite' : 'text-silver']}>{eyebrow}</p>
+    )
+  }
+
+  <h2
+    class:list={[
+      'text-[1.9rem] leading-tight sm:text-[2.3rem] lg:text-[2.7rem]',
+      isDark ? 'text-ink' : 'text-cream',
+    ]}
+  >
+    {title}
+  </h2>
+
+  <div class="rule-diamond mt-5" aria-hidden="true">
+    <span class:list={['h-1.5 w-1.5 rotate-45', isDark ? 'bg-graphite/70' : 'bg-silver/80']}></span>
+  </div>
+
+  {
+    intro && (
+      <p
+        class:list={['mt-5 text-[0.98rem] lg:text-base', isDark ? 'text-ink/70' : 'text-cream/70']}
+      >
+        {intro}
+      </p>
+    )
+  }
+</div>

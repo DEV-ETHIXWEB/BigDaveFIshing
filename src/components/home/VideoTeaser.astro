@@ -1,0 +1,76 @@
+---
+import { Image } from 'astro:assets';
+import { Play } from 'lucide-react';
+import SectionHeading from './SectionHeading.astro';
+
+import battle from '../../assets/photos/video-thumbs/big-dave-video-battle.jpg';
+import winterSteelhead from '../../assets/photos/video-thumbs/angler-westtv-winter-steelhead.jpg';
+import fallChinook from '../../assets/photos/video-thumbs/trask-wilson-river-fall-chinook.jpg';
+import alaskanCoho from '../../assets/photos/video-thumbs/big-dave-alaskan-coho-fishing.jpg';
+
+// A teaser for /videos, not a player. The live site's gallery loads its clips through a
+// slider script, so no playable URLs exist in its page source - inventing embed ids
+// would be worse than linking through to the real gallery.
+//
+// The first title is verbatim from the live site's slider caption. The other three are
+// taken from their image filenames, which is good evidence but not the same as the
+// client confirming them - check these before launch.
+const videos = [
+  {
+    src: battle,
+    title: '1 V 1 Steelhead Fishing Challenge',
+    detail: 'Winter Steelhead with Roland Martin & Big Dave',
+  },
+  { src: winterSteelhead, title: 'Winter Steelhead', detail: 'Featured on Angler West TV' },
+  { src: fallChinook, title: 'Fall Chinook', detail: 'Trask & Wilson Rivers' },
+  { src: alaskanCoho, title: 'Alaskan Coho', detail: 'Big Dave up north' },
+];
+---
+
+<section class="bg-cream py-16 lg:py-20">
+  <SectionHeading
+    eyebrow="Watch"
+    title="Video Gallery"
+    intro="Days on the water with Big Dave, plus the episodes filmed with Angler West TV."
+  />
+
+  <div
+    class="mx-auto mt-10 grid max-w-6xl gap-4 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-10"
+    data-reveal
+  >
+    {
+      videos.map((video) => (
+        <a href="/videos" class="group block">
+          <div class="relative overflow-hidden">
+            <Image
+              src={video.src}
+              alt=""
+              widths={[400, 800]}
+              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+              class="aspect-video w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+              loading="lazy"
+            />
+            <span
+              class="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/10"
+              aria-hidden="true"
+            />
+            <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+              <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg transition-transform duration-300 group-hover:scale-110">
+                <Play size={18} fill="currentColor" strokeWidth={0} className="ml-0.5" />
+              </span>
+            </span>
+          </div>
+
+          <h3 class="text-ink group-hover:text-graphite mt-3 text-[1.05rem] transition-colors">
+            {video.title}
+          </h3>
+          <p class="text-ink/60 mt-1 text-sm">{video.detail}</p>
+        </a>
+      ))
+    }
+  </div>
+
+  <div class="mt-10 text-center">
+    <a href="/videos" class="btn btn-outline-dark">See All Videos</a>
+  </div>
+</section>

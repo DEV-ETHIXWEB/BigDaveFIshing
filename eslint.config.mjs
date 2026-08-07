@@ -8,7 +8,10 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist/**', '.astro/**', 'node_modules/**', '.vercel/**'] },
+  // `**/.astro/**` rather than `.astro/**`: Astro generates its types into
+  // src/.astro/, which the root-anchored pattern did not match, so every build made
+  // `npm run lint` fail on generated files nobody wrote.
+  { ignores: ['dist/**', '**/.astro/**', 'node_modules/**', '.vercel/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...eslintPluginAstro.configs['flat/recommended'],

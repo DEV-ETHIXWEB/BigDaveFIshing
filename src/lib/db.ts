@@ -40,6 +40,21 @@ export function ensureSchema() {
       )
     `,
       )
+      .then(() =>
+        db.batch([
+          `CREATE UNIQUE INDEX IF NOT EXISTS waivers_one_submission_per_guest
+             ON waivers (waiver_type, COALESCE(group_code, ''), guest_phone)`,
+          `CREATE TABLE IF NOT EXISTS waiver_teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team_number INTEGER NOT NULL UNIQUE,
+            leader_name TEXT NOT NULL,
+            waiver_type TEXT NOT NULL,
+            trip_date TEXT,
+            group_code TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+        ]),
+      )
       .then(() => undefined);
   }
   return initialized;
@@ -58,4 +73,14 @@ export interface WaiverRecord {
   emergency_contact_phone: string;
   signature_png: string;
   signed_at: string;
+}
+
+export interface WaiverTeam {
+  id: number;
+  team_number: number;
+  leader_name: string;
+  waiver_type: 'fishing-adventure' | 'lodge';
+  trip_date: string | null;
+  group_code: string;
+  created_at: string;
 }

@@ -1,20 +1,45 @@
 ---
-// Not one of the mockup's screens; kept from the original brief. Placeholder sponsor
-// marks - swap for real logo files.
-const sponsors = ['Sponsor One', 'Sponsor Two', 'Sponsor Three', 'Sponsor Four'];
+import { Image } from 'astro:assets';
+import { sponsors } from '../../lib/sponsors';
+import SectionHeading from './SectionHeading.astro';
+
+// The live site's sponsor rail, kept because these relationships are a credibility
+// signal in guiding - Pro-Cure and Pautzke don't back someone who blanks. Theirs is a
+// jerky carousel that clips logos mid-frame; this is one continuous track that never
+// cuts a logo in half, and it pauses on hover so a name can actually be read.
+//
+// The list is rendered twice into one track: the animation translates exactly -50%, so
+// the second copy lands where the first began and the loop has no seam. The duplicate
+// is hidden from assistive tech, which would otherwise read every sponsor twice.
 ---
 
-<section class="bg-cream text-ink">
-  <div class="px-6 pt-12 pb-16 text-center md:px-8">
-    <p class="eyebrow text-ink/70">Trusted By</p>
-    <ul class="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+<section class="border-ink/10 border-y bg-white py-14 lg:py-16">
+  <SectionHeading title="Our Sponsors" class="!max-w-xl" />
+
+  <div class="marquee mt-10">
+    <div class="marquee-track">
       {
-        sponsors.map((name) => (
-          <li class="font-display text-ink/70 hover:text-ink text-sm tracking-[0.14em] uppercase transition-colors">
-            {name}
-          </li>
+        [0, 1].map((copy) => (
+          <ul class="flex shrink-0 items-center" aria-hidden={copy === 1 ? 'true' : undefined}>
+            {sponsors.map((sponsor) => (
+              <li class="flex w-[9.5rem] shrink-0 items-center justify-center px-5 sm:w-[12rem] sm:px-7">
+                {/* Desaturated to sit inside the monochrome chrome, and returned to full
+                    brand colour on hover so nobody's mark is permanently altered. If a
+                    sponsor agreement requires colour at all times, drop the two filter
+                    utilities here and the logos render as supplied. */}
+                <Image
+                  src={sponsor.src}
+                  alt={copy === 1 ? '' : sponsor.name}
+                  widths={[200, 400]}
+                  sizes="160px"
+                  class="h-14 w-auto max-w-full object-contain grayscale opacity-70 transition duration-300 hover:grayscale-0 hover:opacity-100 sm:h-16"
+                  loading="lazy"
+                />
+              </li>
+            ))}
+          </ul>
         ))
       }
-    </ul>
+    </div>
   </div>
 </section>

@@ -1,6 +1,6 @@
 ---
 import { X } from 'lucide-react';
-import { business, nav } from '../lib/business';
+import { business, nav, waiverLinks } from '../lib/business';
 
 const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
@@ -19,7 +19,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 
   <div
     id="menu-panel"
-    class="bg-ink text-cream bw-region absolute inset-y-0 left-0 flex w-[82%] max-w-xs -translate-x-full flex-col px-6 pt-6 pb-8 transition-transform duration-300 ease-out"
+    class="bg-ink text-cream absolute inset-y-0 left-0 flex w-[82%] max-w-xs -translate-x-full flex-col overflow-y-auto px-6 pt-6 pb-8 transition-transform duration-300 ease-out"
   >
     <button
       id="menu-close"
@@ -39,11 +39,27 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 class:list={[
-                  'font-body block py-4 text-sm tracking-[0.18em] uppercase transition-colors',
-                  isActive(item.href) ? 'text-cream' : 'text-cream/75 hover:text-cream',
+                  'font-ui block py-4 text-sm tracking-[0.16em] uppercase transition-colors',
+                  isActive(item.href) ? 'text-silver' : 'text-cream/75 hover:text-cream',
                 ]}
               >
                 {item.label}
+              </a>
+            </li>
+          ))
+        }
+        {
+          waiverLinks.map((link) => (
+            <li class="border-cream/12 border-b">
+              <a
+                href={link.href}
+                aria-current={isActive(link.href) ? 'page' : undefined}
+                class:list={[
+                  'font-ui block py-4 text-sm tracking-[0.16em] uppercase transition-colors',
+                  isActive(link.href) ? 'text-silver' : 'text-cream/75 hover:text-cream',
+                ]}
+              >
+                {link.label}
               </a>
             </li>
           ))
@@ -52,7 +68,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     </nav>
 
     <div class="mt-auto pt-8">
-      <a href="#book" class="btn btn-solid-light w-full" data-menu-dismiss>Book A Trip</a>
+      <a href="/contact" class="btn btn-solid-light w-full">Book A Trip</a>
       <a
         href={business.phoneHref}
         class="text-cream/60 hover:text-cream mt-4 block text-center text-sm"

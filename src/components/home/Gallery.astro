@@ -1,44 +1,56 @@
 ---
-import PlaceholderPhoto from '../PlaceholderPhoto.astro';
-import Ornament from '../ui/Ornament.astro';
+import { getImage } from 'astro:assets';
+import { accordionPhotos } from '../../lib/photos';
+import AccordionGallery from '../ui/AccordionGallery.tsx';
+import SectionHeading from './SectionHeading.astro';
 
-// Screen 6: staggered two-column mosaic. The columns are offset so the tiles
-// interlock rather than lining up in rows.
-const left = [
-  { label: 'river run at first light', ratio: 'aspect-[3/4]' },
-  { label: 'client with a steelhead', ratio: 'aspect-square' },
-];
-const right = [
-  { label: 'chrome steelhead in the net', ratio: 'aspect-square' },
-  { label: 'wading the far bank', ratio: 'aspect-[3/4]' },
-];
+// The photographs are the thing the client actually likes about their site, so this is
+// the one section where the page stops being a layout and becomes an interaction.
+//
+// The accordion desaturates every closed panel and returns the open one to full colour,
+// which is this design's whole colour rule made literal: grey chrome, and colour only
+// where you are looking.
+//
+// The island takes plain URL strings, so each photo is run through getImage here at
+// build time rather than the React bundle importing source files - the browser still
+// gets optimised WebP, and no image handling ships to the client.
+const panels = await Promise.all(
+  accordionPhotos.map(async (photo) => {
+    // Width only - passing a height too would force every photo to one aspect ratio,
+    // and these are not all 4:3 (the halibut is 1200x870). Let height follow the source.
+    const optimised = await getImage({ src: photo.src, width: 1000, format: 'webp' });
+    return { image: optimised.src, alt: photo.alt, label: photo.label };
+  }),
+);
 ---
 
-<section class="bg-cream text-ink">
-  <div class="px-6 pt-14 text-center md:px-8 md:pt-20">
-    <p class="eyebrow text-ink/70">Gallery</p>
-    <h2 class="mt-4 text-[1.6rem] md:text-4xl">Moments That<br />Matter</h2>
-    <Ornament class="mx-auto mt-5" />
-  </div>
+<section id="gallery" class="bg-ink py-16 lg:py-20">
+  <SectionHeading
+    eyebrow="From the boat"
+    title="Recent Catches"
+    intro="Real fish, real trips, real clients — no stock photography anywhere on this page."
+    tone="light"
+  />
 
-  <div class="mx-auto mt-9 grid max-w-md grid-cols-2 gap-3 px-6 md:px-8">
-    <div class="space-y-3">
-      {
-        left.map((photo) => (
-          <PlaceholderPhoto label={photo.label} class:list={['w-full rounded-sm', photo.ratio]} />
-        ))
-      }
-    </div>
-    <div class="space-y-3 pt-8">
-      {
-        right.map((photo) => (
-          <PlaceholderPhoto label={photo.label} class:list={['w-full rounded-sm', photo.ratio]} />
-        ))
-      }
-    </div>
-  </div>
+  <div class="mx-auto mt-10 max-w-6xl px-4 sm:px-6 lg:px-10" data-reveal>
+    <!-- client:visible: this sits well below the fold, so GSAP and the island's JS are
+         not fetched until someone actually scrolls to it. -->
+    <AccordionGallery
+      client:visible
+      items={panels}
+      defaultIndex={0}
+      height={460}
+      gap={8}
+      radius={2}
+      accentColor="#ffffff"
+      overlayColor="#111111"
+      textColor="#ffffff"
+      grayscale={true}
+      trigger="hover"
+    />
 
-  <div class="px-6 pt-10 pb-14 text-center md:px-8 md:pb-20">
-    <a href="/video-gallery" class="btn btn-outline-dark">View Full Gallery</a>
+    <p class="text-cream/50 mt-5 text-center text-sm">
+      Hover or tap a photo to open it — arrow keys move between them.
+    </p>
   </div>
 </section>

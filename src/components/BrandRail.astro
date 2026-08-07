@@ -1,0 +1,129 @@
+---
+import { Image } from 'astro:assets';
+import { ChevronDown, Phone } from 'lucide-react';
+import { business, nav, waiverLinks } from '../lib/business';
+import wood from '../assets/photos/wood-texture.png';
+import badge from '../assets/photos/logo-badge.png';
+
+// The live site's defining piece of layout: a full-height column on the left holding
+// the badge and a stacked nav, on weathered board. Kept because it is the thing that
+// makes the site look like this business and not a stock guide-service template.
+//
+// Fixed rather than in flow, so the photography beside it scrolls full-bleed behind its
+// own edge. xl+ only - below that the Header and slide-in menu take over.
+const path = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+const waiverOpen = waiverLinks.some((link) => isActive(link.href));
+---
+
+<div
+  class="board border-ink/10 fixed inset-y-0 left-0 z-40 hidden w-[var(--rail-w)] flex-col border-r xl:flex"
+>
+  <div class="board-tex" style={`background-image: url(${wood.src});`} aria-hidden="true"></div>
+
+  <a href="/" class="block shrink-0 px-10 pt-9" aria-label={`${business.name} — home`}>
+    <Image
+      src={badge}
+      alt=""
+      widths={[280, 560]}
+      sizes="240px"
+      class="mx-auto h-auto w-full max-w-[12rem]"
+      loading="eager"
+    />
+  </a>
+
+  <!-- The nav takes the leftover height and centres in it, so the list sits optically
+       mid-column whatever the viewport height. -->
+  <nav aria-label="Primary" class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-6">
+    <ul class="w-full">
+      {
+        nav.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              class:list={[
+                // Each item is a centred row with a rule that grows out from under it
+                // on hover - the one flourish the rail gets, in place of a fill.
+                'group font-body relative block px-3 py-2.5 text-center text-[0.95rem] font-bold transition-colors',
+                isActive(item.href) ? 'text-ink' : 'text-graphite hover:text-ink',
+              ]}
+            >
+              {item.label}
+              <span
+                aria-hidden="true"
+                class:list={[
+                  'bg-ink absolute bottom-1.5 left-1/2 h-px -translate-x-1/2 transition-all duration-300',
+                  isActive(item.href) ? 'w-8' : 'w-0 group-hover:w-8',
+                ]}
+              />
+            </a>
+          </li>
+        ))
+      }
+
+      <li>
+        <details open={waiverOpen} class="group">
+          <summary
+            class="font-body text-graphite hover:text-ink flex cursor-pointer items-center justify-center gap-1.5 px-3 py-2.5 text-center text-[0.95rem] font-bold transition-colors [&::-webkit-details-marker]:hidden"
+          >
+            Waiver
+            <ChevronDown
+              size={15}
+              strokeWidth={2.5}
+              aria-hidden="true"
+              className="transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <ul class="pb-1">
+            {
+              waiverLinks.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    aria-current={isActive(link.href) ? 'page' : undefined}
+                    class:list={[
+                      'font-body block px-3 py-1.5 text-center text-[0.8rem] transition-colors',
+                      isActive(link.href) ? 'text-ink' : 'text-graphite/75 hover:text-ink',
+                    ]}
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </details>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Phone and social pinned to the foot of the rail. The number is the site's single
+       most important link - on the live site it only exists in the bottom bar, which
+       scrolls; here it is permanently on screen at desktop widths. -->
+  <div class="border-ink/12 shrink-0 border-t px-6 py-6 text-center">
+    <p class="eyebrow text-graphite/80">Book a trip</p>
+
+    <a
+      href={business.phoneHref}
+      class="text-ink hover:text-graphite font-display mt-2 inline-flex items-center gap-2 text-[1.15rem] transition-colors"
+    >
+      <Phone size={16} strokeWidth={2} aria-hidden="true" />
+      {business.phone}
+    </a>
+
+    <a
+      href={business.facebook}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${business.name} on Facebook`}
+      class="border-ink/25 text-ink hover:bg-ink hover:text-cream mx-auto mt-5 flex h-9 w-9 items-center justify-center border transition-colors"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path
+          d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94Z"
+        ></path>
+      </svg>
+    </a>
+  </div>
+</div>
