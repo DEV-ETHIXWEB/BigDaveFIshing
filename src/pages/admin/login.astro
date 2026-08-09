@@ -1,8 +1,19 @@
 ---
 export const prerender = false;
 import AdminLayout from '../../layouts/AdminLayout.astro';
+import { adminSecretIsWeak } from '../../lib/admin-secret';
+
 const error = Astro.url.searchParams.get('error') === '1';
 const next = Astro.url.searchParams.get('next') || '/admin/waivers';
+
+// Seconds remaining on a rate-limit lockout, passed back by the login endpoint.
+const lockedFor = Number(Astro.url.searchParams.get('locked') || 0);
+const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0;
+
+// Shown only in production, and only to someone already at the staff door. It is a
+// deployment mistake worth being loud about: without ADMIN_SESSION_SECRET the session
+// cookie is signed with the password itself, so a weak password is also a weak key.
+const weakSecret = import.meta.env.PROD && adminSecretIsWeak();
 ---
 
 <AdminLayout title="Staff sign in"
@@ -26,6 +37,20 @@ const next = Astro.url.searchParams.get('next') || '/admin/waivers';
         error && (
           <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">
             Incorrect username or password.
+          </p>
+        )
+      }{
+        lockedMinutes > 0 && (
+          <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">
+            Too many failed attempts. Try again in about {lockedMinutes} minute
+            {lockedMinutes === 1 ? '' : 's'}.
+          </p>
+        )
+      }{
+        weakSecret && (
+          <p class="mt-5 border border-amber-900/25 bg-amber-900/5 px-3 py-2 text-xs leading-relaxed">
+            <strong>Set ADMIN_SESSION_SECRET.</strong> Sessions are currently signed with the admin
+            password, so the cookie is only as hard to forge as that password is to guess.
           </p>
         )
       }<input type="hidden" name="next" value={next} /><label class="mt-6 block text-sm font-medium"

@@ -3,28 +3,14 @@ import { Image } from 'astro:assets';
 import { Play } from 'lucide-react';
 import SectionHeading from './SectionHeading.astro';
 
-import battle from '../../assets/photos/video-thumbs/big-dave-video-battle.jpg';
-import winterSteelhead from '../../assets/photos/video-thumbs/angler-westtv-winter-steelhead.jpg';
-import fallChinook from '../../assets/photos/video-thumbs/trask-wilson-river-fall-chinook.jpg';
-import alaskanCoho from '../../assets/photos/video-thumbs/big-dave-alaskan-coho-fishing.jpg';
+import { videos as allVideos } from '../../lib/videos';
 
-// A teaser for /videos, not a player. The live site's gallery loads its clips through a
-// slider script, so no playable URLs exist in its page source - inventing embed ids
-// would be worse than linking through to the real gallery.
+// A teaser for /videos, not a player — every card links through to the gallery.
 //
-// The first title is verbatim from the live site's slider caption. The other three are
-// taken from their image filenames, which is good evidence but not the same as the
-// client confirming them - check these before launch.
-const videos = [
-  {
-    src: battle,
-    title: '1 V 1 Steelhead Fishing Challenge',
-    detail: 'Winter Steelhead with Roland Martin & Big Dave',
-  },
-  { src: winterSteelhead, title: 'Winter Steelhead', detail: 'Featured on Angler West TV' },
-  { src: fallChinook, title: 'Fall Chinook', detail: 'Trask & Wilson Rivers' },
-  { src: alaskanCoho, title: 'Alaskan Coho', detail: 'Big Dave up north' },
-];
+// Titles come from lib/videos.ts, which holds them verbatim from the live site's slider.
+// They used to be hand-written here and three of the four were guesses read off image
+// filenames; sharing one manifest means the teaser and the gallery cannot disagree.
+const videos = allVideos.slice(0, 4);
 ---
 
 <section class="bg-cream py-16 lg:py-20">
@@ -40,14 +26,14 @@ const videos = [
   >
     {
       videos.map((video) => (
-        <a href="/videos" class="group block">
-          <div class="relative overflow-hidden">
+        <a href="/videos" class="group video-card block">
+          <div class="video-card__frame relative">
             <Image
-              src={video.src}
+              src={video.thumb}
               alt=""
               widths={[400, 800]}
               sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              class="aspect-video w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+              class="video-card__media aspect-video w-full object-cover"
               loading="lazy"
             />
             <span
@@ -61,7 +47,7 @@ const videos = [
             </span>
           </div>
 
-          <h3 class="text-ink group-hover:text-graphite mt-3 text-[1.05rem] transition-colors">
+          <h3 class="text-ink group-hover:text-graphite mt-3 text-[1.05rem] leading-snug transition-colors">
             {video.title}
           </h3>
           <p class="text-ink/60 mt-1 text-sm">{video.detail}</p>

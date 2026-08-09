@@ -23,16 +23,17 @@ import SectionHeading from './SectionHeading.astro';
           <ul class="flex shrink-0 items-center" aria-hidden={copy === 1 ? 'true' : undefined}>
             {sponsors.map((sponsor) => (
               <li class="flex w-[9.5rem] shrink-0 items-center justify-center px-5 sm:w-[12rem] sm:px-7">
-                {/* Desaturated to sit inside the monochrome chrome, and returned to full
-                    brand colour on hover so nobody's mark is permanently altered. If a
-                    sponsor agreement requires colour at all times, drop the two filter
-                    utilities here and the logos render as supplied. */}
+                {/* Full brand colour, always — these are other companies' marks and the
+                    monochrome rule the rest of the chrome follows does not get to alter
+                    them. They lift on hover instead, which the paused marquee makes
+                    readable: the track stops the moment the pointer enters it, so the
+                    logo being zoomed stays still rather than sliding out from under. */}
                 <Image
                   src={sponsor.src}
                   alt={copy === 1 ? '' : sponsor.name}
                   widths={[200, 400]}
                   sizes="160px"
-                  class="h-14 w-auto max-w-full object-contain grayscale opacity-70 transition duration-300 hover:grayscale-0 hover:opacity-100 sm:h-16"
+                  class="h-14 w-auto max-w-full object-contain transition-transform duration-300 ease-out hover:scale-110 sm:h-16"
                   loading="lazy"
                 />
               </li>

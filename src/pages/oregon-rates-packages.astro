@@ -1,0 +1,100 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import Checkerboard from '../components/home/Checkerboard.astro';
+import type { Row } from '../components/home/Checkerboard.astro';
+import SectionHeading from '../components/home/SectionHeading.astro';
+import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { business } from '../lib/business';
+
+// The only price the live site publishes is the lodge nightly rate. Guided trips say
+// "Contact us for current rates" and nothing more, so that is exactly what this page
+// says. No day rate, package price or deposit figure is invented anywhere here - putting
+// a plausible-looking number on a page a customer might hold you to is not ours to do.
+const rows: Row[] = [
+  {
+    photo: photos.bayChinookPair,
+    eyebrow: 'Guided trips',
+    heading: 'Fully Guided Fishing Trip',
+    body: [
+      'These guided trips include all tackle and gear.',
+      'Fishing transcends the ordinary experiences of life. The thrill of catching that “big one” is enjoyed by people of all ages from all walks of life.',
+      'Rates vary by season, river and party size — call and we’ll quote you for the dates you’re looking at.',
+    ],
+    cta: { label: `Call ${business.phone}`, href: business.phoneHref },
+  },
+  {
+    photo: photos.lodgeRiver,
+    eyebrow: 'Lodging',
+    heading: 'Wilson River Lodging',
+    body: [
+      'The Wilson River Lodge is located 8 miles east of Tillamook along the majestic Wilson River.',
+      `Nightly rate ${business.lodgeNightlyRate}. Call for group discounts.`,
+      `Along with lodging we offer private river access with fantastic fishing opportunities. In the summer this same stretch of water has an amazing swimming hole that will provide pleasure for the whole family. Come meet hosts ${business.hosts}! They would love to have you stay at their little piece of paradise along the Oregon coast.`,
+    ],
+    cta: { label: 'About the Lodge', href: '/wilson-river-lodge' },
+  },
+];
+
+// Every item here is stated or directly implied by the live site's own copy: tackle and
+// gear included, sleds and drift boats, Lamiglas rods, all Salmon/Steelhead tackle.
+const included = [
+  { label: 'All tackle and gear', detail: 'Rods, terminal tackle and bait for the day.' },
+  { label: 'Lamiglas rods', detail: 'The rods Big Dave runs on every trip.' },
+  { label: 'Sleds and drift boats', detail: 'Boat matched to the river and the conditions.' },
+  { label: 'Life jackets', detail: 'Provided for every guest aboard.' },
+  {
+    label: 'Guiding for any level',
+    detail: 'Beginners through avid anglers — technique explained as you go.',
+  },
+  { label: 'River selection', detail: 'We pick the water with the best shot on the day.' },
+];
+---
+
+<Layout
+  title="Rates & Packages | Guided Trips & Lodge Rates — Big Dave's Fishing Adventures"
+  description="Fully guided Oregon fishing trips with all tackle and gear included, and lodging at the Wilson River Lodge at $75 + tax per person nightly. Call (503) 538-5607 for current trip rates."
+>
+  <PageHero
+    eyebrow="Trips & lodging"
+    title="Rates & Packages"
+    intro="Guided days on the water, and a bed on the river when you want to make a weekend of it."
+    photo={photos.boatCatch}
+  />
+
+  <Checkerboard rows={rows} startIndex={0} />
+
+  <section class="bg-cream py-16 lg:py-20">
+    <SectionHeading
+      eyebrow="On every trip"
+      title="What's Included"
+      intro="Turn up with a licence, warm layers and lunch — the rest is on the boat."
+    />
+
+    <div
+      class="mx-auto mt-10 grid max-w-5xl gap-px bg-ink/10 px-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3"
+      data-reveal
+    >
+      {
+        included.map((item) => (
+          <div class="bg-cream p-6">
+            <h3 class="text-ink text-[1.1rem]">{item.label}</h3>
+            <p class="text-ink/65 mt-2 text-sm leading-relaxed">{item.detail}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="text-ink/55 mx-auto mt-8 max-w-2xl px-6 text-center text-sm">
+      An Oregon fishing licence and tags are required and are not included — pick them up before
+      your trip.
+    </p>
+
+    <div class="mt-8 text-center">
+      <a href={business.phoneHref} class="btn btn-solid-dark">Call {business.phone}</a>
+    </div>
+  </section>
+
+  <Sponsors />
+</Layout>

@@ -21,20 +21,27 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
 >
   <div class="board-tex" style={`background-image: url(${wood.src});`} aria-hidden="true"></div>
 
-  <a href="/" class="block shrink-0 px-10 pt-9" aria-label={`${business.name} — home`}>
+  <!-- rail-head/rail-nav/rail-foot are hooks for the short-viewport rules in global.css.
+       Nine nav items plus a 12rem badge plus the phone block needs roughly 700px of
+       column; on a 13" laptop the rail is shorter than that and the list was scrolling
+       with "Home" pushed out of sight above the fold. -->
+  <a href="/" class="rail-head block shrink-0 px-10 pt-9" aria-label={`${business.name} — home`}>
     <Image
       src={badge}
       alt=""
       widths={[280, 560]}
       sizes="240px"
-      class="mx-auto h-auto w-full max-w-[12rem]"
+      class="rail-badge mx-auto h-auto w-full max-w-[12rem]"
       loading="eager"
     />
   </a>
 
   <!-- The nav takes the leftover height and centres in it, so the list sits optically
        mid-column whatever the viewport height. -->
-  <nav aria-label="Primary" class="flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-6">
+  <nav
+    aria-label="Primary"
+    class="rail-nav flex min-h-0 flex-1 items-center overflow-y-auto px-5 py-6"
+  >
     <ul class="w-full">
       {
         nav.map((item) => (
@@ -101,7 +108,7 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
   <!-- Phone and social pinned to the foot of the rail. The number is the site's single
        most important link - on the live site it only exists in the bottom bar, which
        scrolls; here it is permanently on screen at desktop widths. -->
-  <div class="border-ink/12 shrink-0 border-t px-6 py-6 text-center">
+  <div class="rail-foot border-ink/12 shrink-0 border-t px-6 py-6 text-center">
     <p class="eyebrow text-graphite/80">Book a trip</p>
 
     <a

@@ -1,0 +1,66 @@
+---
+import { Image } from 'astro:assets';
+import type { Photo } from '../lib/photos';
+
+interface Props {
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+  photo: Photo;
+}
+
+const { eyebrow, title, intro, photo } = Astro.props;
+
+// The live site's inner pages open cold - straight into a checkerboard tile with no
+// title, so there is nothing telling you which page you landed on and nothing for search
+// to read as an H1. This is the 30%: a short photographic band carrying the page name.
+//
+// Deliberately much shorter than the homepage hero (aspect 21/9 at xl vs 7/5) so it
+// reads as a header rather than competing with it, and the content starts near the fold.
+//
+// Starts flush at the top of the page: the floating CardNav sits over it below xl,
+// exactly as it does on the homepage, and the title is placed low enough to clear it.
+---
+
+<section
+  class="relative isolate h-[42vh] min-h-[19rem] w-full overflow-hidden xl:h-auto xl:aspect-[21/9] xl:max-h-[30rem]"
+>
+  <Image
+    src={photo.src}
+    alt={photo.alt}
+    widths={[900, 1400, 1900]}
+    sizes="100vw"
+    class="h-full w-full origin-top object-cover object-[50%_28%]"
+    loading="eager"
+    fetchpriority="high"
+  />
+
+  <div class="photo-scrim absolute inset-0" aria-hidden="true"></div>
+
+  <div class="absolute inset-x-0 bottom-0 px-6 pb-8 sm:px-10 lg:px-14 lg:pb-12">
+    <div class="mx-auto max-w-4xl text-center">
+      {
+        eyebrow && (
+          <p class="eyebrow mb-3 text-white/75 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {eyebrow}
+          </p>
+        )
+      }
+
+      <h1
+        data-reveal-text
+        class="text-[1.9rem] leading-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.6)] sm:text-[2.5rem] lg:text-[3rem]"
+      >
+        {title}
+      </h1>
+
+      {
+        intro && (
+          <p class="mx-auto mt-4 max-w-2xl text-[0.95rem] text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-base">
+            {intro}
+          </p>
+        )
+      }
+    </div>
+  </div>
+</section>

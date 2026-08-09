@@ -10,6 +10,13 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   integrations: [react()],
 
+  // Wraps Astro's own sharp service to raise the default encode quality from 80 to 90.
+  // See src/lib/image-service.ts for why. sharp is a direct dependency now rather than
+  // something inherited from Astro's own tree.
+  image: {
+    service: { entrypoint: './src/lib/image-service.ts' },
+  },
+
   vite: {
     plugins: [tailwindcss()],
     ssr: {
@@ -22,7 +29,13 @@ export default defineConfig({
     // known at startup and a new island cannot invalidate it.
     // Production builds were never affected - they use jsx-runtime, not the dev runtime.
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+      include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+      ],
     },
   },
 

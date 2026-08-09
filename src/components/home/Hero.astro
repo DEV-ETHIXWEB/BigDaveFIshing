@@ -29,22 +29,21 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
           ]}
           aria-hidden={i === 0 ? undefined : 'true'}
         >
+          {/* Two things pin the top edge, because that is where the faces are and
+              anything trimmed there is the shot ruined.
+
+              object-[50%_12%] sends almost all of object-cover's trim to the bottom,
+              which in these photos is boat, waders and water, and is also where the
+              scrim and the headline sit, so it is covered anyway.
+
+              origin-top makes the drift scale grow downward instead of outward from the
+              centre. Centre-origin was quietly eating a further ~2% off the top at the
+              peak of every cycle, on top of whatever object-cover had already taken. */}
           <Image
             src={slide.src}
             alt={i === 0 ? slide.alt : ''}
             widths={[900, 1400, 1900]}
             sizes="100vw"
-            {
-            /* Two things pin the top edge, because that is where the faces are and
-                anything trimmed there is the shot ruined:
-
-                object-[50%_12%] sends almost all of object-cover's trim to the bottom,
-                which in these photos is boat, waders and water — and is also where the
-                scrim and the headline sit, so it is covered anyway.
-
-                origin-top makes the drift scale grow downward instead of outward from
-                the centre. Centre-origin was quietly eating a further ~2% off the top at
-                the peak of every cycle, on top of whatever object-cover had taken. */ }
             class="h-full w-full origin-top object-cover object-[50%_12%] motion-safe:[animation:hero-drift_18s_ease-out_infinite_alternate]"
             loading={i === 0 ? 'eager' : 'lazy'}
             fetchpriority={i === 0 ? 'high' : undefined}
@@ -66,6 +65,7 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
       <div class="border-t border-white/30" aria-hidden="true"></div>
 
       <h1
+        data-reveal-text
         class="mt-6 text-[2.1rem] leading-[1.12] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.6)] sm:text-[3rem] lg:text-[3.6rem]"
       >
         Book Your Adventure Today!

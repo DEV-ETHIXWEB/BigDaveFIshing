@@ -28,22 +28,51 @@ const SignaturePad = forwardRef<SignaturePadHandle, { className?: string }>(func
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let lastWidth = 0;
+    let lastHeight = 0;
+
     function resize() {
-      if (!canvas) return;
+      if (!canvas || !ctx) return;
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
-      const prior = ctx?.getImageData(0, 0, canvas.width, canvas.height);
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx?.scale(dpr, dpr);
-      if (ctx) {
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 2.25;
-        ctx.strokeStyle = '#17130f';
+      const width = Math.round(rect.width * dpr);
+      const height = Math.round(rect.height * dpr);
+
+      // On a phone, scrolling shows and hides the URL bar, which fires resize without
+      // the canvas actually changing width. Re-running the rest would wipe the drawing
+      // mid-signature, so bail unless the size genuinely changed.
+      if (width === lastWidth && height === lastHeight) return;
+
+      // Preserve as an image rather than getImageData/putImageData: the bitmap is about
+      // to change dimensions, and putImageData ignores scaling, so the old version
+      // pasted back at the wrong size and clipped.
+      const prior = lastWidth > 0 ? canvas.toDataURL('image/png') : null;
+      const priorW = lastWidth;
+      const priorH = lastHeight;
+
+      canvas.width = width;
+      canvas.height = height;
+      lastWidth = width;
+      lastHeight = height;
+
+      // setTransform, not scale: scale multiplies onto whatever transform is already
+      // there, so every resize compounded and strokes drifted further off the pointer.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2.25;
+      ctx.strokeStyle = '#111111';
+
+      if (prior) {
+        const image = new Image();
+        image.onload = () => {
+          // Drawn in CSS pixels because the context is already scaled by dpr.
+          ctx.drawImage(image, 0, 0, priorW / dpr, priorH / dpr);
+        };
+        image.src = prior;
       }
-      if (prior && ctx) ctx.putImageData(prior, 0, 0);
     }
+
     resize();
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);

@@ -53,6 +53,10 @@ export function ensureSchema() {
             group_code TEXT NOT NULL UNIQUE,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
           )`,
+          // The dashboard orders every waiver by signed_at and the submit path looks a
+          // team up by group_code on each insert. Both were full scans.
+          `CREATE INDEX IF NOT EXISTS waivers_signed_at ON waivers (signed_at DESC)`,
+          `CREATE INDEX IF NOT EXISTS waivers_group_code ON waivers (group_code)`,
         ]),
       )
       .then(() => undefined);
@@ -74,6 +78,22 @@ export interface WaiverRecord {
   signature_png: string;
   signed_at: string;
 }
+
+/**
+ * A waiver as the dashboard lists it — everything except the signature image.
+ *
+ * The signature is a base64 data URL, typically 8–15 kB each. Selecting it into the list
+ * meant a page of 61 waivers shipped 1 MB of HTML, 88% of it signature payload, on every
+ * load and on every poll-triggered refresh. The dashboard now renders each signature as
+ * an <img> pointing at /api/admin/signature/[id], which lazy-loads and caches.
+ *
+ * Keep signature_png out of any query that returns more than one row.
+ */
+export type WaiverListRow = Omit<WaiverRecord, 'signature_png'>;
+
+/** Column list for list views. Explicit so `SELECT *` can't quietly re-add the blob. */
+export const WAIVER_LIST_COLUMNS = `id, waiver_type, group_code, group_leader_name, trip_date,
+  guest_name, guest_email, guest_phone, emergency_contact_name, emergency_contact_phone, signed_at`;
 
 export interface WaiverTeam {
   id: number;

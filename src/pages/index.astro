@@ -87,6 +87,12 @@ const species = [
 >
   <Hero />
 
+  <!-- A white rule closing off the hero. The hero is a photograph and the tile directly
+       under it is another photograph, so without this the two run together into one
+       column of imagery with no seam. Spans the content column only — it starts to the
+       right of the fixed brand rail because the whole shell is offset by the rail width. -->
+  <div class="h-[3px] w-full bg-white" aria-hidden="true"></div>
+
   <!-- startIndex continues the count across the two blocks, so the section numerals run
        01-04 down the page and the photo/copy sides keep alternating rather than both
        blocks restarting photo-left. -->

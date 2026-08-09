@@ -46,12 +46,17 @@ const sideFor = (i: number, row: Row) =>
               photo must lead. The order utility only applies once there are two
               columns to swap between. */}
           <div class:list={['group relative overflow-hidden', !photoLeft && 'md:order-2']}>
+            {/* parallax-media replaces the old group-hover zoom rather than joining it:
+                a scroll-driven animation sets transform outright, so a hover scale on the
+                same element would silently never apply. The drift is the better effect —
+                it's always working, not only when a pointer happens to be over the tile,
+                and there is no pointer at all on a phone. */}
             <Image
               src={row.photo.src}
               alt={row.photo.alt}
               widths={[600, 900, 1200]}
               sizes="(min-width: 768px) 50vw, 100vw"
-              class="aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] md:aspect-auto md:min-h-[22rem]"
+              class="parallax-media aspect-[4/3] h-full w-full object-cover md:aspect-auto md:min-h-[22rem]"
             />
           </div>
 
@@ -75,7 +80,10 @@ const sideFor = (i: number, row: Row) =>
             </div>
 
             {row.heading && (
-              <h2 class="text-ink text-[1.7rem] leading-tight sm:text-[2rem] lg:text-[2.4rem]">
+              <h2
+                data-reveal-text
+                class="text-ink text-[1.7rem] leading-tight sm:text-[2rem] lg:text-[2.4rem]"
+              >
                 {row.heading}
               </h2>
             )}

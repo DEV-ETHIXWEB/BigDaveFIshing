@@ -1,0 +1,90 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import Checkerboard from '../components/home/Checkerboard.astro';
+import type { Row } from '../components/home/Checkerboard.astro';
+import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { business } from '../lib/business';
+
+// Copy verbatim from the live Wilson River Lodge page. That page is one long unbroken
+// column of eight paragraphs; the only change here is splitting it across the
+// checkerboard so each run of fish gets its own photo and heading. No words were altered.
+const rows: Row[] = [
+  {
+    photo: photos.lodgeRiver,
+    eyebrow: 'The lodge',
+    heading: 'On the Wilson River',
+    body: [
+      'We are located on the Wilson River and offer guided fishing for winter Steelhead and fall and spring Chinook Salmon. We have comfortable lodging for up to 6 guests. With prior notification we can also accommodate large corporate groups or family outings.',
+      'We also have some private river access right behind the lodge for fishing the mighty Steelhead and Salmon.',
+    ],
+  },
+  {
+    photo: photos.wilsonRiverLevel,
+    eyebrow: 'Getting here',
+    heading: 'An Hour From Portland',
+    body: [
+      'We are located between mile marker 8 and 9 on Hwy 6, just outside Tillamook, Oregon along the Oregon Coast. Located about 1 hour from Portland, you will be in the heart of salmon and Steelhead country.',
+      'We have 3 rivers (Trask, Kilchis and Wilson River) within 15 minutes of the Wilson River Lodge. These are all excellent rivers for chasing Salmon and Steelhead.',
+      'We have trips for the beginners to most avid anglers. Whether you should choose to fish for the day or would like to stay at our lodge, we will put you into the position to catch that trophy fish of a lifetime!',
+    ],
+  },
+  {
+    photo: photos.lodgeSilverSalmon,
+    eyebrow: 'September – December',
+    heading: 'Fall Chinook',
+    body: [
+      'Fall Chinook start in Tillamook Bay in the middle of September. We are fishing for them in the rivers, bay and tidewaters by mid-September and continue to fish for these tackle busting monsters through December in the rivers.',
+      'Out of the 2 runs of Chinook that come into our rivers, the fall Chinook is definitely the bigger of the two and more abundant. These fish average 20-30 lbs. with an occasional 40-50 lb. trophy fish.',
+      'During this time of the year, we are usually using heavier gear. This includes trolling spinners and herring, back bouncing; bobber fishing and pulling plugs are very effective ways to catch these big bruisers.',
+    ],
+  },
+  {
+    photo: photos.rainbowTrout,
+    eyebrow: 'December – mid-April',
+    heading: 'Winter Steelhead',
+    body: [
+      'By mid-December the fall Chinook fishery slows down and the Steelhead start to invade our river systems. Steelhead is considered by most to be the crème de la crème with their acrobatic and “Never Say Die” attitude, these fish are very exciting to fight and land. Winter steelhead average from 8-12 lbs., some getting over 20+ lbs. (trophy fish).',
+      'On the Wilson River we also get a great run of hatchery fish, which can be harvested. Fish and Game also has an excellent hatchery brewed stock program that has been producing some huge hatchery fish (mid to high teens).',
+      'There are many methods to target these very aggressive fish. These include bobber dogging with eggs, beads, or yarnies, bobber fishing with jigs or bait, pulling plugs, throwing spinners, drift fishing and even fly fishing can be very productive.',
+    ],
+  },
+  {
+    photo: photos.silverSalmon,
+    eyebrow: 'May – June',
+    heading: 'Spring Chinook',
+    body: [
+      'Springers are predominant in Tillamook Bay and can be found in the rivers as well. These fish run from the middle of May through end of June, this is the best time frame to go after spring Chinook salmon.',
+      'Most people consider the Spring Chinook to be the best fish to eat across the country. They average 15-20lb and are a real treat on the BBQ. Like the fall Chinook, the Springer’s are targeted by trolling spinners and herring, back bouncing, bobber fishing and pulling plugs.',
+    ],
+  },
+  {
+    photo: photos.daveAndLeslie,
+    eyebrow: 'Your hosts',
+    heading: `Meet ${business.hosts}`,
+    body: [
+      `Along with lodging we offer private river access with fantastic fishing opportunities. In the summer this same stretch of water has an amazing swimming hole that will provide pleasure for the whole family.`,
+      `Come meet hosts ${business.hosts}! They would love to have you stay at their little piece of paradise along the Oregon coast.`,
+      `Nightly rate ${business.lodgeNightlyRate}. Call for group discounts.`,
+    ],
+    cta: { label: 'Rates & Packages', href: '/oregon-rates-packages' },
+  },
+];
+---
+
+<Layout
+  title="Wilson River Lodge | Fishing Lodge near Tillamook, Oregon — Big Dave's Fishing Adventures"
+  description="Comfortable lodging for up to 6 guests on the Wilson River, 8 miles east of Tillamook and about an hour from Portland, with private river access and three rivers within 15 minutes."
+>
+  <PageHero
+    eyebrow="Hwy 6 · Tillamook, Oregon"
+    title="Wilson River Lodge"
+    intro="Lodging for up to six on the river, with private access right behind the lodge."
+    photo={photos.lodgeFishing}
+  />
+
+  <Checkerboard rows={rows} startIndex={0} />
+
+  <Sponsors />
+</Layout>

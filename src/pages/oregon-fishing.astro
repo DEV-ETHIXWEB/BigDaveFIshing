@@ -1,0 +1,76 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import Checkerboard from '../components/home/Checkerboard.astro';
+import type { Row } from '../components/home/Checkerboard.astro';
+import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { business, seasons } from '../lib/business';
+
+// Every paragraph below is the live Oregon Fishing page's own copy, verbatim - not
+// reworded, not summarised. It is the page that already ranks, and rewriting a guide's
+// voice ("the Blue Faced Drift", "tackle busting") would trade away the thing that makes
+// it read like a person rather than a brochure.
+const rows: Row[] = [
+  {
+    photo: photos.daveSalmonTillamook,
+    eyebrow: 'Where we fish',
+    heading: 'Oregon Fishing',
+    body: [
+      "Big Dave's Fishing Adventures along the Oregon coast offers guided fishing trips for Steelhead and Salmon. We have trips for the most avid angler to the beginner. Big Dave mainly fishes Buoy 10, Tillamook Bay, tide waters, and the Wilson, Kilchis and Trask Rivers in Tillamook, Oregon.",
+      'Enjoy either Fall Chinook fishing (mid-September-December) or Winter Steelhead fishing (December-mid-April) along some of Oregon’s most famous fisheries.',
+    ],
+  },
+  {
+    photo: photos.cohoKing,
+    eyebrow: 'Chinook',
+    heading: 'Tackle Busting Salmon',
+    body: [
+      'If you are after the tackle busting Chinook Salmon, they are no joke. These fish can average 25-30 lb. with the occasional 50 lb. hog.',
+      'Trolling spinners and herring, pulling plugs, back bouncing eggs, bobber fishing and drift fishing are all productive methods I use for catching Chinook. Experienced or novice, Big Dave can explain any technique or strategy needed to catch that trophy fish of a lifetime.',
+    ],
+  },
+  {
+    photo: photos.rainbowTrout,
+    eyebrow: 'Steelhead',
+    heading: 'The Blue Faced Drift',
+    body: [
+      'Steelhead are considered by some to be the crème de la crème of Oregon’s coastal rivers. There is nothing quite like bobber dogging for Steelies with your bait drifting perfectly thru the holes, just waiting for your rod to load up.',
+      'We call this technique the “Blue Faced Drift” because you will be holding your breath with the anticipation of catching the river’s royalty, the mighty Steelhead. Pulling plugs along with bobber and jig fishing are all techniques we use to catch these acrobatic fish. These Steelhead can average 8-13 lb. with the occasional 20+lb. fish.',
+    ],
+  },
+  {
+    photo: photos.bayChinookPair,
+    eyebrow: 'The boat',
+    heading: 'Fully Guided, All Tackle Provided',
+    body: [
+      'All of our trips are fully guided in sleds and drift boats, using Lamiglas rods. We provide all Salmon/Steelhead tackle.',
+      'Conditions can change from day to day, river to river. Call me to book a date and rely on us to select the location with the best opportunity to put you on fish.',
+    ],
+    cta: { label: 'Rates & Packages', href: '/oregon-rates-packages' },
+  },
+  {
+    photo: photos.salmonWilsonRiver,
+    eyebrow: 'When to come',
+    heading: 'Schedule',
+    list: seasons.map((s) => ({ term: s.fish, detail: s.window })),
+    cta: { label: `Call ${business.phone}`, href: business.phoneHref },
+  },
+];
+---
+
+<Layout
+  title="Oregon Fishing | Guided Salmon & Steelhead Trips — Big Dave's Fishing Adventures"
+  description="Guided Salmon and Steelhead trips on the Oregon coast — Buoy 10, Tillamook Bay, and the Wilson, Kilchis and Trask Rivers. Fall Chinook September–December, Winter Steelhead December–mid-April."
+>
+  <PageHero
+    eyebrow="Tillamook · Oregon Coast"
+    title="Oregon Fishing"
+    intro="Trips for the most avid angler to the beginner, on some of Oregon's most famous fisheries."
+    photo={photos.threeAnglers}
+  />
+
+  <Checkerboard rows={rows} startIndex={0} />
+
+  <Sponsors />
+</Layout>

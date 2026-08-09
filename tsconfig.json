@@ -1,7 +1,10 @@
 {
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"],
+  // eslint.config.mjs pulls in plugins that ship no type declarations, which surfaces as
+  // a type error in a file that is tooling config rather than shipped code. ESLint checks
+  // its own config; TypeScript has no reason to.
+  "exclude": ["dist", "eslint.config.mjs"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react"

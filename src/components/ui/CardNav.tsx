@@ -112,7 +112,6 @@ const CardNav = ({
       tl?.kill();
       tlRef.current = null;
     };
-     
   }, [ease, items]);
 
   useIsomorphicLayoutEffect(() => {
@@ -138,7 +137,6 @@ const CardNav = ({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-     
   }, [isExpanded]);
 
   const closeMenu = () => {

@@ -1,0 +1,178 @@
+---
+import { Image } from 'astro:assets';
+import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import SectionHeading from '../components/home/SectionHeading.astro';
+import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { business, seasons } from '../lib/business';
+
+// The live Contact page is a photo, an address, an email and a phone number. All four are
+// kept. What is added is the part that actually books a trip: telling someone what to have
+// ready before they dial, and a map link so they can find the lodge.
+//
+// No enquiry form here on purpose. The site already runs a real form pipeline for waivers
+// (Turso + admin dashboard), and standing up a second one that emails into the void — with
+// no inbox configured and no confirmation to the sender — would look functional and
+// quietly lose bookings. Phone is how this business actually takes work.
+const mapQuery = encodeURIComponent(
+  `${business.address.street}, ${business.address.locality}, ${business.address.region} ${business.address.postalCode}`,
+);
+
+const details = [
+  {
+    icon: Phone,
+    label: 'Phone',
+    value: business.phone,
+    href: business.phoneHref,
+    note: 'Best way to reach Big Dave — call or text.',
+  },
+  {
+    icon: Mail,
+    label: 'Email',
+    value: business.email,
+    href: business.emailHref,
+    note: 'For trip enquiries and lodge bookings.',
+  },
+  {
+    icon: MapPin,
+    label: 'Address',
+    value: business.addressLines.join(' '),
+    href: `https://www.google.com/maps/search/?api=1&query=${mapQuery}`,
+    note: 'Between mile marker 8 and 9 on Hwy 6, about an hour from Portland.',
+  },
+];
+
+const beforeYouCall = [
+  'The dates you’re looking at, and how many rods in your party',
+  'Whether you’re after Salmon, Steelhead, or happy either way',
+  'Day trip only, or a stay at the lodge as well',
+  'Anyone in the party who has never fished before',
+];
+---
+
+<Layout
+  title="Contact Us / Book Now | Big Dave's Fishing Adventures — Tillamook, Oregon"
+  description="Book a guided Oregon fishing trip or a stay at the Wilson River Lodge. Call (503) 538-5607 or email bigdave@bigdavesfishing.com. 17175 Wilson River Hwy, Tillamook, OR 97141."
+>
+  <PageHero
+    eyebrow="Get in touch"
+    title="Contact Us / Book Now"
+    intro="Call for dates and river conditions — we'll pick the water with the best shot at putting you on fish."
+    photo={photos.daveAndLeslie}
+  />
+
+  <section class="bg-paper py-16 lg:py-20">
+    <div
+      class="mx-auto grid max-w-6xl gap-10 px-6 sm:px-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-14"
+    >
+      <div data-reveal>
+        <div class="mb-6 flex items-center gap-4">
+          <span class="index-num text-ink shrink-0">01</span>
+          <p class="eyebrow text-graphite shrink-0">Reach us</p>
+          <span class="bg-ink/15 h-px min-w-6 flex-1" aria-hidden="true"></span>
+        </div>
+
+        <h2 class="text-ink text-[1.7rem] leading-tight sm:text-[2rem] lg:text-[2.4rem]">
+          Book Your Adventure
+        </h2>
+
+        <ul class="mt-8 space-y-7">
+          {
+            details.map((row) => (
+              <li class="flex items-start gap-4">
+                <row.icon
+                  size={20}
+                  strokeWidth={1.5}
+                  className="text-graphite mt-1 shrink-0"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0">
+                  <p class="eyebrow text-graphite">{row.label}</p>
+                  <a
+                    href={row.href}
+                    class="font-display text-ink hover:text-graphite mt-1 block text-[1.15rem] break-words transition-colors lg:text-[1.35rem]"
+                    {...(row.href.startsWith('http')
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
+                    {row.value}
+                  </a>
+                  <p class="text-ink/60 mt-1 text-sm">{row.note}</p>
+                </div>
+              </li>
+            ))
+          }
+
+          <li class="flex items-start gap-4">
+            <Clock
+              size={20}
+              strokeWidth={1.5}
+              className="text-graphite mt-1 shrink-0"
+              aria-hidden="true"
+            />
+            <div>
+              <p class="eyebrow text-graphite">Season</p>
+              <p class="text-ink/75 mt-1 text-sm leading-relaxed">
+                {seasons.map((s) => s.fish).join(' · ')} — see the
+                <a href="/fishing-information" class="underline underline-offset-2 hover:text-ink">
+                  full calendar
+                </a>.
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <div class="mt-9 flex flex-wrap gap-3 sm:gap-4">
+          <a href={business.phoneHref} class="btn btn-solid-dark">Call {business.phone}</a>
+          <a href={business.emailHref} class="btn btn-outline-dark">Send an Email</a>
+        </div>
+      </div>
+
+      <div class="lg:pt-4" data-reveal>
+        <Image
+          src={photos.daveAndLeslie.src}
+          alt={photos.daveAndLeslie.alt}
+          widths={[600, 900]}
+          sizes="(min-width: 1024px) 45vw, 100vw"
+          class="aspect-[4/3] w-full object-cover"
+          loading="lazy"
+        />
+        <p class="text-ink/60 mt-3 text-sm">
+          Hosts {business.hosts}, Wilson River Lodge.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-cream py-16 lg:py-20">
+    <SectionHeading
+      eyebrow="Makes it quicker"
+      title="Before You Call"
+      intro="None of it is required — it just means Big Dave can check dates and quote you on the spot."
+    />
+
+    <div class="mx-auto mt-10 max-w-3xl px-6 sm:px-10" data-reveal>
+      <ul class="grid gap-x-10 gap-y-4 sm:grid-cols-2">
+        {
+          beforeYouCall.map((item) => (
+            <li class="text-ink/75 flex gap-3 text-[0.98rem] leading-relaxed">
+              <span class="bg-ink mt-2.5 h-1.5 w-1.5 shrink-0 rotate-45" aria-hidden="true" />
+              {item}
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="text-ink/60 mt-8 text-center text-sm">
+        Already booked? Sign your <a
+          href="/waivers"
+          class="underline underline-offset-2 hover:text-ink">waiver</a
+        > before the trip.
+      </p>
+    </div>
+  </section>
+
+  <Sponsors />
+</Layout>

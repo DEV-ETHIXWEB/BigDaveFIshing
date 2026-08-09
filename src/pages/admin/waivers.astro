@@ -1,14 +1,27 @@
 ---
 export const prerender = false;
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { db, ensureSchema, type WaiverRecord, type WaiverTeam } from '../../lib/db';
+import {
+  db,
+  ensureSchema,
+  WAIVER_LIST_COLUMNS,
+  type WaiverListRow,
+  type WaiverTeam,
+} from '../../lib/db';
 
 await ensureSchema();
-const waivers = (await db.execute('SELECT * FROM waivers ORDER BY signed_at DESC'))
-  .rows as unknown as WaiverRecord[];
-const teams = (await db.execute('SELECT * FROM waiver_teams ORDER BY team_number ASC'))
-  .rows as unknown as WaiverTeam[];
-const signedByGroup = new Map<string, WaiverRecord[]>();
+
+// Explicit columns, never SELECT *: signature_png is a base64 blob and pulling 60 of them
+// into this page made it 1 MB. Each signature is fetched separately, lazily, below.
+// The two queries are independent, so they run together rather than one after the other.
+const [waiverResult, teamResult] = await Promise.all([
+  db.execute(`SELECT ${WAIVER_LIST_COLUMNS} FROM waivers ORDER BY signed_at DESC`),
+  db.execute('SELECT * FROM waiver_teams ORDER BY team_number ASC'),
+]);
+
+const waivers = waiverResult.rows as unknown as WaiverListRow[];
+const teams = teamResult.rows as unknown as WaiverTeam[];
+const signedByGroup = new Map<string, WaiverListRow[]>();
 for (const waiver of waivers) {
   const key = waiver.group_code || `manual:${waiver.group_leader_name || 'ungrouped'}`;
   if (!signedByGroup.has(key)) signedByGroup.set(key, []);
@@ -35,6 +48,14 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
           {waivers.length} signed waiver{waivers.length === 1 ? '' : 's'} across {teams.length} team{
             teams.length === 1 ? '' : 's'
           }.
+        </p>
+
+        <!-- Tells Dave the page is watching, so he doesn't sit there refreshing it while
+             a group signs. The script rewrites this text when something changes. -->
+        <p class="mt-2 flex items-center gap-2 text-xs text-ink/50">
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-700" aria-hidden="true"
+          ></span>
+          <span data-live-status>Watching for new waivers</span>
         </p>
       </div>
       <form action="/api/admin/logout" method="post">
@@ -88,15 +109,59 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
                           </button>
                         </>
                       </div>
+
+                      {/* Copy alone means leaving the page, opening Messages and pasting.
+                          These hand the link straight to the app it gets sent from.
+                          The Share button uses the native share sheet where one exists
+                          (any phone, Safari, Edge) and stays hidden where it doesn't. */}
+                      <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                        <button
+                          type="button"
+                          hidden
+                          class="border border-ink/30 px-3 py-1.5"
+                          data-share={link}
+                          data-share-title={`${team.waiver_type === 'lodge' ? 'Lodge' : 'Fishing'} waiver — team ${team.team_number}`}
+                        >
+                          Share…
+                        </button>
+                        <a
+                          class="border border-ink/30 px-3 py-1.5"
+                          href={`sms:?&body=${encodeURIComponent(`Big Dave's Fishing — please sign your waiver before the trip: ${link}`)}`}
+                        >
+                          Text
+                        </a>
+                        <a
+                          class="border border-ink/30 px-3 py-1.5"
+                          href={`mailto:?subject=${encodeURIComponent("Waiver for your trip with Big Dave's Fishing")}&body=${encodeURIComponent(`Please sign your waiver before the trip:\n\n${link}\n\nIt only takes a minute — name, phone, emergency contact and a signature.\n\nBig Dave's Fishing Adventures`)}`}
+                        >
+                          Email
+                        </a>
+                        <a
+                          class="border border-ink/30 px-3 py-1.5"
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Open
+                        </a>
+                      </div>
                       {members.length === 0 ? (
                         <p class="mt-5 text-sm text-ink/55">No signed guests yet.</p>
                       ) : (
                         <ul class="mt-5 divide-y divide-ink/10">
                           {members.map((member) => (
                             <li class="flex flex-wrap items-center gap-4 py-3">
+                              {/* Fetched per-signature and lazily: only the ones actually
+                                  scrolled into view are ever requested, and each is
+                                  cached immutably after that. width/height are set so
+                                  the row does not reflow as they arrive. */}
                               <img
-                                src={member.signature_png}
+                                src={`/api/admin/signature/${member.id}`}
                                 alt={`Signature of ${member.guest_name}`}
+                                width="96"
+                                height="36"
+                                loading="lazy"
+                                decoding="async"
                                 class="h-9 w-24 border border-ink/15 bg-cream object-contain"
                               />
                               <div class="min-w-40 flex-1">
@@ -194,7 +259,7 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
     </div>
   </section>
 </AdminLayout>
-<script is:inline>
+<script is:inline define:vars={{ initialCount: waivers.length }}>
   document.querySelectorAll('[data-copy]').forEach((button) =>
     button.addEventListener('click', async () => {
       await navigator.clipboard.writeText(button.dataset.copy);
@@ -203,4 +268,65 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
       setTimeout(() => (button.textContent = text), 1600);
     }),
   );
+
+  // Native share sheet. Revealed only where the browser actually has one, so it is never
+  // a button that does nothing.
+  if (navigator.share) {
+    document.querySelectorAll('[data-share]').forEach((button) => {
+      button.hidden = false;
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.share({
+            title: button.dataset.shareTitle,
+            text: "Please sign your waiver before the trip with Big Dave's Fishing.",
+            url: button.dataset.share,
+          });
+        } catch {
+          /* dismissing the sheet rejects — not an error worth reporting */
+        }
+      });
+    });
+  }
+
+  // Guests sign on their phones while this page sits open on the counter, so it polls
+  // for the total and reloads when it moves. Reloading rather than patching the DOM: the
+  // page is server-rendered and grouping a new signature under the right team by hand
+  // would duplicate that logic in the browser, for a page one person has open.
+  (function pollForNewWaivers() {
+    const status = document.querySelector('[data-live-status]');
+    let known = initialCount;
+    let failures = 0;
+
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/admin/waiver-count', { cache: 'no-store' });
+        // 401 means the 12-hour session lapsed. Stop rather than hammering the endpoint
+        // for a page that can no longer read it.
+        if (res.status === 401) {
+          if (status) status.textContent = 'Signed out — refresh to sign back in';
+          return;
+        }
+        if (!res.ok) throw new Error(String(res.status));
+        failures = 0;
+
+        const { count } = await res.json();
+        if (count !== known) {
+          known = count;
+          if (status) status.textContent = 'New waiver signed — updating…';
+          location.reload();
+          return;
+        }
+      } catch {
+        // Offline or the dev server restarted. Back off instead of retrying every 15s.
+        failures += 1;
+        if (failures >= 4) {
+          if (status) status.textContent = 'Not updating — check your connection';
+          return;
+        }
+      }
+      setTimeout(tick, failures ? 15000 * failures : 15000);
+    };
+
+    setTimeout(tick, 15000);
+  })();
 </script>

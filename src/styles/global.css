@@ -36,6 +36,12 @@
   --color-cedar: #4a4a4a;
   --color-copper: #c2c2c2;
 
+  /* One easing curve for everything that enters the page. A long, soft deceleration —
+     most of the distance is covered immediately and the last few pixels take their time,
+     which is what makes motion read as weighted rather than mechanical. Tailwind exposes
+     this as `ease-out-soft`. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+
   --font-display: 'Merienda', Georgia, serif;
   --font-body: 'PT Sans', system-ui, sans-serif;
   --font-ui: 'Oswald', 'Arial Narrow', sans-serif;
@@ -83,6 +89,19 @@
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: 0;
+    /* Evens out the line lengths instead of leaving one orphaned word on the last line.
+       The single cheapest thing that separates typeset headings from typed ones. */
+    text-wrap: balance;
+  }
+
+  p {
+    /* Same idea, cheaper algorithm: stops short widows at the end of paragraphs. */
+    text-wrap: pretty;
+  }
+
+  /* Anchored jumps land clear of the floating nav rather than under it. */
+  :target {
+    scroll-margin-top: 6rem;
   }
 
   :focus-visible {
@@ -231,18 +250,54 @@
      every section is simply visible and nothing is lost. */
   .js-reveal [data-reveal] {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translateY(1.75rem);
   }
 
   [data-reveal] {
+    /* --ease-out-soft decelerates harder at the end than ease-out does, so blocks settle
+       into place instead of coasting. The slight overshoot in duration (0.9s) reads as
+       weight rather than sluggishness because almost all of the travel happens early. */
     transition:
-      opacity 0.7s ease-out,
-      transform 0.7s ease-out;
+      opacity 0.75s var(--ease-out-soft),
+      transform 0.9s var(--ease-out-soft);
   }
 
   .js-reveal [data-reveal].is-in {
     opacity: 1;
     transform: none;
+  }
+
+  /* ---- Word-by-word heading reveal ---------------------------------------------
+     Applied by the script to any [data-reveal-text]. Each word is wrapped in a
+     .rt-word (an inline-block that moves) inside a .rt-mask (overflow hidden), so
+     words rise out from behind their own baseline rather than just fading.
+
+     .rt-mask has to stay inline-block with bottom padding: descenders (g, y, p) sit
+     below the baseline and a tight overflow:hidden would shear them off. The negative
+     margin cancels the padding so line spacing is unchanged. */
+  .rt-mask {
+    display: inline-block;
+    overflow: hidden;
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+    vertical-align: bottom;
+  }
+
+  .rt-word {
+    display: inline-block;
+    will-change: transform, opacity;
+    transform: translateY(105%);
+    opacity: 0;
+    transition:
+      transform 0.75s var(--ease-out-soft),
+      opacity 0.5s linear;
+    /* Set per-word by the script so words arrive in reading order. */
+    transition-delay: var(--rt-delay, 0ms);
+  }
+
+  [data-reveal-text].is-in .rt-word {
+    transform: none;
+    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -251,6 +306,11 @@
       transform: none;
     }
     [data-reveal] {
+      transition: none;
+    }
+    .rt-word {
+      transform: none;
+      opacity: 1;
       transition: none;
     }
   }
@@ -329,5 +389,211 @@
     to {
       transform: scale(1.05);
     }
+  }
+}
+
+/* ---- Short-viewport brand rail ------------------------------------------------
+   Deliberately OUTSIDE @layer components. The rail's sizing comes from Tailwind
+   utilities (max-w-[12rem], py-6), and utilities is a later cascade layer than
+   components — so anything written inside a layer here loses to them no matter how
+   specific it is. Unlayered rules outrank every layer, which is exactly what an
+   override needs to be.
+
+   The rail has to fit nine nav items, a badge and the phone block into one fixed
+   column. On a laptop around 700px tall it does not: the nav scrolled and "Home" sat
+   above its own top edge, out of sight. Rather than shrink the rail for everyone, it
+   gives up size only when the viewport is genuinely short.
+
+   Height query, not width — this is about vertical room, and a wide window can still
+   be short. */
+@media (min-width: 80rem) and (max-height: 52rem) {
+  .rail-head {
+    padding-top: 1.25rem;
+  }
+  .rail-badge {
+    max-width: 7.5rem;
+  }
+  .rail-nav {
+    padding-block: 0.5rem;
+  }
+  .rail-nav a,
+  .rail-nav summary {
+    padding-block: 0.35rem;
+  }
+  .rail-foot {
+    padding-block: 0.9rem;
+  }
+  .rail-foot .eyebrow {
+    display: none;
+  }
+}
+
+/* Waiver confirmation tick. Draws itself in once, rather than appearing fully formed —
+   the one moment on the site where a small flourish is warranted, because it is
+   confirming that a legal document was accepted.
+   Unlayered so it is not outranked by utilities, same as the rail rules above. */
+.signed-check {
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  animation: signed-check-draw 0.55s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+}
+
+@keyframes signed-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signed-check {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- Scroll-linked photo parallax --------------------------------------------
+   Checkerboard photos drift a little slower than the page, so a tile feels like a
+   window onto something behind the layout rather than a flat pane bolted to it.
+
+   Uses CSS scroll-driven animations where supported — that runs on the compositor,
+   off the main thread, so it cannot stutter the way a scroll listener does. Browsers
+   without support simply get a still photo, which is the current behaviour and is
+   not a degradation worth scripting around.
+
+   Unlayered so utilities on the same element (object-cover, transitions) don't outrank
+   the animation. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) and (min-width: 48rem) {
+    .parallax-media {
+      animation: parallax-drift linear both;
+      animation-timeline: view();
+      /* Starts as the tile enters and ends as it leaves, so the whole travel is spent
+         on screen instead of most of it happening out of sight. */
+      animation-range: entry 0% exit 100%;
+      will-change: transform;
+    }
+
+    /* Kept deliberately shallow. The scale only exists to stop the translate exposing an
+       edge — it needs to be at least 1 + 2×the travel, so 1.5% travel needs 1.03. 1.06
+       gives headroom without eating the photo: these are 4:3 originals already
+       cover-cropped into the tile, and every extra percent comes off the subject. */
+    @keyframes parallax-drift {
+      from {
+        transform: scale(1.06) translateY(-1.5%);
+      }
+      to {
+        transform: scale(1.06) translateY(1.5%);
+      }
+    }
+  }
+}
+
+/* ---- Interaction polish ------------------------------------------------------ */
+
+/* Buttons settle rather than snap, and cast a little more shadow as they lift. */
+.btn {
+  transition:
+    background-color 0.25s var(--ease-out-soft),
+    color 0.25s var(--ease-out-soft),
+    border-color 0.25s var(--ease-out-soft),
+    box-shadow 0.25s var(--ease-out-soft),
+    transform 0.25s var(--ease-out-soft);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -12px rgb(0 0 0 / 0.55);
+}
+
+.btn:active {
+  transform: translateY(0);
+  transition-duration: 0.06s;
+}
+
+/* Inline text links get an underline that draws in from the left instead of blinking on. */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.35s var(--ease-out-soft);
+  padding-bottom: 0.08em;
+}
+
+.link-underline:hover,
+.link-underline:focus-visible {
+  background-size: 100% 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn:hover,
+  .btn:active {
+    transform: none;
+    transition: none;
+  }
+  .link-underline {
+    transition: none;
+  }
+}
+
+/* ---- Video card hover ---------------------------------------------------------
+   Two movements, deliberately split so they don't fight each other:
+
+   the CARD lifts and grows a little, raising itself above its neighbours;
+   the THUMBNAIL zooms hard inside its own frame.
+
+   The big zoom is on the image rather than the whole card on purpose — scaling a card
+   by 20% scales its heading too, and browsers render transform-scaled text soft. This
+   way the movement is significant and the type stays crisp.
+
+   z-index is what stops the growing card being clipped by the ones after it in the
+   grid: without a stacking context it would slide under its right-hand neighbour.
+   Unlayered so Tailwind utilities on the same elements can't outrank it. */
+.video-card {
+  position: relative;
+  z-index: 0;
+  transition:
+    transform 0.5s var(--ease-out-soft),
+    box-shadow 0.5s var(--ease-out-soft);
+}
+
+.video-card:hover,
+.video-card:focus-visible {
+  transform: scale(1.045) translateY(-10px);
+  z-index: 20;
+}
+
+/* The shadow lives on the framed media, not the card, so it hugs the image edge
+   instead of drawing a rectangle around the caption text too. */
+.video-card__frame {
+  overflow: hidden;
+  transition: box-shadow 0.5s var(--ease-out-soft);
+}
+
+.video-card:hover .video-card__frame,
+.video-card:focus-visible .video-card__frame {
+  box-shadow: 0 30px 55px -20px rgb(0 0 0 / 0.6);
+}
+
+.video-card__media {
+  transform-origin: center;
+  transition: transform 0.75s var(--ease-out-soft);
+  will-change: transform;
+}
+
+.video-card:hover .video-card__media,
+.video-card:focus-visible .video-card__media {
+  transform: scale(1.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-card,
+  .video-card:hover,
+  .video-card:focus-visible,
+  .video-card__media,
+  .video-card:hover .video-card__media {
+    transform: none;
+    transition: none;
   }
 }

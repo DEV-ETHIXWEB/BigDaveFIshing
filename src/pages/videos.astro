@@ -1,0 +1,112 @@
+---
+import { Image } from 'astro:assets';
+import { Play } from 'lucide-react';
+import Layout from '../layouts/Layout.astro';
+import PageHero from '../components/PageHero.astro';
+import Sponsors from '../components/home/Sponsors.astro';
+import { photos } from '../lib/photos';
+import { videos } from '../lib/videos';
+import { business } from '../lib/business';
+
+// Cards render as links only once a url exists — see the note in lib/videos.ts for why
+// none do yet. Until then they are figures: same layout, no play affordance, nothing
+// that looks clickable and isn't. The live site's own gallery fakes it, showing play
+// buttons over slides that do nothing when you click them.
+const playable = videos.filter((v) => v.url).length;
+---
+
+<Layout
+  title="Video Gallery | Big Dave's Fishing Adventures"
+  description="Films from the boat with Big Dave — winter steelhead with Roland Martin, Alaskan coho, fall Chinook on the Trask and Wilson, and episodes featured on Angler West TV and Addicted Fishing."
+>
+  <PageHero
+    eyebrow="On film"
+    title="Video Gallery"
+    intro="Days on the water with Big Dave, and the episodes filmed with Angler West TV and Addicted Fishing."
+    photo={photos.wilsonRiverLevel}
+  />
+
+  <section class="bg-cream py-16 lg:py-20">
+    <div
+      class="mx-auto grid max-w-6xl gap-x-6 gap-y-10 px-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 lg:px-14"
+      data-reveal
+    >
+      {
+        videos.map((video) => {
+          const Tag = video.url ? 'a' : 'figure';
+          const linkProps = video.url
+            ? { href: video.url, target: '_blank', rel: 'noopener noreferrer' }
+            : {};
+          // The pop applies whether or not a url exists yet — it reads as a gallery
+          // responding to the pointer, not as a click promise. What stays gated on
+          // video.url is the play button and the pointer cursor, which are the two
+          // things that actually say "this is clickable".
+          return (
+            <Tag
+              class:list={['group video-card block', video.url && 'cursor-pointer']}
+              {...linkProps}
+            >
+              <div class="video-card__frame relative">
+                <Image
+                  src={video.thumb}
+                  alt=""
+                  widths={[420, 840]}
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  class="video-card__media aspect-video w-full object-cover"
+                  loading="lazy"
+                />
+
+                {video.url && (
+                  <>
+                    <span
+                      class="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/10"
+                      aria-hidden="true"
+                    />
+                    <span
+                      class="absolute inset-0 flex items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      <span class="text-ink flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform duration-300 group-hover:scale-110">
+                        <Play size={20} fill="currentColor" strokeWidth={0} className="ml-0.5" />
+                      </span>
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <figcaption class="mt-4">
+                <h2 class="text-ink group-hover:text-graphite text-[1.15rem] leading-snug transition-colors">
+                  {video.title}
+                </h2>
+                <p class="eyebrow text-graphite mt-2">{video.detail}</p>
+              </figcaption>
+            </Tag>
+          );
+        })
+      }
+    </div>
+
+    {
+      playable === 0 && (
+        <p class="text-ink/55 mx-auto mt-14 max-w-xl px-6 text-center text-sm">
+          Films are on the way to this page. In the meantime the latest clips go up on Facebook — or
+          call and Big Dave will happily talk you through any of them.
+        </p>
+      )
+    }
+
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3 px-6 sm:gap-4">
+      <a
+        href={business.facebook}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-outline-dark"
+      >
+        Watch on Facebook
+      </a>
+      <a href={business.phoneHref} class="btn btn-solid-dark">Call {business.phone}</a>
+    </div>
+  </section>
+
+  <Sponsors />
+</Layout>

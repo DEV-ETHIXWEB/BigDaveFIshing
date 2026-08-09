@@ -210,7 +210,10 @@ async function extractLogo(buffer) {
  * mapped to fully transparent; the RGB is replaced with the requested ink or cream.
  */
 async function flattenLogoTo(buffer, colour) {
-  const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(buffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const { width: w, height: h, channels: ch } = info;
   const out = Buffer.alloc(w * h * 4);
 

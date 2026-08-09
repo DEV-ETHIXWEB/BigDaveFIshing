@@ -42,7 +42,7 @@ async function icon(size, padRatio, shape = 'circle') {
     const disc = Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
          <circle cx="${r}" cy="${r}" r="${r}" fill="rgb(${GROUND.r},${GROUND.g},${GROUND.b})"/>
-       </svg>`
+       </svg>`,
     );
     layers.push({ input: disc, top: 0, left: 0 });
   }
@@ -96,8 +96,8 @@ function buildIco(pngs) {
 const icoSizes = [16, 32, 48];
 const ico = buildIco(
   await Promise.all(
-    icoSizes.map(async (size) => ({ size, data: await icon(size, 0.01, 'circle') }))
-  )
+    icoSizes.map(async (size) => ({ size, data: await icon(size, 0.01, 'circle') })),
+  ),
 );
 await writeFile('public/favicon.ico', ico);
 

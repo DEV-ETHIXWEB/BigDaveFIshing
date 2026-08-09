@@ -124,10 +124,59 @@ const localBusinessSchema = {
     <BookBar />
 
     <script>
+      // --- Word-splitting for headings marked [data-reveal-text] ------------------
+      // Each word becomes .rt-mask > .rt-word so it can rise out from behind its own
+      // baseline, staggered in reading order.
+      //
+      // Only ever splits plain text nodes, and leaves any nested markup (a <span>, a
+      // <br>) untouched — so a heading with an accent span keeps working. The rendered
+      // text is identical, so selection, search-in-page and screen readers see no
+      // change; assistive tech reads the element's text content, not its span tree.
+      const splitWords = () => {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) return;
+
+        for (const el of document.querySelectorAll<HTMLElement>('[data-reveal-text]')) {
+          if (el.dataset.rtDone) continue;
+          el.dataset.rtDone = '1';
+
+          let index = 0;
+          // Snapshot first: replacing nodes while iterating childNodes skips entries.
+          for (const node of [...el.childNodes]) {
+            if (node.nodeType !== Node.TEXT_NODE) continue;
+            const text = node.textContent ?? '';
+            if (!text.trim()) continue;
+
+            const frag = document.createDocumentFragment();
+            // Keep the separators so original spacing survives verbatim.
+            for (const part of text.split(/(\s+)/)) {
+              if (!part) continue;
+              if (/^\s+$/.test(part)) {
+                frag.append(part);
+                continue;
+              }
+              const mask = document.createElement('span');
+              mask.className = 'rt-mask';
+              const word = document.createElement('span');
+              word.className = 'rt-word';
+              // Capped so a long heading's last word doesn't arrive a second late.
+              word.style.setProperty('--rt-delay', `${Math.min(index * 55, 500)}ms`);
+              word.textContent = part;
+              mask.append(word);
+              frag.append(mask);
+              index += 1;
+            }
+            node.replaceWith(frag);
+          }
+        }
+      };
+
+      splitWords();
+
       // Reveal each [data-reveal] block once it comes into view, then stop watching it.
       // rootMargin pulls the trigger line up from the bottom edge so a section has
       // finished animating by the time it is properly on screen.
-      const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
+      const targets = document.querySelectorAll<HTMLElement>('[data-reveal], [data-reveal-text]');
       const revealAll = () => targets.forEach((el) => el.classList.add('is-in'));
 
       if (!('IntersectionObserver' in window)) {

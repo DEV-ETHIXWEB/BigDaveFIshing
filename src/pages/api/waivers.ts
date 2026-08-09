@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../lib/db';
+import { waiverGuestFields } from '../../lib/waiver-validation';
+import { callerKey, submissionRetryAfter } from '../../lib/submission-throttle';
 
 // On-demand, not prerendered: this route writes to the database on each request.
 export const prerender = false;
@@ -10,25 +12,27 @@ const schema = z.object({
   groupCode: z.string().trim().max(100).optional(),
   groupLeaderName: z.string().trim().max(200).optional(),
   tripDate: z.string().trim().max(50).optional(),
-  guestName: z.string().trim().min(2).max(200),
-  guestEmail: z.string().trim().email().max(200).optional().or(z.literal('')),
-  guestPhone: z
-    .string()
-    .trim()
-    .regex(/^\d{7,15}$/, 'Enter numbers only')
-    .max(15),
-  emergencyContactName: z.string().trim().min(2).max(200),
-  emergencyContactPhone: z
-    .string()
-    .trim()
-    .regex(/^\d{7,15}$/, 'Enter numbers only')
-    .max(15),
+  // Shared with the browser form, so the two cannot drift apart — the client copy is
+  // only a courtesy, this is the one that protects the table.
+  ...waiverGuestFields,
   // A data: URL PNG from the signature canvas. Capped well above what a signature
   // trace actually produces, to keep someone from posting an arbitrary large blob.
   signaturePng: z.string().startsWith('data:image/png;base64,').max(400_000),
 });
 
 export const POST: APIRoute = async ({ request }) => {
+  // Checked before parsing, so a flood costs us as little work as possible.
+  const retryAfter = submissionRetryAfter(callerKey(request));
+  if (retryAfter > 0) {
+    return new Response(
+      JSON.stringify({ error: 'Too many submissions from this connection. Please try shortly.' }),
+      {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -55,7 +59,9 @@ export const POST: APIRoute = async ({ request }) => {
       sql: 'SELECT leader_name, trip_date FROM waiver_teams WHERE group_code = ? AND waiver_type = ?',
       args: [w.groupCode, w.waiverType],
     });
-    team = result.rows[0] as typeof team;
+    // Through unknown: libSQL's Row is an index signature, so TypeScript rightly
+    // refuses the direct cast to a named shape.
+    team = result.rows[0] as unknown as typeof team;
     if (!team) {
       return new Response(JSON.stringify({ error: 'This team link is no longer valid.' }), {
         status: 400,
