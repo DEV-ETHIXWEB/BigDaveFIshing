@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../../lib/db';
+import { nameField } from '../../../lib/waiver-validation';
 export const prerender = false;
 
 /**
@@ -16,8 +17,17 @@ export const prerender = false;
  * the form can repopulate itself and point at the actual problem.
  */
 const schema = z.object({
-  teamNumber: z.coerce.number().int().positive().max(999999),
-  leaderName: z.string().trim().min(2).max(200),
+  // Digits only, checked as a string first: z.coerce.number() would happily accept "12e3"
+  // and " 7 ", and a team number is a label people read off a whiteboard, not a quantity.
+  teamNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{1,6}$/)
+    .transform(Number)
+    .pipe(z.number().int().positive()),
+  // The same name rule the guest form uses, so a leader is validated exactly like a guest
+  // rather than by a looser rule that let symbols through.
+  leaderName: nameField("the team leader's name"),
   waiverType: z.enum(['fishing-adventure', 'lodge']),
   tripDate: z.string().trim().max(50).optional(),
 });

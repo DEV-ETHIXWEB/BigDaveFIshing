@@ -76,8 +76,8 @@ const badTeam = params.get('team-error');
 
 // Which field was wrong, in words. "Complete the team details" told nobody anything.
 const FIELD_PROBLEM: Record<string, string> = {
-  teamNumber: 'Enter a team number — digits only.',
-  leaderName: "Enter the team leader's name — at least 2 characters.",
+  teamNumber: 'Team number must be digits only — no letters or symbols.',
+  leaderName: "Enter the team leader's name — letters only, at least 2 characters.",
   waiverType: 'Choose a trip type.',
   tripDate: 'That trip date was not accepted.',
 };
@@ -572,14 +572,17 @@ const digestReason = params.get('reason');
               {FIELD_PROBLEM[badTeam] ?? 'Check the team details.'}
             </p>
           )
-        }<form action="/api/admin/teams" method="post" class="mt-5 grid gap-4">
+        }<form action="/api/admin/teams" method="post" class="mt-5 grid gap-4" data-team-form>
           <label class="text-sm font-medium"
             >Team number<input
               required
               name="teamNumber"
-              type="number"
-              min="1"
+              type="text"
               inputmode="numeric"
+              pattern="[0-9]+"
+              maxlength="6"
+              autocomplete="off"
+              data-digits
               value={nextTeamNumber}
               class="mt-1 w-full border border-ink/20 px-3 py-2.5"
             /></label
@@ -588,6 +591,9 @@ const digestReason = params.get('reason');
               required
               name="leaderName"
               minlength="2"
+              maxlength="200"
+              autocomplete="off"
+              data-letters
               value={prev.leaderName}
               class="mt-1 w-full border border-ink/20 px-3 py-2.5"
             /></label
@@ -616,6 +622,73 @@ const digestReason = params.get('reason');
   </section>
 </AdminLayout>
 <script is:inline define:vars={{ initialCount: waivers.length }}>
+  // The create-team form.
+  //
+  // Two problems it had, both of which lost whatever had been typed. The auto-refresh
+  // below reloads the page when someone signs, which wiped a half-filled form without
+  // warning; and any failed submission came back blank. So: every keystroke is kept in
+  // sessionStorage and restored on load, and the refresh holds off while the form has
+  // unsaved input.
+  const teamForm = document.querySelector('[data-team-form]');
+  const FORM_KEY = 'bigdave.teamForm';
+  const FIELDS = ['teamNumber', 'leaderName', 'waiverType', 'tripDate'];
+
+  // Typed straight into the field: a team number is written on a whiteboard, not
+  // calculated, and a leader's name never contains digits or symbols. Stripping as you
+  // type beats rejecting after submitting.
+  const clean = (input) => {
+    if (input.dataset.digits !== undefined) return input.value.replace(/[^0-9]/g, '').slice(0, 6);
+    if (input.dataset.letters !== undefined)
+      return input.value.replace(/[^\p{L}\s'.-]/gu, '').slice(0, 200);
+    return input.value;
+  };
+
+  if (teamForm) {
+    const numberField = teamForm.elements.teamNumber;
+    const suggested = numberField ? numberField.value : '';
+
+    // A successful create clears the draft; anything else restores it.
+    if (new URLSearchParams(location.search).get('team-created') === '1') {
+      sessionStorage.removeItem(FORM_KEY);
+    } else {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(FORM_KEY) || 'null');
+        if (saved) {
+          for (const name of FIELDS) {
+            const field = teamForm.elements[name];
+            if (field && saved[name]) field.value = saved[name];
+          }
+        }
+      } catch {
+        /* a corrupt draft is not worth failing the page over */
+      }
+    }
+
+    teamForm.addEventListener('input', (event) => {
+      if (event.target && event.target.dataset) {
+        const cleaned = clean(event.target);
+        if (cleaned !== event.target.value) event.target.value = cleaned;
+      }
+      const draft = {};
+      for (const name of FIELDS) {
+        const field = teamForm.elements[name];
+        if (field) draft[name] = field.value;
+      }
+      sessionStorage.setItem(FORM_KEY, JSON.stringify(draft));
+    });
+
+    teamForm.addEventListener('submit', () => sessionStorage.removeItem(FORM_KEY));
+
+    // "Dirty" means there is something worth protecting: a name or date typed, or a team
+    // number changed from the one we suggested.
+    window.__teamFormDirty = () =>
+      Boolean(
+        (teamForm.elements.leaderName && teamForm.elements.leaderName.value.trim()) ||
+        (teamForm.elements.tripDate && teamForm.elements.tripDate.value) ||
+        (numberField && numberField.value !== suggested),
+      );
+  }
+
   // Deletion is permanent, so every button carrying data-confirm has to be agreed to
   // first. Attached to submit rather than click so keyboard submission is covered too.
   document.querySelectorAll('[data-confirm]').forEach((button) => {
@@ -677,10 +750,17 @@ const digestReason = params.get('reason');
 
         const { count } = await res.json();
         if (count !== known) {
-          known = count;
-          if (status) status.textContent = 'New waiver signed — updating…';
-          location.reload();
-          return;
+          // Never reload out from under someone mid-sentence. The whole point of this
+          // poller is convenience, and destroying a half-written team link to deliver it
+          // is a bad trade. It waits, says so, and reloads once the form is clear.
+          if (window.__teamFormDirty && window.__teamFormDirty()) {
+            if (status) status.textContent = 'New waiver signed — refreshing once you’re done';
+          } else {
+            known = count;
+            if (status) status.textContent = 'New waiver signed — updating…';
+            location.reload();
+            return;
+          }
         }
       } catch {
         // Offline or the dev server restarted. Back off instead of retrying every 15s.
