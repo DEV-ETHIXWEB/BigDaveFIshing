@@ -1,0 +1,208 @@
+---
+import PageHero from '../PageHero.astro';
+import Sponsors from '../home/Sponsors.astro';
+import WaiverForm from './WaiverForm';
+import { db, ensureSchema, type WaiverTeam } from '../../lib/db';
+import { waiverDocuments } from '../../lib/waiver-text';
+import { business } from '../../lib/business';
+import type { Photo } from '../../lib/photos';
+
+interface Props {
+  waiverType: 'fishing-adventure' | 'lodge';
+  eyebrow: string;
+  heading: string;
+  intro: string;
+  photo: Photo;
+}
+
+const { waiverType, eyebrow, heading, intro, photo } = Astro.props;
+const doc = waiverDocuments[waiverType];
+
+/**
+ * Two ways in, one form.
+ *
+ * With a ?g= team link, this is the party flow: Big Dave generates the link in the admin
+ * dashboard, sends it to whoever booked, and everyone who opens it is filed under that
+ * team automatically.
+ *
+ * Without one, it is the sign-ahead flow: anyone can read the agreement and sign before
+ * they have booked anything, from a phone or a desktop. WaiverForm covers both cases
+ * itself — with no group code it asks who booked and the trip date instead of showing the
+ * party banner — so both paths use the same component rather than a second copy that
+ * would have to be kept in step.
+ *
+ * The group code is resolved here rather than in the browser so a stale link says so
+ * before someone fills the whole form in and signs against a team that no longer exists.
+ */
+const groupCode = Astro.url.searchParams.get('g')?.trim() || null;
+
+let team: WaiverTeam | null = null;
+if (groupCode) {
+  await ensureSchema();
+  const result = await db.execute({
+    sql: 'SELECT * FROM waiver_teams WHERE group_code = ? AND waiver_type = ?',
+    args: [groupCode, waiverType],
+  });
+  team = (result.rows[0] as unknown as WaiverTeam) ?? null;
+}
+
+const linkIsBroken = groupCode !== null && team === null;
+---
+
+<PageHero eyebrow={eyebrow} title={heading} intro={intro} photo={photo} />
+
+<!-- The agreement, set as a document on white. This half is theirs: their wording, their
+     ordering, their numbered terms, and the same read-it-all-on-one-page shape as the
+     live site. What is ours is the typography, the measure, and the frame around it. -->
+<section class="bg-cream py-14 lg:py-20">
+  <div class="mx-auto max-w-3xl px-5 sm:px-8">
+    <article
+      class="border-ink/10 bg-paper border px-6 py-10 sm:px-10 lg:px-14 lg:py-14"
+      data-reveal
+    >
+      <div class="text-center">
+        <p class="eyebrow text-graphite">
+          {waiverType === 'lodge' ? 'WRLodge, LLC dba Wilson River Lodge' : business.name}
+        </p>
+        <h2 data-reveal-text class="text-ink mt-4 text-[1.5rem] leading-tight sm:text-[1.9rem]">
+          {doc.title}
+        </h2>
+        <div class="rule-diamond mt-5" aria-hidden="true">
+          <span class="bg-graphite/70 h-1.5 w-1.5 rotate-45"></span>
+        </div>
+      </div>
+
+      <div class="mt-9 space-y-4">
+        {
+          doc.preamble.map((para) => (
+            <p class="text-ink/75 text-[0.92rem] leading-relaxed">{para}</p>
+          ))
+        }
+      </div>
+
+      <h3 class="text-ink mt-10 text-[1.15rem]">Terms</h3>
+      <ol class="mt-4 space-y-4">
+        {
+          doc.terms.map((term, i) => (
+            <li class="flex gap-4">
+              <span class="index-num text-graphite mt-1 shrink-0 tabular-nums">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <p class="text-ink/75 text-[0.92rem] leading-relaxed">{term}</p>
+            </li>
+          ))
+        }
+      </ol>
+
+      <!-- The signatory block their document ends on, kept as a statement rather than as
+           dead input boxes: on the live site these sit unfilled on a page nobody can
+           submit from, which reads as a form that is broken rather than a document. -->
+      <div class="border-ink/10 mt-10 border-t pt-6">
+        <p class="font-display text-ink text-[1.05rem]">
+          {waiverType === 'lodge' ? 'WRLodge LLC dba Wilson River Lodge' : business.name}
+        </p>
+        <p class="text-ink/60 mt-2 text-sm leading-relaxed">
+          Signed on behalf of {waiverType === 'lodge' ? 'Wilson River' : 'Big Dave'} by Big Dave. Guest
+          details and signature are captured at the point of signing.
+        </p>
+      </div>
+    </article>
+  </div>
+</section>
+
+{
+  /* Below the document: either the real signing form, or an explanation of how to get to
+     one. Never a form that cannot be submitted. */
+}
+<section id="sign" class="bg-ink py-14 lg:py-20">
+  <div class="mx-auto max-w-lg px-5 sm:px-8">
+    {
+      team && (
+        <>
+          <div class="mb-8 text-center" data-reveal>
+            <p class="eyebrow text-silver">Signing as part of</p>
+            <h2 data-reveal-text class="text-cream mt-3 text-[1.6rem] leading-tight sm:text-[2rem]">
+              {team.leader_name}’s party
+            </h2>
+            <p class="text-cream/60 mt-3 text-sm">
+              Team {team.team_number}
+              {team.trip_date ? ` · ${team.trip_date}` : ''}
+            </p>
+          </div>
+          {/* The form keeps its own scrollable copy of what is being agreed to. The full
+              text is already set out above on this page, so rather than repeat all of it
+              inside a 12rem box, this points at it. No new legal wording is introduced —
+              it only describes what is already there. */}
+          <WaiverForm
+            client:visible
+            waiverType={waiverType}
+            waiverTitle={doc.title}
+            waiverBodyHtml={`<p class="mb-2">The full agreement is printed above on this page — the recitals and all ${doc.terms.length} terms, governed by the laws of Oregon.</p><p>By signing below you confirm you have read that agreement and agree to it.</p>`}
+          />
+        </>
+      )
+    }
+
+    {
+      /* A dead link is a warning, not a dead end — the sign-ahead form still follows
+         below it, so someone who was sent a stale link can complete the waiver now and
+         Big Dave can match them up rather than losing them entirely. */
+      linkIsBroken && (
+        <div class="border-cream/25 bg-cream/[0.06] mb-10 border p-6 text-center" data-reveal>
+          <h2 class="text-cream text-[1.25rem] leading-tight">That signing link has expired</h2>
+          <p class="text-cream/70 mx-auto mt-3 max-w-sm text-sm leading-relaxed">
+            It was mistyped or the trip it belonged to has been closed. You can still sign below —
+            just tell us who booked, and we’ll file it against your party.
+          </p>
+        </div>
+      )
+    }
+
+    {
+      /* Sign-ahead: no team link needed. WaiverForm already handles this case — with no
+         group code it swaps the party banner for "who booked your trip" and "trip date",
+         which is exactly what someone signing before they book can answer. That is why
+         this reuses the component untouched rather than forking a second form to keep in
+         step with the first. */
+      !team && (
+        <div class="mb-9 text-center" data-reveal>
+          <p class="eyebrow text-silver">Sign ahead</p>
+          <h2 data-reveal-text class="text-cream mt-3 text-[1.6rem] leading-tight sm:text-[2rem]">
+            Get it out of the way now
+          </h2>
+          <p class="text-cream/70 mx-auto mt-4 max-w-md text-sm leading-relaxed">
+            Fill this in from your phone or computer whenever suits — before you book, or any time
+            before the trip. If Big Dave has already sent your party a signing link, use that one
+            instead and everyone will be filed together.
+          </p>
+        </div>
+      )
+    }
+
+    {
+      !team && (
+        <WaiverForm
+          client:visible
+          waiverType={waiverType}
+          waiverTitle={doc.title}
+          waiverBodyHtml={`<p class="mb-2">The full agreement is printed above on this page — the recitals and all ${doc.terms.length} terms, governed by the laws of Oregon.</p><p>By signing below you confirm you have read that agreement and agree to it.</p>`}
+        />
+      )
+    }
+  </div>
+
+  {
+    !team && (
+      <div class="mx-auto mt-12 max-w-lg px-5 text-center sm:px-8">
+        <p class="text-cream/50 text-sm">
+          Prefer to do it in person? You can sign on the day instead —{' '}
+          <a href={business.phoneHref} class="text-cream/80 underline underline-offset-2">
+            {business.phone}
+          </a>
+        </p>
+      </div>
+    )
+  }
+</section>
+
+<Sponsors />

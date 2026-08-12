@@ -59,9 +59,41 @@ export function ensureSchema() {
           `CREATE INDEX IF NOT EXISTS waivers_group_code ON waivers (group_code)`,
         ]),
       )
+      .then(() => migrate())
       .then(() => undefined);
   }
   return initialized;
+}
+
+/**
+ * Columns added after the table was first shipped.
+ *
+ * SQLite has no `ADD COLUMN IF NOT EXISTS`, and a live database already holds signed
+ * waivers, so this reads the existing shape and only adds what is missing. Both columns
+ * are nullable with no default — a NULL means "not yet", which is exactly the state
+ * every existing row is in.
+ *
+ * `archived_at` is set when a human presses Archive on the dashboard. `emailed_at` is
+ * set only after a mail provider has confirmed the digest went out, so a failed send
+ * leaves the row queued for tomorrow rather than silently dropping it.
+ */
+async function migrate() {
+  const info = await db.execute('PRAGMA table_info(waivers)');
+  const existing = new Set(info.rows.map((row) => String(row.name)));
+
+  const statements = [
+    !existing.has('archived_at') && 'ALTER TABLE waivers ADD COLUMN archived_at TEXT',
+    !existing.has('emailed_at') && 'ALTER TABLE waivers ADD COLUMN emailed_at TEXT',
+  ].filter((sql): sql is string => Boolean(sql));
+
+  if (statements.length) await db.batch(statements);
+
+  // The dashboard's default view is "not archived", and the digest's query is
+  // "not archived and not yet emailed". Both filter on these before ordering.
+  await db.batch([
+    `CREATE INDEX IF NOT EXISTS waivers_archived_at ON waivers (archived_at)`,
+    `CREATE INDEX IF NOT EXISTS waivers_emailed_at ON waivers (emailed_at)`,
+  ]);
 }
 
 export interface WaiverRecord {
@@ -77,6 +109,10 @@ export interface WaiverRecord {
   emergency_contact_phone: string;
   signature_png: string;
   signed_at: string;
+  /** Set when staff pressed Archive. NULL while the waiver is still on the active list. */
+  archived_at: string | null;
+  /** Set only after a provider confirmed the digest send that included this row. */
+  emailed_at: string | null;
 }
 
 /**
@@ -93,7 +129,8 @@ export type WaiverListRow = Omit<WaiverRecord, 'signature_png'>;
 
 /** Column list for list views. Explicit so `SELECT *` can't quietly re-add the blob. */
 export const WAIVER_LIST_COLUMNS = `id, waiver_type, group_code, group_leader_name, trip_date,
-  guest_name, guest_email, guest_phone, emergency_contact_name, emergency_contact_phone, signed_at`;
+  guest_name, guest_email, guest_phone, emergency_contact_name, emergency_contact_phone, signed_at,
+  archived_at, emailed_at`;
 
 export interface WaiverTeam {
   id: number;

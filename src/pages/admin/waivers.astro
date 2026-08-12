@@ -9,29 +9,76 @@ import {
   type WaiverTeam,
 } from '../../lib/db';
 
+import { mailConfig } from '../../lib/email';
+
 await ensureSchema();
+
+// Archiving is how a finished trip leaves the list, so the default view is everything
+// still live. The archived view is the same page with the filter flipped — nothing is
+// ever deleted, and anything here can be put straight back.
+const view = Astro.url.searchParams.get('view') === 'archived' ? 'archived' : 'active';
+const archivedFilter = view === 'archived' ? 'archived_at IS NOT NULL' : 'archived_at IS NULL';
 
 // Explicit columns, never SELECT *: signature_png is a base64 blob and pulling 60 of them
 // into this page made it 1 MB. Each signature is fetched separately, lazily, below.
-// The two queries are independent, so they run together rather than one after the other.
-const [waiverResult, teamResult] = await Promise.all([
-  db.execute(`SELECT ${WAIVER_LIST_COLUMNS} FROM waivers ORDER BY signed_at DESC`),
+// The queries are independent, so they run together rather than one after the other.
+const [waiverResult, teamResult, tallyResult] = await Promise.all([
+  db.execute(
+    `SELECT ${WAIVER_LIST_COLUMNS} FROM waivers WHERE ${archivedFilter} ORDER BY signed_at DESC`,
+  ),
   db.execute('SELECT * FROM waiver_teams ORDER BY team_number ASC'),
+  db.execute(
+    `SELECT
+       SUM(CASE WHEN archived_at IS NOT NULL THEN 1 ELSE 0 END) AS archived,
+       SUM(CASE WHEN archived_at IS NULL AND emailed_at IS NULL THEN 1 ELSE 0 END) AS queued
+     FROM waivers`,
+  ),
 ]);
+
+const tally = tallyResult.rows[0] as unknown as { archived: number | null; queued: number | null };
+const archivedCount = Number(tally?.archived ?? 0);
+const queuedCount = Number(tally?.queued ?? 0);
+const mail = mailConfig();
+const mailReady = 'config' in mail;
 
 const waivers = waiverResult.rows as unknown as WaiverListRow[];
 const teams = teamResult.rows as unknown as WaiverTeam[];
+const teamCodes = new Set(teams.map((team) => team.group_code));
 const signedByGroup = new Map<string, WaiverListRow[]>();
 for (const waiver of waivers) {
-  const key = waiver.group_code || `manual:${waiver.group_leader_name || 'ungrouped'}`;
+  // Grouped under a team only if that team still exists. A waiver carrying a group_code
+  // with no matching team row — an old link, or a team removed since — used to key off
+  // the orphan code, which meant it rendered in no card at all: invisible on the
+  // dashboard, and now that Archive exists, impossible to clear. It falls through to the
+  // signed-ahead list instead, where it is at least visible and actionable.
+  const key =
+    waiver.group_code && teamCodes.has(waiver.group_code)
+      ? waiver.group_code
+      : `manual:${waiver.group_leader_name || 'ungrouped'}`;
   if (!signedByGroup.has(key)) signedByGroup.set(key, []);
   signedByGroup.get(key)!.push(waiver);
 }
 const manualGroups = [...signedByGroup.entries()].filter(([key]) => key.startsWith('manual:'));
+
+// In the archived view a team with nothing archived under it is just noise. On the active
+// list every team stays visible, because an empty one is exactly the team whose link
+// still needs sending.
+const visibleTeams =
+  view === 'archived'
+    ? teams.filter((team) => (signedByGroup.get(team.group_code) || []).length > 0)
+    : teams;
+
 const appUrl = Astro.url.origin;
-const created = Astro.url.searchParams.get('team-created') === '1';
-const exists = Astro.url.searchParams.get('team-exists') === '1';
-const badTeam = Astro.url.searchParams.get('team-error') === '1';
+const params = Astro.url.searchParams;
+const created = params.get('team-created') === '1';
+const exists = params.get('team-exists') === '1';
+const badTeam = params.get('team-error') === '1';
+const archivedJustNow = Number(params.get('archived') ?? 0);
+const restoredJustNow = Number(params.get('restored') ?? 0);
+const digestStatus = params.get('digest');
+const digestGuests = params.get('guests');
+const digestMissing = params.get('missing');
+const digestReason = params.get('reason');
 ---
 
 <AdminLayout title="Waiver dashboard">
@@ -45,10 +92,25 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
         </p><h1 class="mt-1 text-3xl md:text-5xl">Waiver teams</h1><p
           class="mt-2 text-sm text-ink/60"
         >
-          {waivers.length} signed waiver{waivers.length === 1 ? '' : 's'} across {teams.length} team{
-            teams.length === 1 ? '' : 's'
-          }.
+          {waivers.length}{view === 'archived' ? ' archived' : ' signed'} waiver{
+            waivers.length === 1 ? '' : 's'
+          } across {teams.length} team{teams.length === 1 ? '' : 's'}.
         </p>
+
+        <!-- Active / Archived. A link rather than a filter control, so the view is in the
+             URL and Dave can leave the archived list open on a tab without it resetting. -->
+        <div class="mt-3 flex gap-2 text-xs">
+          <a
+            href="/admin/waivers"
+            class={`border px-3 py-1.5 ${view === 'active' ? 'border-ink bg-ink text-cream' : 'border-ink/25'}`}
+            >Active</a
+          >
+          <a
+            href="/admin/waivers?view=archived"
+            class={`border px-3 py-1.5 ${view === 'archived' ? 'border-ink bg-ink text-cream' : 'border-ink/25'}`}
+            >Archived ({archivedCount})</a
+          >
+        </div>
 
         <!-- Tells Dave the page is watching, so he doesn't sit there refreshing it while
              a group signs. The script rewrites this text when something changes. -->
@@ -58,22 +120,112 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
           <span data-live-status>Watching for new waivers</span>
         </p>
       </div>
-      <form action="/api/admin/logout" method="post">
-        <button class="border border-ink/25 px-4 py-2 text-sm">Sign out</button>
-      </form>
+      <div class="flex flex-col items-end gap-2">
+        <form action="/api/admin/logout" method="post">
+          <button class="border border-ink/25 px-4 py-2 text-sm">Sign out</button>
+        </form>
+
+        {
+          /* The roster goes out on a schedule; this is the same send on demand — for
+            testing the keys, and for the group that signs an hour before they launch and
+            needs to be in Dave's phone before he loses signal at the ramp. Disabled
+            rather than hidden when unconfigured, so the reason is visible. */
+        }
+        <form action="/api/admin/send-digest" method="post">
+          <button
+            class="border border-ink bg-ink px-4 py-2 text-sm text-cream disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!mailReady || queuedCount === 0}
+            title={!mailReady
+              ? 'Email is not set up yet'
+              : queuedCount === 0
+                ? 'Everyone signed so far has already been emailed'
+                : undefined}
+          >
+            Email roster now{queuedCount > 0 ? ` (${queuedCount})` : ''}
+          </button>
+        </form>
+      </div>
     </header>
+
+    {
+      /* One row of feedback for the actions that leave and come back: archiving,
+         restoring, and sending. Read off the query string the redirect set. */
+    }
+    {
+      archivedJustNow > 0 && (
+        <p class="mt-5 border border-ink/20 bg-white p-3 text-sm">
+          Archived {archivedJustNow} waiver{archivedJustNow === 1 ? '' : 's'}. Nothing was deleted —
+          they are under{' '}
+          <a class="underline" href="/admin/waivers?view=archived">
+            Archived
+          </a>
+          .
+        </p>
+      )
+    }
+    {
+      restoredJustNow > 0 && (
+        <p class="mt-5 border border-ink/20 bg-white p-3 text-sm">
+          Restored {restoredJustNow} waiver{restoredJustNow === 1 ? '' : 's'} to the active list.
+        </p>
+      )
+    }
+    {
+      digestStatus === 'sent' && (
+        <p class="mt-5 border border-green-900/20 bg-green-900/5 p-3 text-sm">
+          Roster emailed — {digestGuests} guest{digestGuests === '1' ? '' : 's'}. Check the inbox;
+          if it isn't there, look in spam and see docs/waiver-email-setup.md about SPF and DKIM.
+        </p>
+      )
+    }
+    {
+      digestStatus === 'empty' && (
+        <p class="mt-5 border border-ink/20 bg-white p-3 text-sm">
+          Nothing to send — everyone who has signed has already been emailed.
+        </p>
+      )
+    }
+    {
+      digestStatus === 'unconfigured' && (
+        <p class="mt-5 border border-red-900/20 bg-red-900/5 p-3 text-sm">
+          Email isn't set up yet. Missing: {digestMissing}.
+        </p>
+      )
+    }
+    {
+      digestStatus === 'failed' && (
+        <p class="mt-5 border border-red-900/20 bg-red-900/5 p-3 text-sm">
+          The roster did not send, so it stays queued and will go out on the next attempt.{' '}
+          {digestReason}
+        </p>
+      )
+    }
+    {
+      /* Said plainly rather than left to be discovered: the schedule is off until the
+         keys exist, and the dashboard is unaffected either way. */
+      !mailReady && (
+        <p class="mt-5 border border-ink/20 bg-white p-3 text-sm text-ink/70">
+          Waiver emails are not set up yet — the dashboard works as normal, nothing is being sent.
+          Add the mail keys from <code>.env.example</code> to switch it on.
+        </p>
+      )
+    }
 
     <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div class="order-2 lg:order-1">
-        <h2 class="text-2xl">Teams & signed guests</h2>
+        <h2 class="text-2xl">{view === 'archived' ? 'Archived teams' : 'Teams & signed guests'}</h2>
         {
-          teams.length === 0 && (
-            <p class="mt-5 text-sm text-ink/60">Create the first team link on the right.</p>
+          visibleTeams.length === 0 && manualGroups.length === 0 && (
+            <p class="mt-5 text-sm text-ink/60">
+              {view === 'archived'
+                ? 'Nothing archived yet. Archiving a team here clears it off the active list without deleting anything.'
+                : 'Create the first team link on the right.'}
+            </p>
           )
         }
         <div class="mt-5 space-y-6">
           {
-            teams.map((team) => {
+            visibleTeams.map((team) => {
               const members = signedByGroup.get(team.group_code) || [];
               const link = `${appUrl}/waivers/${team.waiver_type}?g=${team.group_code}`;
               return (
@@ -178,6 +330,39 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
                           ))}
                         </ul>
                       )}
+
+                      {/* Clearing a finished trip off the list. A human presses this —
+                          nothing archives on a timer, because only staff know a trip is
+                          actually done. It is also independent of the email: if the mail
+                          provider is having a bad day, this still works. */}
+                      {members.length > 0 && (
+                        <form
+                          action="/api/admin/archive"
+                          method="post"
+                          class="mt-5 border-t border-ink/10 pt-4"
+                        >
+                          <input
+                            type="hidden"
+                            name="ids"
+                            value={members.map((m) => m.id).join(',')}
+                          />
+                          <input
+                            type="hidden"
+                            name="action"
+                            value={view === 'archived' ? 'restore' : 'archive'}
+                          />
+                          <button class="border border-ink/30 px-3 py-1.5 text-xs">
+                            {view === 'archived'
+                              ? 'Restore to active list'
+                              : `Archive team (${members.length})`}
+                          </button>
+                          <span class="ml-3 text-xs text-ink/50">
+                            {view === 'archived'
+                              ? 'Puts this team back on the active list.'
+                              : 'Hides it from this list. Nothing is deleted.'}
+                          </span>
+                        </form>
+                      )}
                     </div>
                   </>
                 </article>
@@ -185,15 +370,73 @@ const badTeam = Astro.url.searchParams.get('team-error') === '1';
             })
           }
           {
+            /* Guests who signed from the public waiver page before any team link existed.
+               This used to render as a comma-separated list of names and nothing else,
+               which was survivable while every waiver arrived through a team link. Now
+               that anyone can sign ahead from the website, these are real bookings-in-
+               waiting and need the same detail as a team: who to ring, and the signature
+               that was actually captured. */
             manualGroups.map(([key, members]) => (
-              <article class="border border-ink/15 bg-cream p-5">
-                <>
-                  <p class="eyebrow text-ink/60">No team link</p>
-                  <h3 class="mt-1 text-xl">{key.replace('manual:', '')}</h3>
-                  <p class="mt-2 text-sm text-ink/60">
-                    {members.map((member) => member.guest_name).join(', ')}
+              <article class="border border-ink/15 bg-white">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-ink/15 bg-ink px-5 py-4 text-cream">
+                  <div>
+                    <p class="eyebrow text-cream/65">Signed ahead · no team link yet</p>
+                    <h3 class="mt-1 text-xl">{key.replace('manual:', '')}</h3>
+                  </div>
+                  <p class="text-sm text-cream/75">
+                    {members.length} signed
+                    {members[0]?.trip_date ? ` · ${members[0].trip_date}` : ''}
                   </p>
-                </>
+                </div>
+
+                <ul class="divide-y divide-ink/10 p-5 pt-0">
+                  {members.map((member) => (
+                    <li class="flex flex-wrap items-center gap-4 py-3">
+                      <img
+                        src={`/api/admin/signature/${member.id}`}
+                        alt={`Signature of ${member.guest_name}`}
+                        width="96"
+                        height="36"
+                        loading="lazy"
+                        decoding="async"
+                        class="h-9 w-24 border border-ink/15 bg-cream object-contain"
+                      />
+                      <div class="min-w-40 flex-1">
+                        <p class="font-medium">{member.guest_name}</p>
+                        <p class="text-xs text-ink/60">
+                          {member.guest_phone}
+                          {member.guest_email ? ` · ${member.guest_email}` : ''}
+                        </p>
+                      </div>
+                      <p class="text-xs text-ink/55">
+                        Signed {new Date(member.signed_at + 'Z').toLocaleString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+
+                <form
+                  action="/api/admin/archive"
+                  method="post"
+                  class="border-t border-ink/10 px-5 py-4"
+                >
+                  <input type="hidden" name="ids" value={members.map((m) => m.id).join(',')} />
+                  <input
+                    type="hidden"
+                    name="action"
+                    value={view === 'archived' ? 'restore' : 'archive'}
+                  />
+                  <button class="border border-ink/30 px-3 py-1.5 text-xs">
+                    {view === 'archived'
+                      ? 'Restore to active list'
+                      : `Archive these (${members.length})`}
+                  </button>
+                  <span class="ml-3 text-xs text-ink/50">
+                    {view === 'archived'
+                      ? 'Puts them back on the active list.'
+                      : 'Hides them from this list. Nothing is deleted.'}
+                  </span>
+                </form>
               </article>
             ))
           }

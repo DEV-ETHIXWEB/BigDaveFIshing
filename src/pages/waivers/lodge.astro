@@ -1,41 +1,22 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Ornament from '../../components/ui/Ornament.astro';
-import WaiverForm from '../../components/waivers/WaiverForm';
+// Rendered per request, not prerendered: the page has to read the ?g= signing link and
+// check it against the teams table before deciding whether to show a form at all.
+export const prerender = false;
 
-// SAMPLE liability waiver text — this is placeholder copy, not legal language.
-// Replace with wording drafted or reviewed by a lawyer before this goes live.
-const waiverBodyHtml = `
-  <p class="mb-2">I understand that a stay at the Wilson River Lodge includes access to
-  riverside grounds, docks, and outdoor areas that carry inherent risks, including slips on
-  wet or uneven terrain and exposure to weather and wildlife. I voluntarily assume these
-  risks for myself and any minors in my party.</p>
-  <p class="mb-2">I release Big Dave's Fishing Adventures, the Wilson River Lodge, its staff,
-  and guides from liability for injury, loss, or damage arising from my stay, except where
-  caused by gross negligence.</p>
-  <p>I agree to follow posted lodge rules and confirm that the information I have provided
-  above is accurate.</p>
-`;
+import Layout from '../../layouts/Layout.astro';
+import WaiverPage from '../../components/waivers/WaiverPage.astro';
+import { photos } from '../../lib/photos';
 ---
 
 <Layout
   title="Wilson River Lodge Waiver | Big Dave's Fishing Adventures"
-  description="Sign the waiver before your stay at the Wilson River Lodge."
+  description="The hold harmless, release and indemnification agreement for stays at the Wilson River Lodge. Read it in full and sign online from any phone or computer."
 >
-  <section class="bg-cream px-6 pt-28 pb-10 text-center md:px-8 md:pt-36 md:pb-14 xl:pt-20">
-    <p class="eyebrow text-ink/70">Before Your Stay</p>
-    <h1 class="mt-4 text-[1.6rem] md:text-4xl">Wilson River Lodge<br />Waiver</h1>
-    <Ornament class="mx-auto mt-5" />
-  </section>
-
-  <section class="bg-ink px-6 py-10 md:px-8 md:py-14">
-    <div class="mx-auto max-w-lg">
-      <WaiverForm
-        client:visible
-        waiverType="lodge"
-        waiverTitle="Assumption of Risk & Release"
-        waiverBodyHtml={waiverBodyHtml}
-      />
-    </div>
-  </section>
+  <WaiverPage
+    waiverType="lodge"
+    eyebrow="Before your stay"
+    heading="Wilson River Lodge Waiver"
+    intro="Read the agreement in full and sign it here — before you book, or any time before your stay."
+    photo={photos.lodgeRiver}
+  />
 </Layout>
