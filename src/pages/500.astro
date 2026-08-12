@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+import { envSetting } from '../lib/env';
+
+/**
+ * The 500 page.
+ *
+ * Astro's default is an empty body, which is exactly what made the live failure on the
+ * waiver pages impossible to diagnose from outside: 500, zero bytes, no header, nothing
+ * to go on. This does two things instead.
+ *
+ * It always writes the error to the console, so it lands in the platform's runtime log
+ * where it belongs. And it will show the error on the page itself, but only to someone
+ * who appends `?diag=<CRON_SECRET>` — the same secret that guards the scheduled send. A
+ * stack trace names internal paths and dependency versions, so it is not something to
+ * hand to every visitor; gating it keeps the page honest for guests while leaving a way
+ * to read the fault on a deployment you cannot attach a debugger to.
+ *
+ * Guests see a plain apology and a phone number, which is the right outcome for someone
+ * who came here to sign a waiver before a trip.
+ */
+const { error } = Astro.props as { error?: unknown };
+
+if (error) console.error('[500]', error);
+
+const secret = envSetting('CRON_SECRET');
+const supplied = Astro.url.searchParams.get('diag');
+const showDetail = Boolean(secret && supplied && supplied === secret);
+
+let detail = 'No error object was passed to this page.';
+if (error instanceof Error) {
+  detail = `${error.name}: ${error.message}\n\n${error.stack ?? '(no stack)'}`;
+} else if (error !== undefined) {
+  detail = String(error);
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Something went wrong</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body
+    style="margin:0;padding:2.5rem 1.25rem;background:#ece0cb;color:#1c1a17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
+  >
+    <main style="max-width:38rem;margin:0 auto;">
+      <h1 style="font-size:1.75rem;margin:0 0 .75rem;">Something went wrong</h1>
+      <p style="margin:0 0 1rem;line-height:1.6;">
+        Sorry — this page didn't load. Nothing you entered has been lost.
+      </p>
+      <p style="margin:0 0 1.5rem;line-height:1.6;">
+        If you were trying to sign a waiver, call us on
+        <a href="tel:+15035385607" style="color:#1c1a17;">(503) 538-5607</a> and we'll sort it out.
+      </p>
+      <p><a href="/" style="color:#1c1a17;">Back to the home page</a></p>
+
+      {
+        showDetail && (
+          <pre style="margin-top:2rem;padding:1rem;background:#1c1a17;color:#ece0cb;overflow-x:auto;white-space:pre-wrap;word-break:break-word;font-size:.8rem;line-height:1.5;">
+            {detail}
+          </pre>
+        )
+      }
+    </main>
+  </body>
+</html>
