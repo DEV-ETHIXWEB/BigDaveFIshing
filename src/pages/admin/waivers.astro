@@ -373,6 +373,18 @@ const digestReason = params.get('reason');
                                   {member.guest_phone}
                                   {member.guest_email ? ` · ${member.guest_email}` : ''}
                                 </p>
+                                {/* The number Dave actually needs in a bad moment. It was
+                                    only ever in the digest email, which is no help to
+                                    whoever is looking at this screen. */}
+                                <p class="text-xs text-red-900/70">
+                                  Emergency: {member.emergency_contact_name} ·{' '}
+                                  <a
+                                    href={`tel:${member.emergency_contact_phone}`}
+                                    class="underline"
+                                  >
+                                    {member.emergency_contact_phone}
+                                  </a>
+                                </p>
                               </div>
                               <p class="text-xs text-ink/55">
                                 Signed {new Date(member.signed_at + 'Z').toLocaleString()}
@@ -499,6 +511,12 @@ const digestReason = params.get('reason');
                         <p class="text-xs text-ink/60">
                           {member.guest_phone}
                           {member.guest_email ? ` · ${member.guest_email}` : ''}
+                        </p>
+                        <p class="text-xs text-red-900/70">
+                          Emergency: {member.emergency_contact_name} ·{' '}
+                          <a href={`tel:${member.emergency_contact_phone}`} class="underline">
+                            {member.emergency_contact_phone}
+                          </a>
                         </p>
                       </div>
                       <p class="text-xs text-ink/55">
