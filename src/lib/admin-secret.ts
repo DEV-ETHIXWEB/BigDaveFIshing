@@ -1,3 +1,5 @@
+import { envSetting, envVar } from './env';
+
 /**
  * The key the admin session cookie is signed with.
  *
@@ -20,13 +22,13 @@
  * force everyone to sign in again.
  */
 export function adminSigningSecret(): string | undefined {
-  const dedicated = import.meta.env.ADMIN_SESSION_SECRET;
+  const dedicated = envSetting('ADMIN_SESSION_SECRET');
   if (dedicated && dedicated.length >= 16) return dedicated;
-  return import.meta.env.ADMIN_PASSWORD;
+  return envVar('ADMIN_PASSWORD');
 }
 
 /** True when the signing key is the password (or a too-short dedicated secret). */
 export function adminSecretIsWeak(): boolean {
-  const dedicated = import.meta.env.ADMIN_SESSION_SECRET;
+  const dedicated = envSetting('ADMIN_SESSION_SECRET');
   return !dedicated || dedicated.length < 16;
 }

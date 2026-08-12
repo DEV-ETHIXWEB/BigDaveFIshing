@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { dashboardUrl, runDigest } from '../../../lib/waiver-digest-send';
+import { envSetting } from '../../../lib/env';
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ export const prerender = false;
  * an open endpoint here is a way for anyone to make the roster send on demand.
  */
 export const GET: APIRoute = async ({ request }) => {
-  const secret = import.meta.env.CRON_SECRET?.trim();
+  const secret = envSetting('CRON_SECRET');
   if (!secret) {
     return json({ error: 'CRON_SECRET is not set — the scheduled digest is disabled.' }, 503);
   }

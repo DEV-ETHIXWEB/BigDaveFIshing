@@ -1,4 +1,5 @@
-import { createClient } from '@libsql/client';
+import { createClient, type Client } from '@libsql/client';
+import { envVar } from './env';
 
 /**
  * Waiver storage. Uses libSQL rather than a plain file-based SQLite driver
@@ -11,10 +12,37 @@ import { createClient } from '@libsql/client';
  * https://turso.tech and set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN as environment
  * variables; no code changes needed, same client either way.
  */
-const url = import.meta.env.TURSO_DATABASE_URL || 'file:./data/waivers.db';
-const authToken = import.meta.env.TURSO_AUTH_TOKEN;
 
-export const db = createClient(authToken ? { url, authToken } : { url });
+/**
+ * The client is built on first use, not on import.
+ *
+ * Creating it at module scope meant a misconfigured environment threw while the module
+ * was still loading — which Astro can only turn into a blank 500 on every page that
+ * imports it, including pages that never touch the database. Deferring it means a config
+ * problem surfaces at the query, as a normal error, on the one page that actually needs
+ * the data.
+ */
+let client: Client | null = null;
+function getClient(): Client {
+  if (!client) {
+    const url = envVar('TURSO_DATABASE_URL') || 'file:./data/waivers.db';
+    const authToken = envVar('TURSO_AUTH_TOKEN');
+    client = createClient(authToken ? { url, authToken } : { url });
+  }
+  return client;
+}
+
+/**
+ * Kept as a `db.execute(...)` value so every existing call site is unchanged; the proxy
+ * just makes the connection lazy.
+ */
+export const db = new Proxy({} as Client, {
+  get(_target, property) {
+    const active = getClient() as unknown as Record<string | symbol, unknown>;
+    const value = active[property];
+    return typeof value === 'function' ? value.bind(active) : value;
+  },
+});
 
 let initialized: Promise<void> | null = null;
 

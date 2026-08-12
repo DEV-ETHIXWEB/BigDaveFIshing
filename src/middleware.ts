@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { validAdminSession } from './lib/admin-auth';
 import { adminSigningSecret } from './lib/admin-secret';
+import { envVar } from './lib/env';
 
 /**
  * Gates /admin/* and /api/admin/* behind a signed session cookie, issued by the login
@@ -28,8 +29,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
   if (!pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) return next();
 
-  const user = import.meta.env.ADMIN_USER;
-  const pass = import.meta.env.ADMIN_PASSWORD;
+  const user = envVar('ADMIN_USER');
+  const pass = envVar('ADMIN_PASSWORD');
 
   // Checked before the public-path exemption, so an unconfigured deployment refuses
   // the login endpoint too rather than letting it fail as a bad password.

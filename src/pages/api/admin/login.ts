@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { adminSessionMaxAge, createAdminSession } from '../../../lib/admin-auth';
 import { adminSigningSecret } from '../../../lib/admin-secret';
+import { envVar } from '../../../lib/env';
 import {
   callerKey,
   clearFailures,
@@ -28,8 +29,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   // like //evil.com, which would otherwise be an open redirect off the back of a login.
   const safeNext = next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin/waivers';
 
-  const user = import.meta.env.ADMIN_USER;
-  const pass = import.meta.env.ADMIN_PASSWORD;
+  const user = envVar('ADMIN_USER');
+  const pass = envVar('ADMIN_PASSWORD');
   const caller = callerKey(request);
 
   const locked = lockoutRemaining(caller);

@@ -14,6 +14,8 @@
  * docs/waiver-email-setup.md.
  */
 
+import { envSetting, envVar } from './env';
+
 export interface EmailAttachment {
   filename: string;
   /** Base64-encoded content. */
@@ -61,14 +63,14 @@ export function mailConfig(): { config: MailConfig } | { missing: string[] } {
   // Fixed precedence, so a leftover key from a provider you moved away from can never
   // silently take over the send. First one set wins, in this order.
   const candidates: Array<[MailProvider, string | undefined]> = [
-    ['smtp2go', import.meta.env.SMTP2GO_API_KEY?.trim()],
-    ['resend', import.meta.env.RESEND_API_KEY?.trim()],
-    ['postmark', import.meta.env.POSTMARK_SERVER_TOKEN?.trim()],
+    ['smtp2go', envSetting('SMTP2GO_API_KEY')],
+    ['resend', envSetting('RESEND_API_KEY')],
+    ['postmark', envSetting('POSTMARK_SERVER_TOKEN')],
   ];
   const chosen = candidates.find(([, key]) => Boolean(key));
 
-  const from = import.meta.env.WAIVER_DIGEST_FROM?.trim();
-  const to = parseRecipients(import.meta.env.WAIVER_DIGEST_TO);
+  const from = envSetting('WAIVER_DIGEST_FROM');
+  const to = parseRecipients(envVar('WAIVER_DIGEST_TO'));
 
   const missing: string[] = [];
   if (!chosen) missing.push('SMTP2GO_API_KEY (or RESEND_API_KEY / POSTMARK_SERVER_TOKEN)');

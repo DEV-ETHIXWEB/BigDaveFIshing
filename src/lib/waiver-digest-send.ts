@@ -1,5 +1,6 @@
 import { db } from './db';
 import { mailConfig, sendEmail } from './email';
+import { envSetting } from './env';
 import {
   digestCsv,
   digestHtml,
@@ -76,7 +77,7 @@ export async function runDigest(dashboardUrl: string): Promise<DigestOutcome> {
  * internal hostname, not the address Dave should be tapping on his phone.
  */
 export function dashboardUrl(requestUrl: string) {
-  const configured = import.meta.env.PUBLIC_SITE_URL?.trim().replace(/\/+$/, '');
+  const configured = envSetting('PUBLIC_SITE_URL')?.replace(/\/+$/, '');
   const origin = configured || new URL(requestUrl).origin;
   return `${origin}/admin/waivers`;
 }
