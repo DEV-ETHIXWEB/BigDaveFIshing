@@ -6,12 +6,22 @@ import Footer from '../components/Footer.astro';
 import BookBar from '../components/BookBar.astro';
 import CardNav from '../components/ui/CardNav.tsx';
 import { business, nav, navCards, waiverLinks } from '../lib/business';
+import { isIndexable, siteOrigin } from '../lib/site-url';
 import badge from '../assets/photos/logo-badge.png';
 import wood from '../assets/photos/wood-texture.png';
+// The share card's photo. Picked for resolution as much as subject: at 1500x1000 it is
+// the only photo on the site large enough to fill a 1200x630 card without being upscaled,
+// and every other candidate is 800x600 or 1200x900. Swap it when the hi-res originals
+// land, see the note at the top of src/lib/photos.ts.
+import shareImage from '../assets/photos/wilson-river-lodge-oregon-river-fishing.webp';
 
 // Both resolved here rather than inside the island: Astro owns the hashed asset URLs,
 // and this way no image imports ship to the client.
 const badgeImg = await getImage({ src: badge, width: 120, format: 'webp' });
+
+// 1200x630 is what Facebook, LinkedIn and X all crop to. Generated once here rather than
+// per page, because every page shares the same card image.
+const shareImg = await getImage({ src: shareImage, width: 1200, height: 630, format: 'jpg' });
 
 interface Props {
   title: string;
@@ -20,12 +30,42 @@ interface Props {
 
 const { title, description } = Astro.props;
 
+/**
+ * The canonical URL for this page.
+ *
+ * Built from PUBLIC_SITE_URL where it is set, so the canonical always names the real
+ * domain, a canonical pointing at a preview deployment tells Google the preview is the
+ * original. Query strings are dropped deliberately: `?g=turner-0814` on a waiver page is
+ * one link Dave sent a group, not a separate page to index.
+ */
+const origin = siteOrigin(Astro.url);
+// Trailing slashes are stripped so /contact and /contact/ never claim to be two pages.
+// The root is the one exception, its canonical is the origin plus "/", not a bare origin.
+const path = Astro.url.pathname.replace(/\/+$/, '');
+const canonical = path ? `${origin}${path}` : `${origin}/`;
+const shareImageUrl = new URL(shareImg.src, origin).href;
+
+/**
+ * Structured data for the business.
+ *
+ * Only facts that are confirmed. `geo` and `openingHoursSpecification` used to be here
+ * with invented coordinates and made-up 06:00–18:00 hours, schema that contradicts the
+ * page is worse than schema that is absent, and inventing opening hours for a guide who
+ * fishes by the tide is a claim nobody checked. They go back in when the client confirms
+ * them; see docs/handover.md.
+ *
+ * `sameAs` is likewise omitted until the real Facebook URL is supplied, pointing it at
+ * facebook.com's home page asserted that the business's profile is Facebook itself.
+ */
 const localBusinessSchema = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
+  '@id': `${origin}/#business`,
   name: business.name,
+  url: `${origin}/`,
   telephone: business.phone,
   email: business.email,
+  image: shareImageUrl,
   address: {
     '@type': 'PostalAddress',
     streetAddress: business.address.street,
@@ -35,14 +75,7 @@ const localBusinessSchema = {
     addressCountry: business.address.country,
   },
   areaServed: business.serviceArea,
-  // TODO: replace with real geo coordinates and confirmed hours
-  openingHoursSpecification: {
-    '@type': 'OpeningHoursSpecification',
-    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    opens: '06:00',
-    closes: '18:00',
-  },
-  sameAs: [business.facebook],
+  ...(business.facebook ? { sameAs: [business.facebook] } : {}),
 };
 ---
 
@@ -60,7 +93,38 @@ const localBusinessSchema = {
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Preview and branch deployments must never be indexed: a staging copy in the
+         index competes with the real site for its own name. isIndexable() is true only
+         on the production deployment. -->
+    {!isIndexable() && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Social cards. og:image is an absolute URL on the canonical origin, because
+         Facebook and X fetch it from their own servers and a relative path resolves to
+         nothing there. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={business.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={shareImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content={`${business.name}: guided salmon fishing on Oregon's coastal rivers`}
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={shareImageUrl} />
+
+    <meta name="theme-color" content="#1c1a17" />
+
+    <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} is:inline />
 
     <!-- Arms the reveal animation before first paint, so sections start hidden rather
          than flashing in once the observer attaches. Deliberately the only thing that
@@ -129,7 +193,7 @@ const localBusinessSchema = {
       // baseline, staggered in reading order.
       //
       // Only ever splits plain text nodes, and leaves any nested markup (a <span>, a
-      // <br>) untouched — so a heading with an accent span keeps working. The rendered
+      // <br>) untouched, so a heading with an accent span keeps working. The rendered
       // text is identical, so selection, search-in-page and screen readers see no
       // change; assistive tech reads the element's text content, not its span tree.
       const splitWords = () => {

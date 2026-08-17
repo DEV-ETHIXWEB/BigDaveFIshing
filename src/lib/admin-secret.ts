@@ -6,7 +6,7 @@ import { envSetting, envVar } from './env';
  * Previously the admin password itself was passed to createAdminSession/validAdminSession
  * as the HMAC secret. That coupled two unrelated things: how hard the password is to
  * guess through the login form, and how hard the signing key is to brute-force offline.
- * With a short password an attacker never needs the form at all — they can derive the key
+ * With a short password an attacker never needs the form at all, they can derive the key
  * and mint their own valid `big_dave_admin` cookie, walking straight past the gate and
  * past any rate limiting on login.
  *
@@ -15,7 +15,7 @@ import { envSetting, envVar } from './env';
  *   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
  *
  * If it is unset we fall back to the password so nothing breaks, but that is the weak
- * configuration described above — `adminSecretIsWeak` reports it so the login page can
+ * configuration described above, `adminSecretIsWeak` reports it so the login page can
  * say so out loud rather than failing quietly.
  *
  * Rotating this value invalidates every existing session, which is the intended way to

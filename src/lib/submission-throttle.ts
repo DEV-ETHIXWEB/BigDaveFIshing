@@ -6,7 +6,7 @@ export { callerKey };
  * Sliding-window rate limit for the public waiver endpoint.
  *
  * Without it the endpoint accepts submissions as fast as they can be sent, and each row
- * carries up to 400 kB of signature data — a cheap way to bloat a hosted database.
+ * carries up to 400 kB of signature data, a cheap way to bloat a hosted database.
  *
  * The limit has to be generous, and the reason matters: a fishing party all sign from the
  * lodge's wifi, so a whole group shares one IP. A tight per-IP limit would block exactly

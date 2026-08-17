@@ -4,13 +4,13 @@ import { business } from './business';
 /**
  * Builds the daily roster email.
  *
- * What goes in: everything Dave acts on at the ramp — who is in the party, their phone
+ * What goes in: everything Dave acts on at the ramp: who is in the party, their phone
  * and email, and the emergency contact name and number for each guest. What stays out:
  * the signature image. The signature is the legal artifact, not information anyone works
  * from, and it is the one item that would genuinely hurt in a compromised inbox. It stays
  * in the database behind the admin session; the email carries a link to it.
  *
- * The email is deliberately not the archive. The database remains the system of record —
+ * The email is deliberately not the archive. The database remains the system of record,
  * deleting a digest loses nothing.
  */
 
@@ -64,7 +64,7 @@ export function groupIntoParties(waivers: WaiverListRow[]): DigestParty[] {
       };
       parties.set(key, party);
     }
-    // A party's trip date is whichever member recorded one — guests who signed ahead of
+    // A party's trip date is whichever member recorded one, guests who signed ahead of
     // a team link existing often have none.
     if (!party.tripDate && waiver.trip_date) party.tripDate = waiver.trip_date;
     party.members.push(waiver);
@@ -109,16 +109,16 @@ export function digestSubject(parties: DigestParty[], guestCount: number) {
 }
 
 /**
- * Plain-text body. Not a fallback nobody reads — a phone with one bar at the ramp may
+ * Plain-text body. Not a fallback nobody reads, a phone with one bar at the ramp may
  * render this and nothing else, so it carries every field the HTML version does.
  */
 export function digestText(parties: DigestParty[], dashboardUrl: string) {
-  const lines: string[] = ["Big Dave's Fishing — new signed waivers", ''];
+  const lines: string[] = ["Big Dave's Fishing: new signed waivers", ''];
 
   for (const party of parties) {
     lines.push(
-      `${party.leader} — ${TRIP_LABEL[party.waiverType] || party.waiverType}${
-        party.tripDate ? ` — ${party.tripDate}` : ' — no trip date'
+      `${party.leader}: ${TRIP_LABEL[party.waiverType] || party.waiverType}${
+        party.tripDate ? `, ${party.tripDate}` : ', no trip date'
       }`,
     );
     for (const member of party.members) {
@@ -126,7 +126,7 @@ export function digestText(parties: DigestParty[], dashboardUrl: string) {
       lines.push(`    Phone: ${member.guest_phone}`);
       if (member.guest_email) lines.push(`    Email: ${member.guest_email}`);
       lines.push(
-        `    Emergency: ${member.emergency_contact_name} — ${member.emergency_contact_phone}`,
+        `    Emergency: ${member.emergency_contact_name}, ${member.emergency_contact_phone}`,
       );
       lines.push(`    Signed: ${formatSigned(member.signed_at)}`);
     }
@@ -136,7 +136,7 @@ export function digestText(parties: DigestParty[], dashboardUrl: string) {
   lines.push(`Signatures and full records: ${dashboardUrl}`);
   lines.push('');
   lines.push(
-    'This email is a copy, not the file. Every waiver stays in the dashboard — deleting this loses nothing.',
+    'This email is a copy, not the file. Every waiver stays in the dashboard, so deleting this loses nothing.',
   );
   return lines.join('\n');
 }
@@ -201,7 +201,7 @@ export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
             <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:${ink};color:${cream};padding:12px 20px;text-decoration:none;font-size:14px;">View signatures in the dashboard</a>
           </p>
           <p style="font-size:12px;color:#8c867e;margin-top:20px;line-height:1.6;border-top:1px solid #e2ddd3;padding-top:16px;">
-            Signature images are not included in this email — they stay in the dashboard, behind your login.
+            Signature images are not included in this email. They stay in the dashboard, behind your login.
             This email is a copy, not the file: every waiver remains in the dashboard, so deleting this loses nothing.
           </p>
         </td></tr>
@@ -211,7 +211,7 @@ export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
 </div>`;
 }
 
-/** Quotes a CSV field — commas, quotes and newlines all appear in real names and addresses. */
+/** Quotes a CSV field. Commas, quotes and newlines all appear in real names and addresses. */
 function csvCell(value: string | null) {
   const text = value ?? '';
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;

@@ -1,17 +1,15 @@
 import { useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { ChevronDown, Mail, Pencil, Phone, User, ArrowRight, Lock, Ship } from 'lucide-react';
 import SalmonIcon from '../ui/SalmonIcon';
+import { bookingEnquirySchema, enquiryFailureMessage } from '../../lib/booking-enquiry';
+import { submitEnquiry } from '../../lib/submit-enquiry';
+import { sanitize } from '../../lib/field-sanitize';
+import { digitsOnly, lettersOnly } from '../../lib/waiver-validation';
 
-const schema = z.object({
-  name: z.string().min(2, 'Enter your name'),
-  phone: z.string().min(7, 'Enter a phone number'),
-  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  tripType: z.enum(['day-trip', 'lodge', 'not-sure']),
-  message: z.string().optional(),
-});
+const schema = bookingEnquirySchema;
 
 type FormData = z.infer<typeof schema>;
 
@@ -30,24 +28,29 @@ export default function BookingFormDesktop() {
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  // TODO: wire to real submission endpoint (email service / CRM) before launch.
+  // Confirmation only after the server confirms the email was accepted, see
+  // src/lib/submit-enquiry.ts.
   const onSubmit = async (data: FormData) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    console.log('Booking enquiry (placeholder - not sent anywhere yet):', data);
-    setSubmitted(true);
+    setSubmitError(null);
+    if (await submitEnquiry(data)) {
+      setSubmitted(true);
+      return;
+    }
+    setSubmitError(enquiryFailureMessage);
   };
 
   if (submitted) {
     return (
       <div className="border-cream/15 bg-cream/[0.03] rounded-lg border px-10 py-16 text-center">
         <p className="font-display text-cream text-2xl tracking-[0.06em] uppercase">
-          Thanks — we got it
+          Thanks, we got it
         </p>
         <p className="text-cream/70 mx-auto mt-4 max-w-sm text-sm">
           We&rsquo;ll get back to you shortly. For anything urgent, call the number on the left.
@@ -99,7 +102,13 @@ export default function BookingFormDesktop() {
             </label>
             <div className={shell}>
               <User {...iconProps} aria-hidden="true" />
-              <input id={id('name')} type="text" className={control} {...register('name')} />
+              <input
+                id={id('name')}
+                type="text"
+                className={control}
+                onInput={sanitize(lettersOnly)}
+                {...register('name')}
+              />
             </div>
             {errors.name && <p className={error}>{errors.name.message}</p>}
           </div>
@@ -110,7 +119,13 @@ export default function BookingFormDesktop() {
             </label>
             <div className={shell}>
               <Phone {...iconProps} aria-hidden="true" />
-              <input id={id('phone')} type="tel" className={control} {...register('phone')} />
+              <input
+                id={id('phone')}
+                type="tel"
+                className={control}
+                onInput={sanitize(digitsOnly)}
+                {...register('phone')}
+              />
             </div>
             {errors.phone && <p className={error}>{errors.phone.message}</p>}
           </div>
@@ -175,6 +190,15 @@ export default function BookingFormDesktop() {
           {isSubmitting ? 'Sending…' : 'Send Enquiry'}
           <ArrowRight size={17} strokeWidth={1.5} aria-hidden="true" />
         </button>
+
+        {submitError && (
+          <p
+            role="alert"
+            className="text-cream/85 border-copper/50 bg-copper/10 mt-5 rounded border px-4 py-3 text-center text-sm"
+          >
+            {submitError}
+          </p>
+        )}
 
         <p className="text-cream/45 mt-4 flex items-center justify-center gap-2 text-xs">
           <Lock size={13} strokeWidth={1.5} aria-hidden="true" />

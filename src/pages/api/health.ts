@@ -10,13 +10,13 @@ export const prerender = false;
  * Born out of a live 500 that could not be diagnosed from outside: every page that used
  * the database returned an empty error page, Vercel's logs were the only source of truth,
  * and there was no way to tell from the public site whether a given fix had even shipped.
- * This answers both — which commit is running, and whether the database and mail
+ * This answers both: which commit is running, and whether the database and mail
  * configuration are actually visible to the running function.
  *
  * Deliberately public, and deliberately leaks nothing: environment variables are reported
  * as present/absent booleans, never values, and the database error is reduced to its type
  * plus a truncated message with any connection string stripped out. It exposes no guest
- * data and no credentials — nothing here helps an attacker who can already see that the
+ * data and no credentials, nothing here helps an attacker who can already see that the
  * site is up.
  */
 export const GET: APIRoute = async () => {

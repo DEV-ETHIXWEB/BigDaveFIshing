@@ -48,7 +48,7 @@ const sideFor = (i: number, row: Row) =>
           <div class:list={['group relative overflow-hidden', !photoLeft && 'md:order-2']}>
             {/* parallax-media replaces the old group-hover zoom rather than joining it:
                 a scroll-driven animation sets transform outright, so a hover scale on the
-                same element would silently never apply. The drift is the better effect —
+                same element would silently never apply. The drift is the better effect,
                 it's always working, not only when a pointer happens to be over the tile,
                 and there is no pointer at all on a phone. */}
             <Image

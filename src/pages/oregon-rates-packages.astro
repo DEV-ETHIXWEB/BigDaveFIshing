@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PageHero from '../components/PageHero.astro';
-import Checkerboard from '../components/home/Checkerboard.astro';
-import type { Row } from '../components/home/Checkerboard.astro';
+import OfferCards from '../components/rates/OfferCards.astro';
+import type { Offer } from '../components/rates/OfferCards.astro';
 import SectionHeading from '../components/home/SectionHeading.astro';
 import Sponsors from '../components/home/Sponsors.astro';
 import { photos } from '../lib/photos';
@@ -12,26 +12,46 @@ import { business } from '../lib/business';
 // "Contact us for current rates" and nothing more, so that is exactly what this page
 // says. No day rate, package price or deposit figure is invented anywhere here - putting
 // a plausible-looking number on a page a customer might hold you to is not ours to do.
-const rows: Row[] = [
+const offers: Offer[] = [
   {
     photo: photos.bayChinookPair,
     eyebrow: 'Guided trips',
     heading: 'Fully Guided Fishing Trip',
+    // "By quote" is the honest headline figure: the live site publishes no trip price
+    // at all, and a number in this slot is the one thing on the page a customer would
+    // hold you to.
+    price: { value: 'By quote', note: 'Call for your dates' },
     body: [
       'These guided trips include all tackle and gear.',
       'Fishing transcends the ordinary experiences of life. The thrill of catching that “big one” is enjoyed by people of all ages from all walks of life.',
-      'Rates vary by season, river and party size — call and we’ll quote you for the dates you’re looking at.',
+      'Rates vary by season, river and party size. Call and we’ll quote you for the dates you’re looking at.',
+    ],
+    // Deliberately not a re-listing of "What's Included" further down the page, these
+    // answer the two things the grid below doesn't: who it suits, and which water.
+    features: [
+      'Tackle & gear included',
+      'Any skill level',
+      'Wilson · Trask · Kilchis',
+      'Tillamook Bay',
     ],
     cta: { label: `Call ${business.phone}`, href: business.phoneHref },
+    tone: 'dark',
   },
   {
     photo: photos.lodgeRiver,
     eyebrow: 'Lodging',
     heading: 'Wilson River Lodging',
+    price: { value: business.lodgeNightlyAmount, note: business.lodgeNightlyQualifier },
     body: [
       'The Wilson River Lodge is located 8 miles east of Tillamook along the majestic Wilson River.',
       `Nightly rate ${business.lodgeNightlyRate}. Call for group discounts.`,
       `Along with lodging we offer private river access with fantastic fishing opportunities. In the summer this same stretch of water has an amazing swimming hole that will provide pleasure for the whole family. Come meet hosts ${business.hosts}! They would love to have you stay at their little piece of paradise along the Oregon coast.`,
+    ],
+    features: [
+      'Private river access',
+      'Summer swimming hole',
+      'Group discounts',
+      '8 miles from Tillamook',
     ],
     cta: { label: 'About the Lodge', href: '/wilson-river-lodge' },
   },
@@ -46,14 +66,14 @@ const included = [
   { label: 'Life jackets', detail: 'Provided for every guest aboard.' },
   {
     label: 'Guiding for any level',
-    detail: 'Beginners through avid anglers — technique explained as you go.',
+    detail: 'Beginners through avid anglers, with technique explained as you go.',
   },
   { label: 'River selection', detail: 'We pick the water with the best shot on the day.' },
 ];
 ---
 
 <Layout
-  title="Rates & Packages | Guided Trips & Lodge Rates — Big Dave's Fishing Adventures"
+  title="Rates & Packages | Guided Trips & Lodge Rates | Big Dave's Fishing Adventures"
   description="Fully guided Oregon fishing trips with all tackle and gear included, and lodging at the Wilson River Lodge at $75 + tax per person nightly. Call (503) 538-5607 for current trip rates."
 >
   <PageHero
@@ -63,13 +83,13 @@ const included = [
     photo={photos.boatCatch}
   />
 
-  <Checkerboard rows={rows} startIndex={0} />
+  <OfferCards offers={offers} />
 
   <section class="bg-cream py-16 lg:py-20">
     <SectionHeading
       eyebrow="On every trip"
       title="What's Included"
-      intro="Turn up with a licence, warm layers and lunch — the rest is on the boat."
+      intro="Turn up with a licence, warm layers and lunch. The rest is on the boat."
     />
 
     <div
@@ -87,7 +107,7 @@ const included = [
     </div>
 
     <p class="text-ink/55 mx-auto mt-8 max-w-2xl px-6 text-center text-sm">
-      An Oregon fishing licence and tags are required and are not included — pick them up before
+      An Oregon fishing licence and tags are required and are not included, so pick them up before
       your trip.
     </p>
 

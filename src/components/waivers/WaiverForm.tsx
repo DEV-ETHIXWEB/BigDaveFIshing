@@ -5,27 +5,8 @@ import { z } from 'zod';
 import { Check } from 'lucide-react';
 import SignaturePad, { type SignaturePadHandle } from './SignaturePad';
 import { waiverGuestFields, digitsOnly, lettersOnly } from '../../lib/waiver-validation';
+import { sanitize } from '../../lib/field-sanitize';
 import { business } from '../../lib/business';
-
-/**
- * Rewrites the field's own value as the guest types, so disallowed characters never
- * appear at all. Previously the value was only cleaned at submit time (setValueAs), so
- * you could type letters into a phone box, see them sit there, and get an error later
- * about something you had no idea was wrong.
- */
-const sanitize =
-  (clean: (value: string) => string) => (event: React.FormEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const next = clean(input.value);
-    if (next !== input.value) {
-      // Keep the caret where it was rather than throwing it to the end, or typing in
-      // the middle of an already-filled field becomes unusable.
-      const dropped = input.value.length - next.length;
-      const caret = Math.max(0, (input.selectionStart ?? next.length) - dropped);
-      input.value = next;
-      input.setSelectionRange(caret, caret);
-    }
-  };
 
 const schema = z.object({
   groupLeaderName: z.string().trim().max(200).optional(),
@@ -58,12 +39,12 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
   const [sigError, setSigError] = useState<string | null>(null);
 
   // The group code rides on the link Dave sends the group leader
-  // (…/waivers/fishing-adventure?g=turner-0814), so guests never have to type it —
+  // (…/waivers/fishing-adventure?g=turner-0814), so guests never have to type it,
   // there's nothing for them to get wrong. Anyone who lands here without one still
   // sees the manual fields below as a fallback.
   useEffect(() => {
     // `window` doesn't exist during Astro's server render of this island's static
-    // fallback, so the group code can't be read via a lazy useState initializer — it
+    // fallback, so the group code can't be read via a lazy useState initializer, it
     // has to be synchronized in an effect once the component is actually running in a
     // browser. That's exactly the "external system" case the effect docs describe.
     const g = new URLSearchParams(window.location.search).get('g');
@@ -118,13 +99,13 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         `big-dave-waiver:${waiverType}:${groupCode || 'individual'}:${data.guestPhone}`,
         'signed',
       );
-      // First name only — "Thank you, Michael" reads like a person wrote it; the full
+      // First name only, "Thank you, Michael" reads like a person wrote it; the full
       // legal name they just typed into a waiver does not.
       setSignedName(data.guestName.trim().split(/\s+/)[0] ?? '');
       setSubmitted(true);
     } catch {
       setSubmitError(
-        'Something went wrong sending this — please try again, or call us if it keeps happening.',
+        'Something went wrong sending this. Please try again, or call us if it keeps happening.',
       );
     }
   };
@@ -151,7 +132,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         </h2>
 
         <p className="text-cream/80 mx-auto mt-4 max-w-sm text-sm leading-relaxed sm:text-base">
-          Your waiver is signed and on file. We hope you enjoy your trip &mdash; tight lines, and
+          Your waiver is signed and on file. We hope you enjoy your trip. Tight lines, and
           we&rsquo;ll see you on the water.
         </p>
 
@@ -184,7 +165,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         </div>
 
         <p className="text-cream/45 mt-6 text-xs">
-          Nothing else to do &mdash; there&rsquo;s no copy to print or bring with you.
+          Nothing else to do. There&rsquo;s no copy to print or bring with you.
         </p>
       </div>
     );
@@ -192,7 +173,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
 
   return (
     // react-hook-form's handleSubmit(fn) only builds the submit-event closure at
-    // render time; fn itself — and its sigRef.current read — runs later, on the real
+    // render time; fn itself, and its sigRef.current read, runs later, on the real
     // submit event, never during render. The lint rule can't see through that and
     // flags it defensively.
     // eslint-disable-next-line react-hooks/refs

@@ -220,7 +220,7 @@ async function flattenLogoTo(buffer, colour) {
   // The ground sits at --color-ink after levelling, not pure black.
   const floor = 0.2126 * INK.r + 0.7152 * INK.g + 0.0722 * INK.b;
   // Black point. The illustration's ground carries fine grain, and mapping luminance
-  // straight to alpha turned every speck of it into a faintly visible pixel — which is
+  // straight to alpha turned every speck of it into a faintly visible pixel, which is
   // what showed up as a grey halo of stray dots around the mark. Anything below this
   // is forced fully transparent.
   const toe = floor + (255 - floor) * 0.16;

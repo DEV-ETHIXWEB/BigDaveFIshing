@@ -3,14 +3,14 @@
  *
  * Vercel functions can't hold an SMTP connection open, and nothing here needs a
  * dependency: each provider is one POST. Which one is used is decided by whichever key
- * is present, so switching is a matter of swapping environment variables — no code
+ * is present, so switching is a matter of swapping environment variables; no code
  * change, no redeploy of anything but the settings.
  *
  * Deliverability is the part that actually decides whether this system is trusted.
  * `WAIVER_DIGEST_FROM` must be a sender the provider has verified. Best is a verified
  * domain with SPF and DKIM published; a single verified address works with no DNS at all
  * but aligns neither, so more of it is filtered. A digest in spam is worse than no
- * digest — Dave stops looking for it and nobody notices the roster stopped arriving. See
+ * digest: Dave stops looking for it and nobody notices the roster stopped arriving. See
  * docs/waiver-email-setup.md.
  */
 
@@ -100,11 +100,11 @@ export async function sendEmail(config: MailConfig, message: EmailMessage): Prom
 }
 
 /**
- * SMTP2GO, over its HTTP API rather than SMTP — same reasoning as the others, and it
+ * SMTP2GO, over its HTTP API rather than SMTP, same reasoning as the others, and it
  * avoids a serverless function holding a socket open.
  *
  * Chosen for this project because it is the one provider here that will send from a
- * *single verified sender address* — you click a link in that inbox and you are done, no
+ * *single verified sender address*, you click a link in that inbox and you are done, no
  * DNS records and no domain of your own. Resend refuses to send anywhere but your own
  * signup address until a domain is verified, which makes it useless without control of
  * bigdavesfishing.com.
@@ -146,7 +146,7 @@ async function sendViaSmtp2go(config: MailConfig, message: EmailMessage): Promis
   const body = await readJson(response);
   const data = (body?.data ?? null) as Record<string, unknown> | null;
 
-  // SMTP2GO answers 200 even when it accepted nothing — an unverified sender comes back
+  // SMTP2GO answers 200 even when it accepted nothing, an unverified sender comes back
   // as succeeded: 0 with the reason in `failures`. Treating that as success is exactly
   // how a roster gets marked sent and never arrives.
   const succeeded = typeof data?.succeeded === 'number' ? data.succeeded : 0;
@@ -229,7 +229,7 @@ async function sendViaPostmark(config: MailConfig, message: EmailMessage): Promi
   });
 
   const body = await readJson(response);
-  // Postmark can answer 200 with an ErrorCode in the body — a non-zero code is a failure
+  // Postmark can answer 200 with an ErrorCode in the body, a non-zero code is a failure
   // even though the HTTP status says otherwise.
   if (!response.ok || (typeof body?.ErrorCode === 'number' && body.ErrorCode !== 0)) {
     return { ok: false, error: providerError('Postmark', response.status, body) };

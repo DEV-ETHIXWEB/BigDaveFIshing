@@ -2,17 +2,17 @@
  * The six films from the live site's Video Gallery.
  *
  * Titles, subtitles and thumbnail pairings are verbatim from that page's Slider
- * Revolution markup (recovered through the WordPress REST API — the rendered page builds
+ * Revolution markup (recovered through the WordPress REST API, the rendered page builds
  * the slider in JS and shows none of it in its own source).
  *
  * `url` is null on every entry, and that is not an oversight. **The live site does not
- * link these videos anywhere.** Its slider layers are `image` and `text` only — no
+ * link these videos anywhere.** Its slider layers are `image` and `text` only, no
  * `data-videoyoutube`, no iframe, no mp4, no anchor, no click action. The play buttons
  * are drawn into the thumbnails. Clicking a slide on the real site plays nothing.
  *
  * So the links have to come from the client (their YouTube channel, or the Angler West
  * TV and Addicted Fishing uploads these are featured on). Fill `url` in and the cards
- * below become real links automatically — the page already renders an <a> when a url is
+ * below become real links automatically, the page already renders an <a> when a url is
  * present and a plain figure when it isn't. Nothing else needs changing.
  */
 import type { ImageMetadata } from 'astro';
@@ -28,7 +28,7 @@ export interface Video {
   thumb: ImageMetadata;
   title: string;
   detail: string;
-  /** TODO: awaiting real URLs from the client — see the note above. */
+  /** TODO: awaiting real URLs from the client, see the note above. */
   url: string | null;
 }
 

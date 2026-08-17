@@ -7,7 +7,7 @@ import { envVar } from './env';
  * read-only filesystem outside of a request and don't persist /tmp between
  * invocations, so a local file wouldn't survive past one submission.
  *
- * libSQL speaks the same SQL and defaults to a local file — so right now, with zero
+ * libSQL speaks the same SQL and defaults to a local file, so right now, with zero
  * setup, this works end to end. For a real deployment, create a free database at
  * https://turso.tech and set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN as environment
  * variables; no code changes needed, same client either way.
@@ -17,7 +17,7 @@ import { envVar } from './env';
  * The client is built on first use, not on import.
  *
  * Creating it at module scope meant a misconfigured environment threw while the module
- * was still loading — which Astro can only turn into a blank 500 on every page that
+ * was still loading, which Astro can only turn into a blank 500 on every page that
  * imports it, including pages that never touch the database. Deferring it means a config
  * problem surfaces at the query, as a normal error, on the one page that actually needs
  * the data.
@@ -46,7 +46,7 @@ export const db = new Proxy({} as Client, {
 
 let initialized: Promise<void> | null = null;
 
-/** Creates the table on first use. Safe to call on every request — it's a no-op after. */
+/** Creates the table on first use. Safe to call on every request; it's a no-op after. */
 export function ensureSchema() {
   if (!initialized) {
     initialized = db
@@ -98,7 +98,7 @@ export function ensureSchema() {
  *
  * SQLite has no `ADD COLUMN IF NOT EXISTS`, and a live database already holds signed
  * waivers, so this reads the existing shape and only adds what is missing. Both columns
- * are nullable with no default — a NULL means "not yet", which is exactly the state
+ * are nullable with no default, a NULL means "not yet", which is exactly the state
  * every existing row is in.
  *
  * `archived_at` is set when a human presses Archive on the dashboard. `emailed_at` is
@@ -144,7 +144,7 @@ export interface WaiverRecord {
 }
 
 /**
- * A waiver as the dashboard lists it — everything except the signature image.
+ * A waiver as the dashboard lists it: everything except the signature image.
  *
  * The signature is a base64 data URL, typically 8–15 kB each. Selecting it into the list
  * meant a page of 61 waivers shipped 1 MB of HTML, 88% of it signature payload, on every

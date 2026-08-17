@@ -23,7 +23,7 @@ export interface Sponsor {
   href: string | null;
 }
 
-// TODO: Pro-Cure Bait Scents is missing from this list and it should not be — it is a
+// TODO: Pro-Cure Bait Scents is missing from this list and it should not be, it is a
 // real sponsor and it renders on the live site. Its logo is the one asset that could not
 // be recovered: the live markup points at
 // /wp-content/uploads/2019/01/procure-logo.png, and that URL (plus every -300x150,

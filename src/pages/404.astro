@@ -1,0 +1,58 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { business, nav } from '../lib/business';
+
+/**
+ * The 404 page.
+ *
+ * Astro's default is an unbranded grey developer page listing the site's routes, fine
+ * in dev, wrong in front of someone who followed an old link from Google or a printed
+ * card. This keeps them inside the site: the real nav is above, the phone number is
+ * here, and every page is one tap away.
+ *
+ * Rendered through the normal Layout, so the header, footer and book bar are the same
+ * ones the rest of the site has.
+ */
+const destinations = nav.filter((link) => link.href !== '/');
+---
+
+<Layout
+  title="Page not found | Big Dave's Fishing Adventures"
+  description="That page doesn't exist. Find guided Oregon fishing trips, Wilson River Lodge stays, rates and contact details for Big Dave's Fishing Adventures."
+>
+  <section class="bg-paper px-6 pt-28 pb-20 sm:px-10 md:pt-36 lg:py-28">
+    <div class="mx-auto max-w-3xl">
+      <p class="eyebrow text-graphite">Error 404</p>
+      <h1 class="text-ink mt-4 text-[2rem] leading-tight sm:text-[2.6rem] lg:text-[3.2rem]">
+        That page has slipped the hook
+      </h1>
+      <p class="text-graphite mt-5 max-w-xl text-base leading-relaxed">
+        The link you followed doesn&rsquo;t point anywhere on this site any more. Nothing is wrong
+        with your booking or your waiver. It&rsquo;s just this address.
+      </p>
+
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a href="/" class="btn btn-solid-dark">Back to the home page</a>
+        <a href={business.phoneHref} class="btn btn-outline-dark">Call {business.phone}</a>
+      </div>
+
+      <div class="border-ink/15 mt-12 border-t pt-8">
+        <p class="eyebrow text-graphite">Or head straight to</p>
+        <ul class="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {
+            destinations.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-ink hover:text-copper underline underline-offset-4 transition-colors"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+</Layout>

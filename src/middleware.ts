@@ -9,7 +9,7 @@ import { envVar } from './lib/env';
  * what this does and has not been for some time.)
  *
  * Set ADMIN_USER and ADMIN_PASSWORD as environment variables. If either is unset,
- * /admin is refused entirely rather than left open — a missing password must never
+ * /admin is refused entirely rather than left open, a missing password must never
  * mean "no password required."
  */
 
@@ -18,7 +18,7 @@ import { envVar } from './lib/env';
  *
  * `/admin/login` is the form; `/api/admin/login` is the endpoint that form posts to,
  * and that endpoint is what *issues* the session. Gating it behind a valid session made
- * signing in impossible — every attempt 401'd, correct password or not, so the whole
+ * signing in impossible, every attempt 401'd, correct password or not, so the whole
  * dashboard was unreachable. It does its own credential check, so it is safe here.
  *
  * Exact matches only: a prefix test would also open anything else nested under these.
@@ -46,7 +46,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (await validAdminSession(session, adminSigningSecret())) {
     const response = await next();
     // Nothing behind this gate should be cached by a shared proxy or indexed. Only set
-    // this where the route hasn't already chosen — the signature endpoint deliberately
+    // this where the route hasn't already chosen, the signature endpoint deliberately
     // caches hard in the browser (private + immutable), and that is what keeps the
     // dashboard fast on refresh. Overwriting it here would undo exactly that.
     if (!response.headers.has('Cache-Control')) {

@@ -15,7 +15,7 @@
 @theme {
   /* Strictly neutral: black, white and greys, no hue anywhere. The photographs supply
      every bit of colour on the page, so the chrome's whole job is to stay out of their
-     way. Nothing here has a warm cast — the previous cream and copper read as brown
+     way. Nothing here has a warm cast, the previous cream and copper read as brown
      beside the photos and pulled attention off them.
      Anything that must not be grey (a fish, a sponsor's brand mark) is a photograph,
      never a palette token. */
@@ -36,7 +36,7 @@
   --color-cedar: #4a4a4a;
   --color-copper: #c2c2c2;
 
-  /* One easing curve for everything that enters the page. A long, soft deceleration —
+  /* One easing curve for everything that enters the page. A long, soft deceleration,
      most of the distance is covered immediately and the last few pixels take their time,
      which is what makes motion read as weighted rather than mechanical. Tailwind exposes
      this as `ease-out-soft`. */
@@ -395,7 +395,7 @@
 /* ---- Short-viewport brand rail ------------------------------------------------
    Deliberately OUTSIDE @layer components. The rail's sizing comes from Tailwind
    utilities (max-w-[12rem], py-6), and utilities is a later cascade layer than
-   components — so anything written inside a layer here loses to them no matter how
+   components, so anything written inside a layer here loses to them no matter how
    specific it is. Unlayered rules outrank every layer, which is exactly what an
    override needs to be.
 
@@ -404,7 +404,7 @@
    above its own top edge, out of sight. Rather than shrink the rail for everyone, it
    gives up size only when the viewport is genuinely short.
 
-   Height query, not width — this is about vertical room, and a wide window can still
+   Height query, not width, this is about vertical room, and a wide window can still
    be short. */
 @media (min-width: 80rem) and (max-height: 52rem) {
   .rail-head {
@@ -428,7 +428,7 @@
   }
 }
 
-/* Waiver confirmation tick. Draws itself in once, rather than appearing fully formed —
+/* Waiver confirmation tick. Draws itself in once, rather than appearing fully formed,
    the one moment on the site where a small flourish is warranted, because it is
    confirming that a legal document was accepted.
    Unlayered so it is not outranked by utilities, same as the rail rules above. */
@@ -455,7 +455,7 @@
    Checkerboard photos drift a little slower than the page, so a tile feels like a
    window onto something behind the layout rather than a flat pane bolted to it.
 
-   Uses CSS scroll-driven animations where supported — that runs on the compositor,
+   Uses CSS scroll-driven animations where supported, that runs on the compositor,
    off the main thread, so it cannot stutter the way a scroll listener does. Browsers
    without support simply get a still photo, which is the current behaviour and is
    not a degradation worth scripting around.
@@ -474,7 +474,7 @@
     }
 
     /* Kept deliberately shallow. The scale only exists to stop the translate exposing an
-       edge — it needs to be at least 1 + 2×the travel, so 1.5% travel needs 1.03. 1.06
+       edge, it needs to be at least 1 + 2×the travel, so 1.5% travel needs 1.03. 1.06
        gives headroom without eating the photo: these are 4:3 originals already
        cover-cropped into the tile, and every extra percent comes off the subject. */
     @keyframes parallax-drift {
@@ -543,7 +543,7 @@
    the CARD lifts and grows a little, raising itself above its neighbours;
    the THUMBNAIL zooms hard inside its own frame.
 
-   The big zoom is on the image rather than the whole card on purpose — scaling a card
+   The big zoom is on the image rather than the whole card on purpose, scaling a card
    by 20% scales its heading too, and browsers render transform-scaled text soft. This
    way the movement is significant and the type stays crisp.
 

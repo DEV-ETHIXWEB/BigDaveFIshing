@@ -11,7 +11,7 @@ import { envSetting } from '../lib/env';
  *
  * It always writes the error to the console, so it lands in the platform's runtime log
  * where it belongs. And it will show the error on the page itself, but only to someone
- * who appends `?diag=<CRON_SECRET>` — the same secret that guards the scheduled send. A
+ * who appends `?diag=<CRON_SECRET>`, the same secret that guards the scheduled send. A
  * stack trace names internal paths and dependency versions, so it is not something to
  * hand to every visitor; gating it keeps the page honest for guests while leaving a way
  * to read the fault on a deployment you cannot attach a debugger to.
@@ -48,7 +48,7 @@ if (error instanceof Error) {
     <main style="max-width:38rem;margin:0 auto;">
       <h1 style="font-size:1.75rem;margin:0 0 .75rem;">Something went wrong</h1>
       <p style="margin:0 0 1rem;line-height:1.6;">
-        Sorry — this page didn't load. Nothing you entered has been lost.
+        Sorry, this page didn't load. Nothing you entered has been lost.
       </p>
       <p style="margin:0 0 1.5rem;line-height:1.6;">
         If you were trying to sign a waiver, call us on

@@ -1,0 +1,264 @@
+---
+import { Image } from 'astro:assets';
+import type { Photo } from '../../lib/photos';
+
+export interface Offer {
+  photo: Photo;
+  eyebrow: string;
+  heading: string;
+  /** The headline figure, split so the qualifier can be set small beside it. */
+  price: { value: string; note: string };
+  body: string[];
+  /** Short factual chips - each one is stated in the body or on the live site. */
+  features: string[];
+  cta: { label: string; href: string };
+  /** The first offer is set on ink so the two cards read as primary / secondary. */
+  tone?: 'dark' | 'light';
+}
+
+interface Props {
+  offers: Offer[];
+  class?: string;
+}
+
+const { offers, class: className = '' } = Astro.props;
+
+// Replaces the shared Checkerboard on this page only.
+//
+// Checkerboard is the right shape for narrative pages - long copy alternating with
+// photographs - but Rates & Packages is a *comparison*: two things you are choosing
+// between. Full-bleed alternating bands hide that, because the two offers never
+// appear on screen together and there is nothing to weigh one against the other.
+// Two cards side by side put the price, the inclusions and the call button of each
+// offer on the same line as its counterpart.
+//
+// Every other page keeps Checkerboard untouched.
+---
+
+<section class:list={['bg-cream relative overflow-hidden py-16 lg:py-24', className]}>
+  <div class="mx-auto grid max-w-6xl gap-6 px-6 sm:px-10 lg:grid-cols-2 lg:gap-8">
+    {
+      offers.map((offer, i) => {
+        const dark = offer.tone === 'dark';
+        return (
+          // The reveal wrapper and the card are deliberately separate elements: the
+          // reveal sets a transform on its target, so a hover transform on the same
+          // node would be overwritten the moment the block animated in.
+          <div data-reveal style={`transition-delay:${i * 110}ms`} class="flex">
+            <article
+              class:list={[
+                'offer group ring-ink/10 relative isolate flex w-full flex-col overflow-hidden rounded-[3px] ring-1',
+                dark ? 'bg-ink text-cream' : 'bg-paper text-ink',
+              ]}
+            >
+              <div class="offer__media relative overflow-hidden">
+                <Image
+                  src={offer.photo.src}
+                  alt={offer.photo.alt}
+                  widths={[600, 900, 1200]}
+                  sizes="(min-width: 1024px) 45vw, 100vw"
+                  class="aspect-[16/10] w-full object-cover"
+                />
+
+                <div class="photo-scrim absolute inset-0" aria-hidden="true" />
+
+                {/* Sweeps once across the photograph on hover - a highlight passing over
+                    glass. Skewed so it reads as a moving edge of light rather than a bar. */}
+                <span class="offer__sheen" aria-hidden="true" />
+
+                <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-6">
+                  <div class="flex items-center gap-3">
+                    <span class="index-num text-white/80">{String(i + 1).padStart(2, '0')}</span>
+                    <span class="h-px w-6 bg-white/40" aria-hidden="true" />
+                    <p class="eyebrow text-white/85">{offer.eyebrow}</p>
+                  </div>
+
+                  {/* Frosted so it sits on the photograph without punching a solid hole
+                      in it - the figure is the thing a rates page is actually asked for,
+                      so it goes above the fold of the card rather than buried in prose. */}
+                  <div class="offer__price shrink-0 rounded-[3px] border border-white/20 bg-black/35 px-3 py-2 text-right backdrop-blur-md">
+                    <p class="font-ui text-[1.15rem] leading-none font-semibold tracking-[0.02em] text-white">
+                      {offer.price.value}
+                    </p>
+                    <p class="font-ui mt-1 text-[0.6rem] leading-tight tracking-[0.14em] text-white/70 uppercase">
+                      {offer.price.note}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-1 flex-col p-7 sm:p-9">
+                <h2
+                  class:list={[
+                    'text-[1.6rem] leading-tight sm:text-[1.9rem]',
+                    dark ? 'text-cream' : 'text-ink',
+                  ]}
+                >
+                  {offer.heading}
+                </h2>
+
+                <span
+                  class:list={['offer__rule mt-4 h-px w-16', dark ? 'bg-cream/40' : 'bg-ink/25']}
+                  aria-hidden="true"
+                />
+
+                {offer.body.map((para) => (
+                  <p
+                    class:list={[
+                      'mt-4 text-[0.95rem] leading-relaxed',
+                      dark ? 'text-cream/75' : 'text-ink/75',
+                    ]}
+                  >
+                    {para}
+                  </p>
+                ))}
+
+                <ul class="mt-7 flex flex-wrap gap-2">
+                  {offer.features.map((feature) => (
+                    <li
+                      class:list={[
+                        'font-ui rounded-[3px] border px-2.5 py-1.5 text-[0.68rem] tracking-[0.12em] uppercase',
+                        dark
+                          ? 'border-cream/20 text-cream/70'
+                          : 'border-ink/15 text-ink/65 bg-ink/[0.02]',
+                      ]}
+                    >
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* mt-auto pins both buttons to the bottom edge, so the two cards line
+                    up on their call to action even when the copy runs to different
+                    lengths. */}
+                <div class="mt-auto pt-8">
+                  <a
+                    href={offer.cta.href}
+                    class:list={[
+                      'btn w-full sm:w-auto',
+                      dark ? 'btn-solid-light' : 'btn-solid-dark',
+                    ]}
+                  >
+                    {offer.cta.label}
+                    <span class="offer__arrow" aria-hidden="true">
+                      &rarr;
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          </div>
+        );
+      })
+    }
+  </div>
+</section>
+
+<style>
+  /* Unlayered on purpose: these rules set transform and box-shadow on elements that
+     also carry Tailwind utilities, and utilities beat @layer components. */
+  .offer {
+    transition:
+      transform 0.5s var(--ease-out-soft),
+      box-shadow 0.5s var(--ease-out-soft);
+  }
+
+  .offer:hover,
+  .offer:focus-within {
+    transform: translateY(-6px);
+    box-shadow: 0 34px 60px -32px rgb(0 0 0 / 0.55);
+  }
+
+  /* The photo grows inside its own frame rather than the card growing around it -
+     scaling the whole card would scale the heading with it, and browsers render
+     transform-scaled text soft. */
+  .offer__media :global(img) {
+    transform-origin: center;
+    transition: transform 0.9s var(--ease-out-soft);
+    will-change: transform;
+  }
+
+  .offer:hover .offer__media :global(img),
+  .offer:focus-within .offer__media :global(img) {
+    transform: scale(1.07);
+  }
+
+  .offer__sheen {
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: -60%;
+    width: 45%;
+    pointer-events: none;
+    transform: skewX(-18deg) translateX(0);
+    background: linear-gradient(
+      to right,
+      rgb(255 255 255 / 0),
+      rgb(255 255 255 / 0.22),
+      rgb(255 255 255 / 0)
+    );
+    opacity: 0;
+  }
+
+  /* Runs on hover only - a loop would pull the eye off the copy permanently. The
+     opacity step is instant at the start and fades at the end so the highlight
+     arrives with the movement instead of glowing in place first. */
+  .offer:hover .offer__sheen,
+  .offer:focus-within .offer__sheen {
+    animation: offer-sheen 0.9s var(--ease-out-soft);
+  }
+
+  @keyframes offer-sheen {
+    from {
+      opacity: 0.9;
+      transform: skewX(-18deg) translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: skewX(-18deg) translateX(320%);
+    }
+  }
+
+  /* Draws itself out from the left as the card arrives, keyed off the reveal class the
+     layout's observer already sets on the wrapper. */
+  .offer__rule {
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.7s var(--ease-out-soft) 0.25s;
+  }
+
+  :global([data-reveal].is-in) .offer__rule,
+  :global(html:not(.js-reveal)) .offer__rule {
+    transform: scaleX(1);
+  }
+
+  .offer__arrow {
+    display: inline-block;
+    transition: transform 0.3s var(--ease-out-soft);
+  }
+
+  .offer:hover .offer__arrow,
+  .offer:focus-within .offer__arrow {
+    transform: translateX(4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .offer,
+    .offer:hover,
+    .offer:focus-within,
+    .offer__media :global(img),
+    .offer:hover .offer__media :global(img),
+    .offer__arrow {
+      transform: none;
+      transition: none;
+    }
+    .offer__rule {
+      transform: scaleX(1);
+      transition: none;
+    }
+    .offer:hover .offer__sheen,
+    .offer:focus-within .offer__sheen {
+      animation: none;
+    }
+  }
+</style>

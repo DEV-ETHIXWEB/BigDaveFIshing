@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Field rules shared by the browser form and the API route.
  *
- * They used to be declared twice — once in WaiverForm.tsx and once in api/waivers.ts —
+ * They used to be declared twice, once in WaiverForm.tsx and once in api/waivers.ts,
  * which is how the two came to disagree about what a name was. Client-side validation is
  * only a courtesy anyway; the server copy is the one that actually protects the table, so
  * they have to be the same object.
@@ -24,7 +24,7 @@ export const nameField = (label: string) =>
     .trim()
     .min(2, `Enter ${label}`)
     .max(200, 'That name is too long')
-    .regex(NAME_PATTERN, 'Letters only — no numbers or symbols');
+    .regex(NAME_PATTERN, 'Letters only, no numbers or symbols');
 
 /** Digits only. The form strips everything else as it is typed, so this is the backstop. */
 export const phoneField = z

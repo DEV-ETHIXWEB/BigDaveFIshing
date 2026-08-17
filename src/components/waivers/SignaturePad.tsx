@@ -133,7 +133,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, { className?: string }>(func
           onPointerCancel={end}
           className="h-40 w-full touch-none rounded border border-cream/25 bg-cream/5"
           role="img"
-          aria-label={empty ? 'Signature — not yet signed' : 'Signature — signed'}
+          aria-label={empty ? 'Signature not yet signed' : 'Signature signed'}
         />
         {empty && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-cream/35">

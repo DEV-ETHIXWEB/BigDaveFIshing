@@ -12,7 +12,7 @@ const schema = z.object({
   groupCode: z.string().trim().max(100).optional(),
   groupLeaderName: z.string().trim().max(200).optional(),
   tripDate: z.string().trim().max(50).optional(),
-  // Shared with the browser form, so the two cannot drift apart — the client copy is
+  // Shared with the browser form, so the two cannot drift apart, the client copy is
   // only a courtesy, this is the one that protects the table.
   ...waiverGuestFields,
   // A data: URL PNG from the signature canvas. Capped well above what a signature

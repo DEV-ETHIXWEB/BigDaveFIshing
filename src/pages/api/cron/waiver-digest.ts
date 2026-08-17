@@ -7,7 +7,7 @@ export const prerender = false;
 /**
  * The scheduled digest. Vercel's cron hits this on the schedule in vercel.json.
  *
- * This route is not under /api/admin, so the admin middleware does not cover it — a
+ * This route is not under /api/admin, so the admin middleware does not cover it, a
  * scheduler has no session cookie. It is gated on CRON_SECRET instead: Vercel sends it
  * as `Authorization: Bearer $CRON_SECRET` automatically once that variable is set on the
  * project. If CRON_SECRET is unset the route refuses rather than running open, because
@@ -16,7 +16,7 @@ export const prerender = false;
 export const GET: APIRoute = async ({ request }) => {
   const secret = envSetting('CRON_SECRET');
   if (!secret) {
-    return json({ error: 'CRON_SECRET is not set — the scheduled digest is disabled.' }, 503);
+    return json({ error: 'CRON_SECRET is not set, so the scheduled digest is disabled.' }, 503);
   }
 
   const authorization = request.headers.get('authorization');

@@ -2,7 +2,7 @@
  * Rate limiting for the admin login endpoint.
  *
  * Without it, /api/admin/login accepts unlimited guesses at whatever pace an attacker can
- * send them — and with a short password that is a matter of seconds. Every failure now
+ * send them, and with a short password that is a matter of seconds. Every failure now
  * costs the caller, and after enough of them their IP is locked out for a while.
  *
  * In-memory on purpose, with eyes open about the limits: on a serverless host each
@@ -74,7 +74,7 @@ export function clearFailures(key: string): void {
 /**
  * Best-effort caller identity. Vercel and most proxies set x-forwarded-for; the first
  * entry is the client. Falls back to a single shared bucket, which is deliberately
- * conservative — if we cannot tell callers apart, they share one budget.
+ * conservative: if we cannot tell callers apart, they share one budget.
  */
 export function callerKey(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');

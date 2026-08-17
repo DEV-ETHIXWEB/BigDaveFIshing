@@ -1,4 +1,4 @@
-# Waiver roster emails — setup
+# Waiver roster emails, setup
 
 Everything is built. Nothing sends until the environment variables below exist. Until
 then the dashboard behaves exactly as it does today and says, on the page, that email
@@ -7,21 +7,21 @@ isn't switched on.
 Two things worth saying to Dave out loud before this goes live:
 
 - **The inbox is not the archive.** The database stays the system of record. Deleting one
-  of these emails loses nothing — every waiver is still in the dashboard.
+  of these emails loses nothing, every waiver is still in the dashboard.
 - **Guest details in email are less protected than in the dashboard.** Email isn't
   encrypted end to end, and forwarding is one tap. That is a normal trade-off, and it's
-  his call — but he should make it knowingly. It's why signature images stay out of the
+  his call, but he should make it knowingly. It's why signature images stay out of the
   email and behind the login.
 
 ---
 
 ## 1. Pick a provider and verify a sender
 
-Three are supported — SMTP2GO, Resend, Postmark. The code picks whichever key is set, in
+Three are supported, SMTP2GO, Resend, Postmark. The code picks whichever key is set, in
 that order. **Nothing sends from an unverified sender**, whichever you choose; the only
 question is what you have to verify.
 
-### Without a domain of your own — SMTP2GO
+### Without a domain of your own, SMTP2GO
 
 This is the path while `bigdavesfishing.com` isn't available to us.
 
@@ -36,11 +36,11 @@ No DNS, no domain, works in a couple of minutes, and it can send to anyone.
 One catch: SMTP2GO won't verify a single sender on a domain that publishes a strict DMARC
 policy. If it refuses the address you picked, use a different one.
 
-Resend is _not_ usable here — until you verify a domain it only sends from
+Resend is _not_ usable here, until you verify a domain it only sends from
 `onboarding@resend.dev` and only to your own signup address, so it can't reach anyone
 else's inbox.
 
-### Once the real domain is available — verify the domain
+### Once the real domain is available, verify the domain
 
 Add `bigdavesfishing.com` in the provider's dashboard and publish the SPF and DKIM DNS
 records it gives you.
@@ -48,7 +48,7 @@ records it gives you.
 Do this before Dave depends on the system. A single verified sender aligns neither SPF nor
 DKIM with the From domain, so a meaningful share of these get filtered. An unverified or
 misaligned sender lands in spam, Dave stops seeing the roster, and he quietly stops
-trusting the system — which is worse than never having sent it.
+trusting the system, which is worse than never having sent it.
 
 ## 2. Set the environment variables
 
@@ -76,7 +76,7 @@ that does not survive the request.
 ## 3. Test it
 
 Sign a test waiver, then open `/admin/waivers` and press **Email roster now**. The page
-tells you what happened — sent, nothing queued, missing configuration, or the provider's
+tells you what happened, sent, nothing queued, missing configuration, or the provider's
 own error message.
 
 If it sends but doesn't arrive, it's deliverability, not the code: check spam, then
@@ -84,7 +84,7 @@ re-check that SPF and DKIM are actually published for the sending domain.
 
 ## 4. The schedule
 
-`vercel.json` runs `/api/cron/waiver-digest` daily at **13:00 UTC — 6am Pacific**. Vercel
+`vercel.json` runs `/api/cron/waiver-digest` daily at **13:00 UTC, 6am Pacific**. Vercel
 crons are UTC and do not follow daylight saving, so this drifts to 5am in winter; change
 the `schedule` field if that matters.
 
@@ -103,7 +103,7 @@ is attached for anyone who wants to sort or print it.
 on, and it's the one item that would genuinely hurt in a compromised inbox. It stays in
 the database behind the admin session; the email carries a button through to it.
 
-**What gets sent.** Every waiver that hasn't been emailed and hasn't been archived —
+**What gets sent.** Every waiver that hasn't been emailed and hasn't been archived,
 tracked per waiver in `emailed_at`, not by date window. So a failed send, or a day the
 cron never fired, is picked up by the next successful run instead of being lost. `emailed_at`
 is written only after the provider confirms; nobody is emailed twice.
@@ -116,9 +116,9 @@ working.
 
 ## Files
 
-- `src/lib/email.ts` — the provider call: SMTP2GO, Resend or Postmark
-- `src/lib/waiver-digest.ts` — what the email says (HTML, text, CSV)
-- `src/lib/waiver-digest-send.ts` — one run: gather, send, then mark sent
-- `src/pages/api/cron/waiver-digest.ts` — the scheduled trigger
-- `src/pages/api/admin/send-digest.ts` — the dashboard button
-- `src/pages/api/admin/archive.ts` — archive and restore
+- `src/lib/email.ts`, the provider call: SMTP2GO, Resend or Postmark
+- `src/lib/waiver-digest.ts`, what the email says (HTML, text, CSV)
+- `src/lib/waiver-digest-send.ts`, one run: gather, send, then mark sent
+- `src/pages/api/cron/waiver-digest.ts`, the scheduled trigger
+- `src/pages/api/admin/send-digest.ts`, the dashboard button
+- `src/pages/api/admin/archive.ts`, archive and restore

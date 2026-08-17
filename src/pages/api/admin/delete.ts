@@ -8,12 +8,12 @@ export const prerender = false;
  * Permanent deletion, for things created by mistake.
  *
  * Distinct from Archive, and deliberately so. Archive means "this trip happened and is
- * dealt with" — the record stays, because a signed waiver is a legal document and the
+ * dealt with", the record stays, because a signed waiver is a legal document and the
  * database is the system of record for it. Delete means "this should never have existed":
  * a team link made with the wrong number, a duplicate, a test row. There is no undo.
  *
  * Deleting a team takes its signed waivers with it, because a waiver filed under a team
- * that no longer exists is orphaned — invisible on the dashboard and impossible to clear.
+ * that no longer exists is orphaned, invisible on the dashboard and impossible to clear.
  * The dashboard says how many will go and makes you confirm before posting here.
  *
  * Under /api/admin, so a valid admin session is already required, and the session cookie

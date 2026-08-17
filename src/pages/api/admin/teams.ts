@@ -7,8 +7,8 @@ export const prerender = false;
 /**
  * Creating a team link.
  *
- * Every failure here used to come back as one of two vague messages — "That team number
- * already exists" or "Complete the team details" — with the form wiped, so whoever was
+ * Every failure here used to come back as one of two vague messages, "That team number
+ * already exists" or "Complete the team details", with the form wiped, so whoever was
  * making the link had to retype everything and guess which field was wrong. A one-letter
  * leader name and a duplicate number looked much the same from the outside: it just
  * didn't work.
@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   };
 
   if (!parsed.success) {
-    // Name the field rather than saying "complete the details" — a leader name of one
+    // Name the field rather than saying "complete the details", a leader name of one
     // character is the common case and was impossible to spot.
     const fields = Object.keys(parsed.error.flatten().fieldErrors);
     return back({ 'team-error': fields[0] ?? 'unknown' });

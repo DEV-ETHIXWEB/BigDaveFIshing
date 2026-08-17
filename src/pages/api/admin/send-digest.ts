@@ -4,14 +4,14 @@ import { dashboardUrl, runDigest } from '../../../lib/waiver-digest-send';
 export const prerender = false;
 
 /**
- * "Send it to me now" — the same digest the cron sends, on demand from the dashboard.
+ * "Send it to me now": the same digest the cron sends, on demand from the dashboard.
  *
  * Worth having for two reasons: it is how you confirm the mail keys work without waiting
  * until tomorrow morning, and it is what Dave presses when a group signs an hour before
  * they launch and he wants the roster in his phone before he loses signal.
  *
  * Same queue as the scheduled run, so pressing this simply means the morning email is
- * smaller — a guest is never mailed twice.
+ * smaller, a guest is never mailed twice.
  */
 export const POST: APIRoute = async ({ request, redirect }) => {
   const outcome = await runDigest(dashboardUrl(request.url));

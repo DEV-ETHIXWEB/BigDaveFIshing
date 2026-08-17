@@ -7,7 +7,7 @@
  *
  * These replace the SAMPLE placeholder text the rebuild was carrying.
  *
- * NOTE: the Fishing Adventure agreement is abbreviated on the live site itself — several
+ * NOTE: the Fishing Adventure agreement is abbreviated on the live site itself, several
  * of its clauses end in an ellipsis, and the last one is cut mid-word ("first written
  * abo"). That is reproduced faithfully rather than invented around. Both documents should
  * be reviewed by the client's lawyer, and the unabridged wording supplied, before anyone

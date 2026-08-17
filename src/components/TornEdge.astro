@@ -5,9 +5,12 @@ import { TEAR_W, TEAR_H, tornEdgePoints, tornEdgeLine, tornEdgeBelow } from '../
  * Torn-paper edge filled with the colour of whatever sits BELOW, so the rip reads as
  * this sheet being ripped away to reveal the next one.
  *
- * Use this where the next section is a flat colour. Where the next section is artwork,
- * use TornBottom instead - it masks the section along the rip so the artwork shows
- * through directly, with no band of flat colour in between.
+ * Use this where the next section is a flat colour, which is every case on the site today.
+ *
+ * There was a companion TornBottom for the artwork case - it masked the section along the
+ * rip so the artwork showed through with no band of flat colour in between - but nothing
+ * ever rendered it and it has been removed. Bring it back from git history if a section
+ * ever needs to tear away onto a photograph.
  */
 interface Props {
   class?: string;

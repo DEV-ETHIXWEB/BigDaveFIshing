@@ -1,16 +1,14 @@
 import { useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { ChevronDown } from 'lucide-react';
+import { bookingEnquirySchema, enquiryFailureMessage } from '../../lib/booking-enquiry';
+import { submitEnquiry } from '../../lib/submit-enquiry';
+import { sanitize } from '../../lib/field-sanitize';
+import { digitsOnly, lettersOnly } from '../../lib/waiver-validation';
 
-const schema = z.object({
-  name: z.string().min(2, 'Enter your name'),
-  phone: z.string().min(7, 'Enter a phone number'),
-  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  tripType: z.enum(['day-trip', 'lodge', 'not-sure']),
-  message: z.string().optional(),
-});
+const schema = bookingEnquirySchema;
 
 type FormData = z.infer<typeof schema>;
 
@@ -28,24 +26,30 @@ export default function BookingForm() {
   const uid = useId();
   const fieldId = (name: string) => `${uid}-${name}`;
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  // TODO: wire to real submission endpoint (email service / CRM) before launch.
+  // The confirmation below is only shown once the server has confirmed the email went
+  // out. If it didn't, the visitor is told so and given the phone number, rather than
+  // being thanked for a message nobody will ever read.
   const onSubmit = async (data: FormData) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    console.log('Booking enquiry (placeholder - not sent anywhere yet):', data);
-    setSubmitted(true);
+    setSubmitError(null);
+    if (await submitEnquiry(data)) {
+      setSubmitted(true);
+      return;
+    }
+    setSubmitError(enquiryFailureMessage);
   };
 
   if (submitted) {
     return (
       <div className="border-cream/20 bg-cream/[0.06] rounded border p-8 text-center">
         <p className="font-display text-cream text-xl tracking-[0.06em] uppercase">
-          Thanks — we got it
+          Thanks, we got it
         </p>
         <p className="text-cream/70 mt-3 text-sm">
           We&rsquo;ll get back to you shortly. For anything urgent, call the number below.
@@ -65,6 +69,7 @@ export default function BookingForm() {
           type="text"
           placeholder="Full name"
           className={control}
+          onInput={sanitize(lettersOnly)}
           {...register('name')}
         />
       </div>
@@ -79,6 +84,7 @@ export default function BookingForm() {
           type="tel"
           placeholder="Best number to reach you"
           className={control}
+          onInput={sanitize(digitsOnly)}
           {...register('phone')}
         />
       </div>
@@ -139,6 +145,12 @@ export default function BookingForm() {
       >
         {isSubmitting ? 'Sending…' : 'Send Enquiry'}
       </button>
+
+      {submitError && (
+        <p role="alert" className="text-cream/85 border-cream/25 rounded border px-4 py-3 text-sm">
+          {submitError}
+        </p>
+      )}
     </form>
   );
 }

@@ -5,14 +5,14 @@ import type { ImageTransform, LocalImageService } from 'astro';
  * The built-in sharp service, with a higher default encode quality.
  *
  * Astro's sharp service defaults to quality 80. That is a sensible default for stock
- * photography, but these are the client's own catch photos — already only 800–1500px
+ * photography, but these are the client's own catch photos, already only 800–1500px
  * web-resized copies from WordPress, so they have been through one lossy pass before we
  * ever see them. Encoding a second lossy pass at 80 on top of that is what puts visible
  * mush in the water and blocking in the sky.
  *
  * Doing it here rather than by adding `quality={90}` to each `<Image>` matters: there are
  * 22 call sites plus two getImage() calls, and this also covers every image added later.
- * Per-image quality still wins — the default only fills in when nothing was specified.
+ * Per-image quality still wins; the default only fills in when nothing was specified.
  */
 const service: LocalImageService = {
   ...baseService,

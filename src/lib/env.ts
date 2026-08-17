@@ -8,8 +8,8 @@
  * returning 500 on every page that touched the database.
  *
  * `process.env` is read when the function actually runs, which is where the values live.
- * `import.meta.env` stays as the fallback so local `astro dev` — where .env is loaded by
- * Vite, not into the process — keeps working unchanged.
+ * `import.meta.env` stays as the fallback so local `astro dev`, where .env is loaded by
+ * Vite, not into the process, keeps working unchanged.
  *
  * Use this for anything set as an environment variable. Do not reach for
  * `import.meta.env` directly in server code.
@@ -20,7 +20,7 @@ export function envVar(name: string): string | undefined {
   return (import.meta.env as Record<string, string | undefined>)[name];
 }
 
-/** Same, trimmed and with blanks treated as absent — how every caller here wants it. */
+/** Same, trimmed and with blanks treated as absent, which is how every caller here wants it. */
 export function envSetting(name: string): string | undefined {
   return envVar(name)?.trim() || undefined;
 }

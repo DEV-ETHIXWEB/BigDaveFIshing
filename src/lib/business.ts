@@ -12,11 +12,25 @@ export const business = {
     country: 'USA',
   },
   addressLines: ['17175 Wilson River Hwy,', 'Tillamook, OR 97141, USA'],
-  facebook: 'https://www.facebook.com/', // TODO: replace with real Facebook URL
+  /**
+   * The business's Facebook page.
+   *
+   * Null until the client supplies the real URL, and null on purpose: it was
+   * `https://www.facebook.com/`, which pointed every "find us on Facebook" link and the
+   * `sameAs` in structured data at Facebook's own home page, telling Google that this
+   * business's social profile is Facebook itself. Absent is correct; wrong is not.
+   *
+   * Fill it in and it appears everywhere automatically, every consumer already checks.
+   */
+  facebook: null as string | null,
   serviceArea: 'Oregon Coastal Rivers - Wilson, Trask, Kilchis, Tillamook Bay',
   hosts: 'Dave and Leslie Manners',
   // Confirmed from the live site's Rates & Packages page.
   lodgeNightlyRate: '$75 + TAX per person',
+  // The same rate split for display, where the figure is set large and the qualifier
+  // small beside it. Kept next to the sentence form so the two can't drift apart.
+  lodgeNightlyAmount: '$75',
+  lodgeNightlyQualifier: '+ tax · per person',
 };
 
 /**
@@ -50,7 +64,7 @@ export const footerLinks = [{ label: 'Waivers', href: '/waivers' }];
  * The tablet/phone nav, grouped into three cards.
  *
  * Three is the component's hard limit, and there are nine destinations, so this is a
- * grouping rather than a list — every one of the nine appears exactly once. Home is
+ * grouping rather than a list, every one of the nine appears exactly once. Home is
  * deliberately absent: the logo beside the hamburger is the home link, as it is on
  * every page of the live site.
  *

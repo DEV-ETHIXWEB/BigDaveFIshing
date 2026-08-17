@@ -1,6 +1,6 @@
 /**
  * Side-view salmon, drawn flat. lucide's `Fish` is a generic cartoon fish; this has the
- * salmonid shape — fusiform body, forked tail, and the small adipose fin between the
+ * salmonid shape: fusiform body, forked tail, and the small adipose fin between the
  * dorsal and the tail that only salmon and trout have.
  *
  * Filled rather than stroked so it stays legible at tab size (~20px). The eye is a hole

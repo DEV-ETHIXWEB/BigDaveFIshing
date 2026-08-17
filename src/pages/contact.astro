@@ -13,8 +13,8 @@ import { business, seasons } from '../lib/business';
 // ready before they dial, and a map link so they can find the lodge.
 //
 // No enquiry form here on purpose. The site already runs a real form pipeline for waivers
-// (Turso + admin dashboard), and standing up a second one that emails into the void — with
-// no inbox configured and no confirmation to the sender — would look functional and
+// (Turso + admin dashboard), and standing up a second one that emails into the void, with
+// no inbox configured and no confirmation to the sender, would look functional and
 // quietly lose bookings. Phone is how this business actually takes work.
 const mapQuery = encodeURIComponent(
   `${business.address.street}, ${business.address.locality}, ${business.address.region} ${business.address.postalCode}`,
@@ -26,7 +26,7 @@ const details = [
     label: 'Phone',
     value: business.phone,
     href: business.phoneHref,
-    note: 'Best way to reach Big Dave — call or text.',
+    note: 'Best way to reach Big Dave. Call or text.',
   },
   {
     icon: Mail,
@@ -53,13 +53,13 @@ const beforeYouCall = [
 ---
 
 <Layout
-  title="Contact Us / Book Now | Big Dave's Fishing Adventures — Tillamook, Oregon"
+  title="Contact Us / Book Now | Big Dave's Fishing Adventures | Tillamook, Oregon"
   description="Book a guided Oregon fishing trip or a stay at the Wilson River Lodge. Call (503) 538-5607 or email bigdave@bigdavesfishing.com. 17175 Wilson River Hwy, Tillamook, OR 97141."
 >
   <PageHero
     eyebrow="Get in touch"
     title="Contact Us / Book Now"
-    intro="Call for dates and river conditions — we'll pick the water with the best shot at putting you on fish."
+    intro="Call for dates and river conditions. We'll pick the water with the best shot at putting you on fish."
     photo={photos.daveAndLeslie}
   />
 
@@ -115,7 +115,7 @@ const beforeYouCall = [
             <div>
               <p class="eyebrow text-graphite">Season</p>
               <p class="text-ink/75 mt-1 text-sm leading-relaxed">
-                {seasons.map((s) => s.fish).join(' · ')} — see the
+                {seasons.map((s) => s.fish).join(' · ')}. See the
                 <a href="/fishing-information" class="underline underline-offset-2 hover:text-ink">
                   full calendar
                 </a>.
@@ -150,7 +150,7 @@ const beforeYouCall = [
     <SectionHeading
       eyebrow="Makes it quicker"
       title="Before You Call"
-      intro="None of it is required — it just means Big Dave can check dates and quote you on the spot."
+      intro="None of it is required. It just means Big Dave can check dates and quote you on the spot."
     />
 
     <div class="mx-auto mt-10 max-w-3xl px-6 sm:px-10" data-reveal>

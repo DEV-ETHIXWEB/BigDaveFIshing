@@ -14,7 +14,7 @@ import { mailConfig } from '../../lib/email';
 await ensureSchema();
 
 // Archiving is how a finished trip leaves the list, so the default view is everything
-// still live. The archived view is the same page with the filter flipped — nothing is
+// still live. The archived view is the same page with the filter flipped, nothing is
 // ever deleted, and anything here can be put straight back.
 const view = Astro.url.searchParams.get('view') === 'archived' ? 'archived' : 'active';
 const archivedFilter = view === 'archived' ? 'archived_at IS NOT NULL' : 'archived_at IS NULL';
@@ -47,7 +47,7 @@ const teamCodes = new Set(teams.map((team) => team.group_code));
 const signedByGroup = new Map<string, WaiverListRow[]>();
 for (const waiver of waivers) {
   // Grouped under a team only if that team still exists. A waiver carrying a group_code
-  // with no matching team row — an old link, or a team removed since — used to key off
+  // with no matching team row, an old link, or a team removed since, used to key off
   // the orphan code, which meant it rendered in no card at all: invisible on the
   // dashboard, and now that Archive exists, impossible to clear. It falls through to the
   // signed-ahead list instead, where it is at least visible and actionable.
@@ -76,8 +76,8 @@ const badTeam = params.get('team-error');
 
 // Which field was wrong, in words. "Complete the team details" told nobody anything.
 const FIELD_PROBLEM: Record<string, string> = {
-  teamNumber: 'Team number must be digits only — no letters or symbols.',
-  leaderName: "Enter the team leader's name — letters only, at least 2 characters.",
+  teamNumber: 'Team number must be digits only, no letters or symbols.',
+  leaderName: "Enter the team leader's name: letters only, at least 2 characters.",
   waiverType: 'Choose a trip type.',
   tripDate: 'That trip date was not accepted.',
 };
@@ -152,7 +152,7 @@ const digestReason = params.get('reason');
         </form>
 
         {
-          /* The roster goes out on a schedule; this is the same send on demand — for
+          /* The roster goes out on a schedule; this is the same send on demand, for
             testing the keys, and for the group that signs an hour before they launch and
             needs to be in Dave's phone before he loses signal at the ramp. Disabled
             rather than hidden when unconfigured, so the reason is visible. */
@@ -180,8 +180,8 @@ const digestReason = params.get('reason');
     {
       archivedJustNow > 0 && (
         <p class="mt-5 border border-ink/20 bg-white p-3 text-sm">
-          Archived {archivedJustNow} waiver{archivedJustNow === 1 ? '' : 's'}. Nothing was deleted —
-          they are under{' '}
+          Archived {archivedJustNow} waiver{archivedJustNow === 1 ? '' : 's'}. Nothing was deleted.
+          They are under{' '}
           <a class="underline" href="/admin/waivers?view=archived">
             Archived
           </a>
@@ -195,7 +195,7 @@ const digestReason = params.get('reason');
           Team deleted
           {deletedWith > 0
             ? `, along with ${deletedWith} signed waiver${deletedWith === 1 ? '' : 's'}`
-            : ' — no one had signed it'}
+            : ', and no one had signed it'}
           .
         </p>
       )
@@ -210,7 +210,7 @@ const digestReason = params.get('reason');
     {
       deleteFailed && (
         <p class="mt-5 border border-red-900/20 bg-red-900/5 p-3 text-sm">
-          Nothing was deleted — that record no longer exists.
+          Nothing was deleted. That record no longer exists.
         </p>
       )
     }
@@ -224,15 +224,16 @@ const digestReason = params.get('reason');
     {
       digestStatus === 'sent' && (
         <p class="mt-5 border border-green-900/20 bg-green-900/5 p-3 text-sm">
-          Roster emailed — {digestGuests} guest{digestGuests === '1' ? '' : 's'}. Check the inbox;
-          if it isn't there, look in spam and see docs/waiver-email-setup.md about SPF and DKIM.
+          Roster emailed to cover {digestGuests} guest{digestGuests === '1' ? '' : 's'}. Check the
+          inbox; if it isn't there, look in spam and see docs/waiver-email-setup.md about SPF and
+          DKIM.
         </p>
       )
     }
     {
       digestStatus === 'empty' && (
         <p class="mt-5 border border-ink/20 bg-white p-3 text-sm">
-          Nothing to send — everyone who has signed has already been emailed.
+          Nothing to send. Everyone who has signed has already been emailed.
         </p>
       )
     }
@@ -256,7 +257,7 @@ const digestReason = params.get('reason');
          keys exist, and the dashboard is unaffected either way. */
       !mailReady && (
         <p class="mt-5 border border-ink/20 bg-white p-3 text-sm text-ink/70">
-          Waiver emails are not set up yet — the dashboard works as normal, nothing is being sent.
+          Waiver emails are not set up yet. The dashboard works as normal, nothing is being sent.
           Add the mail keys from <code>.env.example</code> to switch it on.
         </p>
       )
@@ -323,19 +324,19 @@ const digestReason = params.get('reason');
                           hidden
                           class="border border-ink/30 px-3 py-1.5"
                           data-share={link}
-                          data-share-title={`${team.waiver_type === 'lodge' ? 'Lodge' : 'Fishing'} waiver — team ${team.team_number}`}
+                          data-share-title={`${team.waiver_type === 'lodge' ? 'Lodge' : 'Fishing'} waiver for team ${team.team_number}`}
                         >
                           Share…
                         </button>
                         <a
                           class="border border-ink/30 px-3 py-1.5"
-                          href={`sms:?&body=${encodeURIComponent(`Big Dave's Fishing — please sign your waiver before the trip: ${link}`)}`}
+                          href={`sms:?&body=${encodeURIComponent(`Big Dave's Fishing: please sign your waiver before the trip: ${link}`)}`}
                         >
                           Text
                         </a>
                         <a
                           class="border border-ink/30 px-3 py-1.5"
-                          href={`mailto:?subject=${encodeURIComponent("Waiver for your trip with Big Dave's Fishing")}&body=${encodeURIComponent(`Please sign your waiver before the trip:\n\n${link}\n\nIt only takes a minute — name, phone, emergency contact and a signature.\n\nBig Dave's Fishing Adventures`)}`}
+                          href={`mailto:?subject=${encodeURIComponent("Waiver for your trip with Big Dave's Fishing")}&body=${encodeURIComponent(`Please sign your waiver before the trip:\n\n${link}\n\nIt only takes a minute: name, phone, emergency contact and a signature.\n\nBig Dave's Fishing Adventures`)}`}
                         >
                           Email
                         </a>
@@ -389,7 +390,7 @@ const digestReason = params.get('reason');
                               <p class="text-xs text-ink/55">
                                 Signed {new Date(member.signed_at + 'Z').toLocaleString()}
                               </p>
-                              {/* For a row that should never have existed — a test entry,
+                              {/* For a row that should never have existed, a test entry,
                                   a double submission. Permanent, so it confirms first and
                                   stays visually quiet next to Archive, which is the one
                                   staff should reach for nearly always. */}
@@ -408,7 +409,7 @@ const digestReason = params.get('reason');
                         </ul>
                       )}
 
-                      {/* Clearing a finished trip off the list. A human presses this —
+                      {/* Clearing a finished trip off the list. A human presses this,
                           nothing archives on a timer, because only staff know a trip is
                           actually done. It is also independent of the email: if the mail
                           provider is having a bad day, this still works. */}
@@ -441,7 +442,7 @@ const digestReason = params.get('reason');
                         </form>
                       )}
 
-                      {/* A link made with the wrong number, a duplicate, a test — things
+                      {/* A link made with the wrong number, a duplicate, a test, things
                           that should never have existed. Separate from Archive because
                           this is permanent, and the confirm says exactly how many signed
                           waivers go with it. */}
@@ -580,7 +581,7 @@ const digestReason = params.get('reason');
         }{
           exists && (
             <p class="mt-4 border border-red-900/20 bg-red-900/5 p-3 text-sm">
-              Team {exists} already exists — use {nextTeamNumber}, or delete the old one first. Your
+              Team {exists} already exists. Use {nextTeamNumber}, or delete the old one first. Your
               details are still filled in below.
             </p>
           )
@@ -739,7 +740,7 @@ const digestReason = params.get('reason');
             url: button.dataset.share,
           });
         } catch {
-          /* dismissing the sheet rejects — not an error worth reporting */
+          /* dismissing the sheet rejects, not an error worth reporting */
         }
       });
     });
@@ -760,7 +761,7 @@ const digestReason = params.get('reason');
         // 401 means the 12-hour session lapsed. Stop rather than hammering the endpoint
         // for a page that can no longer read it.
         if (res.status === 401) {
-          if (status) status.textContent = 'Signed out — refresh to sign back in';
+          if (status) status.textContent = 'Signed out. Refresh to sign back in';
           return;
         }
         if (!res.ok) throw new Error(String(res.status));
@@ -772,10 +773,10 @@ const digestReason = params.get('reason');
           // poller is convenience, and destroying a half-written team link to deliver it
           // is a bad trade. It waits, says so, and reloads once the form is clear.
           if (window.__teamFormDirty && window.__teamFormDirty()) {
-            if (status) status.textContent = 'New waiver signed — refreshing once you’re done';
+            if (status) status.textContent = 'New waiver signed. Refreshing once you’re done';
           } else {
             known = count;
-            if (status) status.textContent = 'New waiver signed — updating…';
+            if (status) status.textContent = 'New waiver signed. Updating…';
             location.reload();
             return;
           }
@@ -784,7 +785,7 @@ const digestReason = params.get('reason');
         // Offline or the dev server restarted. Back off instead of retrying every 15s.
         failures += 1;
         if (failures >= 4) {
-          if (status) status.textContent = 'Not updating — check your connection';
+          if (status) status.textContent = 'Not updating. Check your connection';
           return;
         }
       }

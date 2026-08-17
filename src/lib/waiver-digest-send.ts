@@ -14,7 +14,7 @@ import {
  * One digest run: gather what hasn't been mailed, send it, and only then mark it sent.
  *
  * The order matters. `emailed_at` is written after the provider has confirmed, never
- * before — if the send fails, the rows stay queued and the next run picks them up. The
+ * before, if the send fails, the rows stay queued and the next run picks them up. The
  * failure mode of getting this backwards is the one that actually hurts: a roster that
  * was marked sent but never arrived is invisible, and nobody goes looking for it.
  */
@@ -48,7 +48,7 @@ export async function runDigest(dashboardUrl: string): Promise<DigestOutcome> {
 
   if (!result.ok) return { status: 'failed', error: result.error };
 
-  // Confirmed sent — now, and only now, take these out of the queue. Chunked because a
+  // Confirmed sent, now, and only now, take these out of the queue. Chunked because a
   // backlog after several failed days can exceed what one statement should carry.
   const ids = waivers.map((waiver) => waiver.id);
   for (let start = 0; start < ids.length; start += 200) {

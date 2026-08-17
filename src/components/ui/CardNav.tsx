@@ -211,7 +211,7 @@ const CardNav = ({
             <span className="hamburger-line" />
           </button>
 
-          <a href="/" className="logo-container" aria-label="Big Dave's Fishing Adventures — home">
+          <a href="/" className="logo-container" aria-label="Big Dave's Fishing Adventures home">
             <img src={logo} alt={logoAlt} className="logo" />
           </a>
 

@@ -7,13 +7,13 @@ export const prerender = false;
  * Serves one guest's signature as a real PNG.
  *
  * Signatures used to be inlined into the dashboard as base64 data URLs. With 61 waivers
- * that made the page 1 MB, 88% of it signature payload — re-downloaded in full every time
+ * that made the page 1 MB, 88% of it signature payload, re-downloaded in full every time
  * the poller noticed a new signing. Pulling them out drops the page to a fraction of that
  * and lets the browser lazy-load and cache each image independently.
  *
  * Under /api/admin, so the middleware already requires a valid admin session. Signature
- * images are the most sensitive thing in this system — they are handwriting on a legal
- * document — so this must never become a public route.
+ * images are the most sensitive thing in this system, they are handwriting on a legal
+ * document, so this must never become a public route.
  */
 export const GET: APIRoute = async ({ params }) => {
   const id = Number(params.id);
@@ -44,7 +44,7 @@ export const GET: APIRoute = async ({ params }) => {
       'Content-Type': 'image/png',
       'Content-Length': String(bytes.byteLength),
       // A signed waiver is never edited, so this can cache hard. `private` keeps it out
-      // of any shared cache — this is one guest's signature, not a public asset.
+      // of any shared cache, this is one guest's signature, not a public asset.
       'Cache-Control': 'private, max-age=31536000, immutable',
       // Belt and braces: never let a stored blob be sniffed into another content type.
       'X-Content-Type-Options': 'nosniff',

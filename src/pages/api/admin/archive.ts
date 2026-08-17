@@ -7,7 +7,7 @@ export const prerender = false;
 /**
  * Archiving is a human pressing a button, never a timer.
  *
- * A trip is "done" for reasons no schedule knows about — the boat went out a day late,
+ * A trip is "done" for reasons no schedule knows about: the boat went out a day late,
  * the party rebooked, someone signed for a trip that never happened. So this clears a
  * party off the active list only when staff say so, and it is deliberately independent
  * of the digest email: if the mail provider has a bad day, the dashboard still works and
@@ -23,7 +23,7 @@ export const prerender = false;
 const schema = z.object({
   action: z.enum(['archive', 'restore']),
   // Comma-separated waiver ids: one party's members, as rendered on the dashboard.
-  // Parsed by hand rather than piped through z.coerce — a single bad id rejects the whole
+  // Parsed by hand rather than piped through z.coerce, a single bad id rejects the whole
   // list, so a malformed request can't archive some arbitrary subset of a party.
   ids: z
     .string()

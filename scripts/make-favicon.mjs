@@ -21,7 +21,7 @@ const GROUND = { r: 244, g: 244, b: 244, alpha: 1 }; // --color-cream
  * Badge trimmed of its transparent margin, padded, sitting on a ground.
  *
  * `shape: 'circle'` puts it on a disc with transparent corners, so the icon reads as
- * the round emblem it is rather than as a square tile — the badge's own outer ring
+ * the round emblem it is rather than as a square tile, the badge's own outer ring
  * lands just inside the disc edge.
  *
  * `shape: 'square'` keeps a fully opaque square, which is what apple-touch-icon needs:
@@ -104,7 +104,7 @@ await writeFile('public/favicon.ico', ico);
 const files = [
   ['public/favicon-32.png', 32, 0.01, 'circle'],
   ['public/favicon-96.png', 96, 0.02, 'circle'],
-  // Square and opaque on purpose — see the note on icon().
+  // Square and opaque on purpose, see the note on icon().
   ['public/apple-touch-icon.png', 180, 0.1, 'square'],
 ];
 
