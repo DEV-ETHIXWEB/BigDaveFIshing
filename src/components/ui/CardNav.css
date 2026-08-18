@@ -1,6 +1,12 @@
 /* Floating nav for tablet and phone. Above 1280px the fixed brand rail takes over and
    this hides itself, so the two are never on screen together. */
 .card-nav-container {
+  /* Height of the collapsed bar. The badge is deliberately taller than this and
+     overhangs it (see .logo-container) rather than forcing the bar to grow: the header
+     stays slim while the one piece of branding it carries reads at full size. Read by
+     CardNav.tsx too, which animates this height. */
+  --card-nav-bar: 60px;
+  --card-nav-logo: 80px;
   position: fixed;
   top: 1.2em;
   left: 50%;
@@ -19,7 +25,7 @@
 
 .card-nav {
   display: block;
-  height: 60px;
+  height: var(--card-nav-bar);
   padding: 0;
   background-color: #f4f4f4;
   border: 1px solid rgba(17, 17, 17, 0.12);
@@ -50,12 +56,13 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: var(--card-nav-bar);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  /* Left padding clears the overhanging badge, which is out of this flex row. */
+  padding: 0.5rem 0.5rem 0.5rem calc(0.9rem + var(--card-nav-logo) * 1.1);
   z-index: 2;
 }
 
@@ -110,14 +117,21 @@
 }
 
 .logo-container {
+  /* Sits in the container, not in .card-nav: the nav clips to its animated height, so a
+     badge taller than the bar would be cut off in there. Stays put when the menu expands.
+     Overhangs downward rather than centring on the bar - centred, the taller badge came
+     within 3px of the top of the screen, and the container has no safe-area inset. */
+  position: absolute;
+  top: -6px;
+  left: 0.9rem;
+  height: var(--card-nav-logo);
   display: flex;
   align-items: center;
-  order: 1;
-  flex: 0 0 auto;
+  z-index: 3;
 }
 
 .logo {
-  height: 40px;
+  height: var(--card-nav-logo);
   width: auto;
   display: block;
 }
@@ -154,7 +168,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 60px;
+  top: var(--card-nav-bar);
   bottom: 0;
   padding: 0.5rem;
   display: flex;
@@ -225,7 +239,8 @@
   }
 
   .card-nav-top {
-    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    /* Left padding clears the overhanging badge, which is out of this flex row. */
+    padding: 0.5rem 0.5rem 0.5rem calc(0.75rem + var(--card-nav-logo) * 1.1);
   }
 
   .card-nav-content {
@@ -259,7 +274,7 @@
     font-size: 0.7rem;
     letter-spacing: 0.1em;
   }
-  .logo {
-    height: 34px;
+  .card-nav-container {
+    --card-nav-logo: 68px;
   }
 }

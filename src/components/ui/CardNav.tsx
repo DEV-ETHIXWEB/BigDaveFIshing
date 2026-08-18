@@ -54,6 +54,15 @@ const CardNav = ({
   const cardsRef = useRef<HTMLDivElement[]>([]);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
 
+  // The collapsed bar height lives in CardNav.css (--card-nav-bar) so the logo can drive
+  // it; read it back rather than repeating the number here and letting the two drift.
+  const barHeight = () => {
+    const navEl = navRef.current;
+    if (!navEl) return 100;
+    const value = parseFloat(getComputedStyle(navEl).getPropertyValue('--card-nav-bar'));
+    return Number.isFinite(value) ? value : 100;
+  };
+
   const calculateHeight = () => {
     const navEl = navRef.current;
     if (!navEl) return 260;
@@ -74,7 +83,7 @@ const CardNav = ({
 
         void contentEl.offsetHeight;
 
-        const topBar = 60;
+        const topBar = barHeight();
         const padding = 16;
         const contentHeight = contentEl.scrollHeight;
 
@@ -93,7 +102,7 @@ const CardNav = ({
     const navEl = navRef.current;
     if (!navEl) return null;
 
-    gsap.set(navEl, { height: 60, overflow: 'hidden' });
+    gsap.set(navEl, { height: barHeight(), overflow: 'hidden' });
     gsap.set(cardsRef.current, { y: 50, opacity: 0 });
 
     const tl = gsap.timeline({ paused: true });
@@ -187,6 +196,12 @@ const CardNav = ({
 
   return (
     <div className={`card-nav-container ${className}`}>
+      {/* Outside <nav> on purpose - the nav clips to its animated height and the badge is
+          taller than the collapsed bar. CSS positions it over the bar. */}
+      <a href="/" className="logo-container" aria-label="Big Dave's Fishing Adventures home">
+        <img src={logo} alt={logoAlt} className="logo" />
+      </a>
+
       <nav
         ref={navRef}
         className={`card-nav ${isExpanded ? 'open' : ''}`}
@@ -210,10 +225,6 @@ const CardNav = ({
             <span className="hamburger-line" />
             <span className="hamburger-line" />
           </button>
-
-          <a href="/" className="logo-container" aria-label="Big Dave's Fishing Adventures home">
-            <img src={logo} alt={logoAlt} className="logo" />
-          </a>
 
           <a
             href={ctaHref}
