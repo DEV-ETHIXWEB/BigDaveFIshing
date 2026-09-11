@@ -23,3 +23,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare namespace App {
+  interface Locals {
+    /** Set by src/middleware.ts once a request has passed the /admin gate. */
+    admin?: import('./lib/admin-auth').AdminIdentity;
+  }
+}

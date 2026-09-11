@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../../lib/db';
+import { logAdminAction } from '../../../lib/admin-signature';
 
 export const prerender = false;
 
@@ -42,7 +43,7 @@ const schema = z.union([
   }),
 ]);
 
-export const POST: APIRoute = async ({ request, redirect }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const parsed = schema.safeParse(Object.fromEntries(await request.formData()));
   if (!parsed.success) return redirect('/admin/waivers?delete-error=1', 303);
 
@@ -51,19 +52,26 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   if (parsed.data.target === 'team') {
     // The team's group_code is what its waivers are filed under, so both go in one step.
     const found = await db.execute({
-      sql: 'SELECT group_code FROM waiver_teams WHERE id = ?',
+      sql: 'SELECT group_code, team_number FROM waiver_teams WHERE id = ?',
       args: [parsed.data.teamId],
     });
-    const groupCode = (found.rows[0] as { group_code?: string } | undefined)?.group_code;
-    if (!groupCode) return redirect('/admin/waivers?delete-error=1', 303);
+    const team = found.rows[0] as { group_code?: string; team_number?: number } | undefined;
+    if (!team?.group_code) return redirect('/admin/waivers?delete-error=1', 303);
 
     const removed = await db.execute({
       sql: 'DELETE FROM waivers WHERE group_code = ?',
-      args: [groupCode],
+      args: [team.group_code],
     });
     await db.execute({ sql: 'DELETE FROM waiver_teams WHERE id = ?', args: [parsed.data.teamId] });
 
-    return redirect(`/admin/waivers?team-deleted=1&with=${Number(removed.rowsAffected ?? 0)}`, 303);
+    const withCount = Number(removed.rowsAffected ?? 0);
+    await logAdminAction(
+      locals.admin!,
+      'team.delete',
+      `Team #${team.team_number} (${withCount} waiver${withCount === 1 ? '' : 's'})`,
+    );
+
+    return redirect(`/admin/waivers?team-deleted=1&with=${withCount}`, 303);
   }
 
   const ids = parsed.data.ids;
@@ -72,5 +80,14 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     args: ids,
   });
 
-  return redirect(`/admin/waivers?deleted=${Number(result.rowsAffected ?? 0)}`, 303);
+  const deletedCount = Number(result.rowsAffected ?? 0);
+  if (deletedCount > 0) {
+    await logAdminAction(
+      locals.admin!,
+      'waiver.delete',
+      `${deletedCount} waiver${deletedCount === 1 ? '' : 's'}`,
+    );
+  }
+
+  return redirect(`/admin/waivers?deleted=${deletedCount}`, 303);
 };

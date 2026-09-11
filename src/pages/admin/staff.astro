@@ -1,0 +1,142 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { db, ensureSchema, type StaffAccount } from '../../lib/db';
+
+// Master-only. A staff session lands here and is bounced straight back to the
+// dashboard - this isn't hidden-but-reachable, middleware has already set
+// locals.admin from the cookie itself, so there is nothing for a staff session to spoof.
+if (Astro.locals.admin?.role !== 'master') {
+  return Astro.redirect('/admin/waivers');
+}
+
+await ensureSchema();
+const result = await db.execute('SELECT * FROM staff_accounts ORDER BY created_at DESC');
+const staff = result.rows as unknown as StaffAccount[];
+
+const params = Astro.url.searchParams;
+const created = params.get('created') === '1';
+const removed = params.get('removed') === '1';
+const errorCode = params.get('error');
+const FIELD_PROBLEM: Record<string, string> = {
+  name: 'Enter the staff member’s name: letters only, at least 2 characters.',
+  email: 'Enter a valid email address.',
+  password: 'Use a password of at least 8 characters.',
+  'email-exists': 'A staff login with that email already exists.',
+};
+const problem = errorCode ? (FIELD_PROBLEM[errorCode] ?? 'Check the details and try again.') : null;
+---
+
+<AdminLayout title="Manage staff">
+  <section class="mx-auto max-w-4xl px-5 py-8 md:px-8 md:py-12">
+    <header class="border-b border-ink/15 pb-7">
+      <p class="eyebrow text-ink/65">Staff dashboard</p>
+      <h1 class="mt-1 text-3xl md:text-5xl">Manage staff</h1>
+      <p class="mt-2 text-sm text-ink/60">
+        Logins created here get the same waiver dashboard access you have. Only the master account
+        can create or remove one.
+      </p>
+      <a href="/admin/waivers" class="mt-4 inline-block text-sm underline underline-offset-2"
+        >&larr; Back to waivers</a
+      >
+    </header>
+
+    {
+      created && (
+        <p class="mt-6 border border-green-900/20 bg-green-900/5 p-3 text-sm">
+          Staff login created.
+        </p>
+      )
+    }
+    {
+      removed && (
+        <p class="mt-6 border border-ink/20 bg-white p-3 text-sm">
+          That login has been removed. It stops working on their next request.
+        </p>
+      )
+    }
+    {problem && <p class="mt-6 border border-red-900/20 bg-red-900/5 p-3 text-sm">{problem}</p>}
+
+    <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_22rem]">
+      <div class="order-2 lg:order-1">
+        <h2 class="text-2xl">Current staff</h2>
+        {
+          staff.length === 0 ? (
+            <p class="mt-4 text-sm text-ink/60">
+              No staff logins yet. Create the first one on the right.
+            </p>
+          ) : (
+            <ul class="mt-5 divide-y divide-ink/10 border border-ink/15 bg-white">
+              {staff.map((member) => (
+                <li class="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div>
+                    <p class="font-medium">{member.name}</p>
+                    <p class="text-xs text-ink/60">{member.email}</p>
+                  </div>
+                  <form action="/api/admin/staff/delete" method="post">
+                    <input type="hidden" name="id" value={member.id} />
+                    <button
+                      class="text-xs text-red-900/70 underline"
+                      data-confirm={`Remove ${member.name}'s staff login? They will lose access immediately. This cannot be undone.`}
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+
+      <aside class="order-1 border border-ink/15 bg-white p-5 lg:order-2 lg:self-start">
+        <p class="eyebrow text-ink/60">New login</p>
+        <h2 class="mt-2 text-2xl">Create a staff login</h2>
+        <p class="mt-2 text-sm text-ink/60">
+          They'll sign in at the same staff sign-in page, with this email and password.
+        </p>
+        <form action="/api/admin/staff/create" method="post" class="mt-5 grid gap-4">
+          <label class="text-sm font-medium"
+            >Name<input
+              required
+              name="name"
+              maxlength="200"
+              autocomplete="off"
+              class="mt-1 w-full border border-ink/20 px-3 py-2.5"
+            /></label
+          >
+          <label class="text-sm font-medium"
+            >Email<input
+              required
+              type="email"
+              name="email"
+              autocomplete="off"
+              class="mt-1 w-full border border-ink/20 px-3 py-2.5"
+            /></label
+          >
+          <label class="text-sm font-medium"
+            >Password<input
+              required
+              type="password"
+              name="password"
+              minlength="8"
+              autocomplete="new-password"
+              class="mt-1 w-full border border-ink/20 px-3 py-2.5"
+            /></label
+          >
+          <button class="btn btn-solid-dark mt-1 w-full" type="submit">Create login</button>
+        </form>
+      </aside>
+    </div>
+  </section>
+</AdminLayout>
+
+<script is:inline>
+  document.querySelectorAll('[data-confirm]').forEach((button) => {
+    const form = button.closest('form');
+    if (form)
+      form.addEventListener('submit', (event) => {
+        if (!window.confirm(button.dataset.confirm)) event.preventDefault();
+      });
+  });
+</script>

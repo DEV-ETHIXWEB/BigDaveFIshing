@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../../lib/db';
+import { logAdminAction } from '../../../lib/admin-signature';
 
 export const prerender = false;
 
@@ -40,7 +41,7 @@ const schema = z.object({
     }),
 });
 
-export const POST: APIRoute = async ({ request, redirect }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const parsed = schema.safeParse(Object.fromEntries(await request.formData()));
   if (!parsed.success) return redirect('/admin/waivers?archive-error=1', 303);
 
@@ -59,6 +60,13 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   });
 
   const changed = Number(result.rowsAffected ?? 0);
+  if (changed > 0) {
+    await logAdminAction(
+      locals.admin!,
+      action === 'archive' ? 'waiver.archive' : 'waiver.restore',
+      `${changed} waiver${changed === 1 ? '' : 's'}`,
+    );
+  }
   const view = action === 'restore' ? '&view=archived' : '';
   return redirect(`/admin/waivers?${action}d=${changed}${view}`, 303);
 };

@@ -85,6 +85,36 @@ export function ensureSchema() {
           // team up by group_code on each insert. Both were full scans.
           `CREATE INDEX IF NOT EXISTS waivers_signed_at ON waivers (signed_at DESC)`,
           `CREATE INDEX IF NOT EXISTS waivers_group_code ON waivers (group_code)`,
+          // Staff logins the master admin (env-var ADMIN_USER/ADMIN_PASSWORD) creates.
+          `CREATE TABLE IF NOT EXISTS staff_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          // One signature per admin identity ('master', or 'staff:<staff_accounts.id>'),
+          // not per action - an admin who acts 50 times a day doesn't store the same PNG
+          // 50 times, and a redrawn signature is reflected everywhere at once rather than
+          // needing every past record migrated.
+          `CREATE TABLE IF NOT EXISTS admin_signatures (
+            admin_key TEXT PRIMARY KEY,
+            signature_png TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          // Who did what, automatically stamped from the session, never from anything
+          // the request claims. admin_name is captured at the time rather than joined
+          // live, so removing a staff login later doesn't rewrite what the log already
+          // says happened.
+          `CREATE TABLE IF NOT EXISTS admin_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_key TEXT NOT NULL,
+            admin_name TEXT NOT NULL,
+            action TEXT NOT NULL,
+            target TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          `CREATE INDEX IF NOT EXISTS admin_actions_created_at ON admin_actions (created_at DESC)`,
         ]),
       )
       .then(() => migrate())
@@ -167,5 +197,22 @@ export interface WaiverTeam {
   waiver_type: 'fishing-adventure' | 'lodge';
   trip_date: string | null;
   group_code: string;
+  created_at: string;
+}
+
+export interface StaffAccount {
+  id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  created_at: string;
+}
+
+export interface AdminAction {
+  id: number;
+  admin_key: string;
+  admin_name: string;
+  action: string;
+  target: string | null;
   created_at: string;
 }

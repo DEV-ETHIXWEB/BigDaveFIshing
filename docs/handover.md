@@ -43,6 +43,28 @@ returns 503 rather than opening. Login is rate-limited and compares credentials 
 time. `/api/cron/waiver-digest` is outside that gate and is authorised by `CRON_SECRET`
 instead, because a scheduler has no cookie.
 
+**Two kinds of admin identity share that one gate.** `ADMIN_USER`/`ADMIN_PASSWORD` is the
+**master** account, exactly as above. Master can also create **staff** logins at
+`/admin/staff` - real rows in a `staff_accounts` table (scrypt-hashed passwords, via
+`src/lib/password-hashing.ts`), signed into the _same_ `/admin/login` form with their
+email instead of a username. Both identities validate through `validAdminSession()` in
+`src/lib/admin-auth.ts`, which returns `{role: 'master'}` or `{role: 'staff', id}` rather
+than a boolean, and `src/middleware.ts` puts that on `context.locals.admin` for every
+route to read - never something a request can supply itself. Removing a staff row revokes
+their session on their very next request: middleware re-checks `staff_accounts` exists
+for every staff cookie, not just the signature.
+
+**Every admin action carries the acting admin's own saved signature**, automatically.
+Each admin (master or staff) draws a signature once at `/admin/signature`, stored in
+`admin_signatures` keyed by `'master'` or `` `staff:<id>` ``; there is no re-signing
+step anywhere else. Archiving/deleting/restoring a waiver, creating/deleting a team link,
+creating/removing a staff login, and sending the digest each log a row to `admin_actions`
+(who, what, when) via `src/lib/admin-signature.ts`'s `logAdminAction()`, shown on
+`/admin/waivers` under "Recent activity." An admin with nothing saved yet still acts
+normally; the log just shows "No signature on file" rather than fabricating one. This
+reuses the guest waiver signature's own capture widget (`SignaturePad.tsx`) and PNG
+validation approach unmodified - the guest-facing signing flow itself was not touched.
+
 ---
 
 ## 2. Environment variables

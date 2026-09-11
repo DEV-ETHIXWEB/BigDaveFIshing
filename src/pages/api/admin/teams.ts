@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../../lib/db';
 import { nameField } from '../../../lib/waiver-validation';
+import { logAdminAction } from '../../../lib/admin-signature';
 export const prerender = false;
 
 /**
@@ -32,7 +33,7 @@ const schema = z.object({
   tripDate: z.string().trim().max(50).optional(),
 });
 
-export const POST: APIRoute = async ({ request, redirect }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const raw = Object.fromEntries(await request.formData());
   const parsed = schema.safeParse(raw);
 
@@ -66,5 +67,12 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       return back({ 'team-exists': String(team.teamNumber) });
     throw error;
   }
+
+  await logAdminAction(
+    locals.admin!,
+    'team.create',
+    `Team #${team.teamNumber} (${team.leaderName})`,
+  );
+
   return redirect('/admin/waivers?team-created=1', 303);
 };

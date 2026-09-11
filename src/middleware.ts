@@ -2,6 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { validAdminSession } from './lib/admin-auth';
 import { adminSigningSecret } from './lib/admin-secret';
 import { envVar } from './lib/env';
+import { db, ensureSchema } from './lib/db';
 
 /**
  * Gates /admin/* and /api/admin/* behind a signed session cookie, issued by the login
@@ -43,7 +44,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (PUBLIC_ADMIN_PATHS.has(pathname)) return next();
 
   const session = context.cookies.get('big_dave_admin')?.value;
-  if (await validAdminSession(session, adminSigningSecret())) {
+  let identity = await validAdminSession(session, adminSigningSecret());
+
+  // A staff cookie can be cryptographically valid and still name a login that no
+  // longer exists - deleting the row in /admin/staff is how master revokes access, and
+  // that only means anything if this checks the row is still there on every request.
+  if (identity?.role === 'staff') {
+    await ensureSchema();
+    const result = await db.execute({
+      sql: 'SELECT 1 FROM staff_accounts WHERE id = ?',
+      args: [identity.id],
+    });
+    if (result.rows.length === 0) identity = null;
+  }
+
+  if (identity) {
+    context.locals.admin = identity;
     const response = await next();
     // Nothing behind this gate should be cached by a shared proxy or indexed. Only set
     // this where the route hasn't already chosen, the signature endpoint deliberately

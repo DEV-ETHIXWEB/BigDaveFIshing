@@ -1,0 +1,32 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminSignatureForm from '../../components/admin/AdminSignatureForm';
+import { adminKey, getAdminSignaturePng } from '../../lib/admin-signature';
+
+// Any signed-in admin, master or staff alike - unlike /admin/staff, this isn't
+// master-only, everyone needs their own signature. middleware.ts has already set
+// locals.admin from the session cookie; a request that got this far is authenticated.
+const identity = Astro.locals.admin!;
+const key = adminKey(identity);
+const signaturePng = await getAdminSignaturePng(key);
+---
+
+<AdminLayout title="Your signature">
+  <section class="mx-auto max-w-2xl px-5 py-8 md:px-8 md:py-12">
+    <a href="/admin/waivers" class="text-sm underline underline-offset-2">&larr; Back to waivers</a>
+    <p class="eyebrow text-ink/65 mt-5">Your account</p>
+    <h1 class="mt-1 text-3xl md:text-5xl">Your signature</h1>
+    <p class="text-ink/60 mt-2 text-sm">
+      Saved once, then applied automatically whenever you archive or delete a waiver, create or
+      remove a team link, manage staff, or send the roster - nothing to confirm each time.
+    </p>
+
+    <div class="bg-ink mt-8 border border-ink/15 p-6 md:p-9">
+      <AdminSignatureForm
+        client:load
+        existingSignatureUrl={signaturePng ? `/api/admin/my-signature` : null}
+      />
+    </div>
+  </section>
+</AdminLayout>

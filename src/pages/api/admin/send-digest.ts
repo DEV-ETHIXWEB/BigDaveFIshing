@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { dashboardUrl, runDigest } from '../../../lib/waiver-digest-send';
+import { logAdminAction } from '../../../lib/admin-signature';
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ export const prerender = false;
  * Same queue as the scheduled run, so pressing this simply means the morning email is
  * smaller, a guest is never mailed twice.
  */
-export const POST: APIRoute = async ({ request, redirect }) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const outcome = await runDigest(dashboardUrl(request.url));
 
   const params = new URLSearchParams();
@@ -21,6 +22,13 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     case 'sent':
       params.set('digest', 'sent');
       params.set('guests', String(outcome.guests));
+      // Only a confirmed send is worth logging - "nothing queued" or a failed attempt
+      // didn't actually do anything an admin should be credited (or blamed) for.
+      await logAdminAction(
+        locals.admin!,
+        'digest.send',
+        `${outcome.guests} guest${outcome.guests === 1 ? '' : 's'}`,
+      );
       break;
     case 'nothing-to-send':
       params.set('digest', 'empty');

@@ -7,9 +7,11 @@ import {
   WAIVER_LIST_COLUMNS,
   type WaiverListRow,
   type WaiverTeam,
+  type AdminAction,
 } from '../../lib/db';
 
 import { mailConfig } from '../../lib/email';
+import { getAdminSignaturePng } from '../../lib/admin-signature';
 
 await ensureSchema();
 
@@ -22,7 +24,7 @@ const archivedFilter = view === 'archived' ? 'archived_at IS NOT NULL' : 'archiv
 // Explicit columns, never SELECT *: signature_png is a base64 blob and pulling 60 of them
 // into this page made it 1 MB. Each signature is fetched separately, lazily, below.
 // The queries are independent, so they run together rather than one after the other.
-const [waiverResult, teamResult, tallyResult] = await Promise.all([
+const [waiverResult, teamResult, tallyResult, actionsResult] = await Promise.all([
   db.execute(
     `SELECT ${WAIVER_LIST_COLUMNS} FROM waivers WHERE ${archivedFilter} ORDER BY signed_at DESC`,
   ),
@@ -33,7 +35,27 @@ const [waiverResult, teamResult, tallyResult] = await Promise.all([
        SUM(CASE WHEN archived_at IS NULL AND emailed_at IS NULL THEN 1 ELSE 0 END) AS queued
      FROM waivers`,
   ),
+  db.execute('SELECT * FROM admin_actions ORDER BY created_at DESC LIMIT 15'),
 ]);
+
+const recentActions = actionsResult.rows as unknown as AdminAction[];
+// One signature lookup per distinct admin on the page, not per row - the same person's
+// last five actions share one fetch instead of five identical ones.
+const signaturesByKey = new Map<string, string | null>();
+for (const key of new Set(recentActions.map((a) => a.admin_key))) {
+  signaturesByKey.set(key, await getAdminSignaturePng(key));
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  'waiver.archive': 'Archived',
+  'waiver.restore': 'Restored',
+  'waiver.delete': 'Deleted',
+  'team.create': 'Created',
+  'team.delete': 'Deleted',
+  'staff.create': 'Added staff',
+  'staff.remove': 'Removed staff',
+  'digest.send': 'Emailed roster',
+};
 
 const tally = tallyResult.rows[0] as unknown as { archived: number | null; queued: number | null };
 const archivedCount = Number(tally?.archived ?? 0);
@@ -147,6 +169,19 @@ const digestReason = params.get('reason');
         </p>
       </div>
       <div class="flex flex-col items-end gap-2">
+        <a href="/admin/signature" class="border border-ink/25 px-4 py-2 text-sm">
+          Your signature
+        </a>
+        {
+          /* Only the master account can create or remove staff logins - shown only to
+            master, and enforced again server-side in /admin/staff itself, since a link
+            being absent from the UI is not a security boundary on its own. */
+          Astro.locals.admin?.role === 'master' && (
+            <a href="/admin/staff" class="border border-ink/25 px-4 py-2 text-sm">
+              Manage staff
+            </a>
+          )
+        }
         <form action="/api/admin/logout" method="post">
           <button class="border border-ink/25 px-4 py-2 text-sm">Sign out</button>
         </form>
@@ -637,6 +672,52 @@ const digestReason = params.get('reason');
           ><button class="btn btn-solid-dark mt-1 w-full" type="submit">Create share link</button>
         </form>
       </aside>
+    </div>
+
+    {
+      /* Who did what, stamped automatically from each admin's own session - nobody
+        types their name or confirms a signature to make this appear. Capped at the
+        last 15 rather than paginated: this is a quick "who touched what" glance, not
+        a compliance log someone audits back through months of history. */
+    }
+    <div class="mt-12 border-t border-ink/15 pt-8">
+      <h2 class="text-2xl">Recent activity</h2>
+      {
+        recentActions.length === 0 ? (
+          <p class="mt-4 text-sm text-ink/60">Nothing logged yet.</p>
+        ) : (
+          <ul class="mt-5 divide-y divide-ink/10 border border-ink/15 bg-white">
+            {recentActions.map((entry) => {
+              const signature = signaturesByKey.get(entry.admin_key);
+              return (
+                <li class="flex flex-wrap items-center gap-4 p-4">
+                  {signature ? (
+                    <img
+                      src={signature}
+                      alt={`${entry.admin_name}'s signature`}
+                      class="h-9 w-20 border border-ink/15 bg-cream object-contain"
+                    />
+                  ) : (
+                    <span class="flex h-9 w-20 items-center justify-center border border-ink/10 bg-cream text-center text-[0.6rem] text-ink/40">
+                      No signature on file
+                    </span>
+                  )}
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm">
+                      <span class="font-medium">{entry.admin_name}</span>{' '}
+                      {(ACTION_LABEL[entry.action] ?? entry.action).toLowerCase()}
+                      {entry.target && <> &middot; {entry.target}</>}
+                    </p>
+                    <p class="text-xs text-ink/50">
+                      {new Date(entry.created_at + 'Z').toLocaleString()}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )
+      }
     </div>
   </section>
 </AdminLayout>
