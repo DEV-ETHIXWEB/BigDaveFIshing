@@ -698,8 +698,15 @@ const digestReason = params.get('reason');
                       class="h-9 w-20 border border-ink/15 bg-cream object-contain"
                     />
                   ) : (
-                    <span class="flex h-9 w-20 items-center justify-center border border-ink/10 bg-cream text-center text-[0.6rem] text-ink/40">
-                      No signature on file
+                    // No signature drawn yet: the company badge next to the admin's own
+                    // name, so this still reads as "who", not just "the company did it" -
+                    // each admin's version differs by name, the one thing a shared logo
+                    // alone wouldn't tell you.
+                    <span class="flex h-9 items-center gap-1.5 border border-ink/10 bg-cream px-2">
+                      <img src="/email-logo.png" alt="" class="h-6 w-6 shrink-0 object-contain" />
+                      <span class="font-display truncate text-sm text-ink/70 italic">
+                        {entry.admin_name}
+                      </span>
                     </span>
                   )}
                   <div class="min-w-0 flex-1">

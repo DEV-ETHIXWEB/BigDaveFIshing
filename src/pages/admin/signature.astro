@@ -2,14 +2,17 @@
 export const prerender = false;
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import AdminSignatureForm from '../../components/admin/AdminSignatureForm';
-import { adminKey, getAdminSignaturePng } from '../../lib/admin-signature';
+import { adminKey, adminDisplayName, getAdminSignaturePng } from '../../lib/admin-signature';
 
 // Any signed-in admin, master or staff alike - unlike /admin/staff, this isn't
 // master-only, everyone needs their own signature. middleware.ts has already set
 // locals.admin from the session cookie; a request that got this far is authenticated.
 const identity = Astro.locals.admin!;
 const key = adminKey(identity);
-const signaturePng = await getAdminSignaturePng(key);
+const [signaturePng, adminName] = await Promise.all([
+  getAdminSignaturePng(key),
+  adminDisplayName(identity),
+]);
 ---
 
 <AdminLayout title="Your signature">
@@ -26,6 +29,7 @@ const signaturePng = await getAdminSignaturePng(key);
       <AdminSignatureForm
         client:load
         existingSignatureUrl={signaturePng ? `/api/admin/my-signature` : null}
+        adminName={adminName}
       />
     </div>
   </section>
