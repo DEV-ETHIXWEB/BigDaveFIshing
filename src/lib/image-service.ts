@@ -17,9 +17,9 @@ import type { ImageTransform, LocalImageService } from 'astro';
 const service: LocalImageService = {
   ...baseService,
 
-  validateOptions(options, imageConfig) {
+  validateOptions(options, imageConfig, logger) {
     const validated = baseService.validateOptions
-      ? baseService.validateOptions(options, imageConfig)
+      ? baseService.validateOptions(options, imageConfig, logger)
       : options;
 
     const withDefault = (transform: ImageTransform): ImageTransform => ({

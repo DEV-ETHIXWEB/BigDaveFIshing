@@ -151,9 +151,15 @@ belonged to which group from a flat inbox of submissions.
 - **Signature is a real drawn signature**, not a typed name - `SignaturePad.tsx`, plain
   Pointer Events (covers mouse/touch/pen in one path), exported as a PNG with the submission.
 - **`/admin/waivers`** lists every signature grouped by group code, with a signature thumbnail
-  and emergency contact per guest - the actual fix for the original problem. Gated by HTTP
-  Basic Auth (`src/middleware.ts`) against `ADMIN_USER` / `ADMIN_PASSWORD`; the admin area
-  refuses to load if either is unset rather than defaulting to open.
+  and emergency contact per guest - the actual fix for the original problem. Gated by a real
+  sign-in page at `/admin/login` (`src/middleware.ts`), not HTTP Basic Auth's browser popup:
+  signing in issues a signed, `HttpOnly` session cookie (12 hours), there's a visible "Sign
+  out" button, wrong passwords show a plain-English error, and repeated failures lock out for
+  15 minutes (`src/lib/login-throttle.ts`). Checked against `ADMIN_USER` / `ADMIN_PASSWORD`;
+  the admin area refuses to load if either is unset rather than defaulting to open. Set
+  `ADMIN_SESSION_SECRET` in production - see `.env.example` - or the session cookie is signed
+  with the admin password itself, which the login page will warn about on every visit until
+  it's set.
 - The rest of the site stays fully static (`output: 'static'`); only `/api/waivers` and
   `/admin/waivers` opt into on-demand rendering (`export const prerender = false`), which is
   why an adapter (`@astrojs/vercel`) is installed at all.
@@ -173,22 +179,30 @@ Checked as the build went, by measuring the rendered page rather than by eye:
 
 ## Still to do before launch
 
-- **Real content.** Testimonials, rates, sponsor logos and Dave's bio are clearly-marked
-  samples. Photo slots use `PlaceholderPhoto`. Search for `TODO`, `SAMPLE` and `Placeholder`.
-- **The booking form does not send anywhere.** `BookingForm.tsx` validates and logs; it
-  needs an endpoint.
-- **`npm run format` is broken.** `prettier-plugin-tailwindcss@0.8.1` (the latest) crashes
-  on this Node version - an invalid Unicode regex in its bundled jiti. It fails on a
-  pristine checkout too, so it is the toolchain, not the code. It also fails the Husky
-  pre-commit hook. Drop the plugin from `.prettierrc.json` to unblock, at the cost of
-  automatic class sorting. ESLint and the build are unaffected.
-- **Only `/` and the three `/waivers` pages exist.** The other six pages the nav links to
-  (Lodge, Rates & Packages, Oregon Fishing, Video Gallery, Fishing Information, Contact) are
-  still to build, and the live site's real URL slugs should be confirmed so they can be
-  preserved.
-- **Waiver liability text needs legal review** before launch - see above.
-- **The Turso database doesn't exist yet.** Local dev works out of the box against a file; a
-  real deployment needs a free Turso account and two env vars set on the host, or submissions
-  won't persist.
-- Facebook URL, street address, geo coordinates and opening hours are placeholders in
-  `lib/business.ts` and the JSON-LD.
+The full, maintained punch list is **`docs/handover.md`** (architecture, every env var and
+what breaks without it, troubleshooting, and a production smoke test) plus
+`docs/client-requirements.md` for the assignable items. Highlights:
+
+- **The booking form is now live on `/contact`,** below the phone/email/address block, for a
+  visitor who'd rather not call - phone stays the page's primary action. It posts to a real,
+  working `/api/booking` (validated, rate-limited, only confirms once the mail provider
+  accepts it). `BookingCTA.astro` and the desktop variants remain unused; see handover.md §3.1
+  for whether a homepage placement is also wanted.
+- Three small content gaps, each documented at its source rather than silently guessed:
+  Facebook URL (`lib/business.ts`), one sponsor logo (`lib/sponsors.ts`), and the video
+  gallery's YouTube links (`lib/videos.ts`) all need something only the client can supply.
+- **Waiver liability text needs legal review** before launch. It's the real wording pulled
+  from the live site (`lib/waiver-text.ts`), not sample text - but the live site's own
+  Fishing Adventure agreement is itself abbreviated, reproduced faithfully rather than
+  invented around, and needs the unabridged version.
+- **The Turso database doesn't exist yet.** Local dev works out of the box against a file
+  (`./data/waivers.db`, created automatically on first run); production needs a free Turso
+  account and two env vars, or submissions won't persist between serverless invocations.
+- **The end-to-end mail send has never been tested against a real inbox.** Handover treats
+  this as blocking, not optional - do it against the production URL once mail credentials
+  are in.
+- One transitive dependency (`path-to-regexp`, via `@vercel/routing-utils`) has a known ReDoS
+  advisory that `npm audit` flags as high severity. It only runs at build time over this
+  project's own fixed route patterns, not attacker-supplied input, and the only upgrade
+  `npm audit fix --force` offers (`@astrojs/vercel@8.x`) requires Astro 5 and would break
+  this Astro 7 site outright - left as-is rather than "fixed" into a broken build.

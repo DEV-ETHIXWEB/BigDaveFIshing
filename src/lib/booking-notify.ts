@@ -21,14 +21,17 @@ export type EnquiryOutcome =
   | { status: 'not-configured'; missing: string[] }
   | { status: 'failed'; error: string };
 
-export async function sendBookingEnquiry(enquiry: BookingEnquiry): Promise<EnquiryOutcome> {
+export async function sendBookingEnquiry(
+  enquiry: BookingEnquiry,
+  origin: string,
+): Promise<EnquiryOutcome> {
   const mail = mailConfig();
   if ('missing' in mail) return { status: 'not-configured', missing: mail.missing };
 
   const result: SendResult = await sendEmail(mail.config, {
     to: mail.config.to,
     subject: enquirySubject(enquiry),
-    html: enquiryHtml(enquiry),
+    html: enquiryHtml(enquiry, origin),
     text: enquiryText(enquiry),
     // So hitting reply in the inbox answers the person who enquired, not the sending
     // address. Only set when they left one, an invalid Reply-To can get a message
@@ -64,7 +67,13 @@ export function enquiryText(enquiry: BookingEnquiry) {
 const ink = '#1c1a17';
 const cream = '#ece0cb';
 
-export function enquiryHtml(enquiry: BookingEnquiry) {
+/**
+ * The logo is a PNG on an absolute URL, not the site's own WebP: most email clients
+ * (Outlook desktop among them) don't render WebP, and a relative path resolves to
+ * nothing once the HTML has left the site. `origin` comes from the same request that
+ * hit /api/booking, so it points at whatever domain actually received the enquiry.
+ */
+export function enquiryHtml(enquiry: BookingEnquiry, origin: string) {
   const row = (label: string, value: string) => `
     <tr>
       <td style="padding:8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8c867e;width:110px;vertical-align:top;">${escapeHtml(label)}</td>
@@ -72,11 +81,27 @@ export function enquiryHtml(enquiry: BookingEnquiry) {
     </tr>`;
 
   const phoneDigits = enquiry.phone.replace(/[^\d+]/g, '');
+  const logoUrl = `${origin.replace(/\/+$/, '')}/email-logo.png`;
 
   return `<!doctype html>
 <html><body style="margin:0;padding:24px;background:${cream};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <div style="max-width:560px;margin:0 auto;background:#fff;padding:28px;">
-    <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8c867e;">${escapeHtml(business.name)}</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+      <tr>
+        <td style="padding-right:12px;">
+          <img
+            src="${escapeHtml(logoUrl)}"
+            width="40"
+            height="40"
+            alt=""
+            style="display:block;width:40px;height:40px;border-radius:50%;border:0;"
+          />
+        </td>
+        <td style="vertical-align:middle;">
+          <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8c867e;">${escapeHtml(business.name)}</div>
+        </td>
+      </tr>
+    </table>
     <h1 style="font-size:22px;color:${ink};margin:6px 0 20px;">New booking enquiry</h1>
 
     <table style="width:100%;border-collapse:collapse;">

@@ -72,12 +72,28 @@ export function clearFailures(key: string): void {
 }
 
 /**
- * Best-effort caller identity. Vercel and most proxies set x-forwarded-for; the first
- * entry is the client. Falls back to a single shared bucket, which is deliberately
- * conservative: if we cannot tell callers apart, they share one budget.
+ * Best-effort caller identity, from behind exactly one trusted hop (Vercel's edge).
+ *
+ * The LAST entry of x-forwarded-for, not the first. Each proxy in a chain appends the
+ * peer *it* saw to the end of the list, so the right-most entry is Vercel's own
+ * observation of the connecting client, the one entry a client cannot rewrite. Every
+ * entry before that is whatever the client's own request claimed, and trusting the
+ * first one used to mean an attacker could reset this throttle's bucket on every single
+ * request just by sending a different `X-Forwarded-For` value, no distributed
+ * infrastructure required, confirmed locally: one spoofed header undid an active
+ * login lockout instantly.
+ *
+ * Falls back to a single shared bucket, which is deliberately conservative: if we
+ * cannot tell callers apart, they share one budget.
  */
 export function callerKey(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]!.trim();
+  if (forwarded) {
+    const hops = forwarded
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (hops.length) return hops[hops.length - 1]!;
+  }
   return request.headers.get('x-real-ip') ?? 'unknown';
 }

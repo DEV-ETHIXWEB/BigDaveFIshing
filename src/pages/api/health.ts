@@ -45,6 +45,7 @@ export const GET: APIRoute = async () => {
           ADMIN_USER: present('ADMIN_USER'),
           ADMIN_PASSWORD: present('ADMIN_PASSWORD'),
           ADMIN_SESSION_SECRET: present('ADMIN_SESSION_SECRET'),
+          CUSTOMER_SESSION_SECRET: present('CUSTOMER_SESSION_SECRET'),
           SMTP2GO_API_KEY: present('SMTP2GO_API_KEY'),
           RESEND_API_KEY: present('RESEND_API_KEY'),
           WAIVER_DIGEST_FROM: present('WAIVER_DIGEST_FROM'),

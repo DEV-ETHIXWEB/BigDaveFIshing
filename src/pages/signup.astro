@@ -1,0 +1,89 @@
+---
+export const prerender = false;
+import Layout from '../layouts/Layout.astro';
+
+const errorCode = Astro.url.searchParams.get('error');
+const FIELD_PROBLEM: Record<string, string> = {
+  name: 'Enter your name: letters only, at least 2 characters.',
+  email: 'Enter a valid email address.',
+  password: 'Use a password of at least 8 characters.',
+  confirmPassword: 'Those passwords do not match.',
+  'email-exists': 'An account with that email already exists. Try logging in instead.',
+  'rate-limited': 'Too many attempts from this connection. Please try again shortly.',
+};
+const problem = errorCode ? (FIELD_PROBLEM[errorCode] ?? 'Check the details and try again.') : null;
+---
+
+<Layout
+  title="Sign Up | Big Dave's Fishing Adventures"
+  description="Create an account with Big Dave's Fishing Adventures."
+>
+  <section
+    class="bg-paper flex min-h-[70vh] items-center justify-center px-6 pt-28 pb-20 sm:px-10 md:pt-36"
+  >
+    <form
+      action="/api/customer/signup"
+      method="post"
+      class="w-full max-w-md border border-ink/15 bg-white p-7 shadow-[8px_8px_0_#191919] md:p-9"
+    >
+      <p class="eyebrow text-graphite text-center">Get started</p>
+      <h1 class="text-ink mt-2 text-center text-3xl">Sign Up</h1>
+      <p class="text-graphite mt-3 text-center text-sm">
+        Already have an account? <a href="/login" class="text-ink underline underline-offset-2"
+          >Log in</a
+        >.
+      </p>
+
+      {
+        problem && (
+          <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">{problem}</p>
+        )
+      }
+
+      <label class="mt-6 block text-sm font-medium"
+        >Name
+        <input
+          required
+          name="name"
+          autocomplete="name"
+          minlength="2"
+          maxlength="200"
+          class="border-ink/20 focus:border-ink mt-1 w-full border px-3 py-3 outline-none"
+        />
+      </label>
+      <label class="mt-4 block text-sm font-medium"
+        >Email
+        <input
+          required
+          type="email"
+          name="email"
+          autocomplete="email"
+          class="border-ink/20 focus:border-ink mt-1 w-full border px-3 py-3 outline-none"
+        />
+      </label>
+      <label class="mt-4 block text-sm font-medium"
+        >Password
+        <input
+          required
+          type="password"
+          name="password"
+          autocomplete="new-password"
+          minlength="8"
+          class="border-ink/20 focus:border-ink mt-1 w-full border px-3 py-3 outline-none"
+        />
+      </label>
+      <label class="mt-4 block text-sm font-medium"
+        >Confirm password
+        <input
+          required
+          type="password"
+          name="confirmPassword"
+          autocomplete="new-password"
+          minlength="8"
+          class="border-ink/20 focus:border-ink mt-1 w-full border px-3 py-3 outline-none"
+        />
+      </label>
+      <button class="btn btn-solid-dark mt-6 w-full" type="submit">Create Account</button>
+    </form>
+  </section>
+</Layout>

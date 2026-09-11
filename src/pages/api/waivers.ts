@@ -7,6 +7,39 @@ import { callerKey, submissionRetryAfter } from '../../lib/submission-throttle';
 // On-demand, not prerendered: this route writes to the database on each request.
 export const prerender = false;
 
+/** The 8-byte magic number every real PNG starts with, regardless of what it claims to be. */
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/**
+ * A data: URL PNG from the signature canvas.
+ *
+ * Capped well above what a signature trace actually produces, to keep someone from
+ * posting an arbitrary large blob. The prefix check alone only confirms the string
+ * *claims* to be a PNG; a request built by hand rather than by the canvas could put
+ * anything after the comma. This decodes the payload and checks the actual PNG magic
+ * bytes, so a non-image blob is rejected before it ever reaches the database rather
+ * than stored as if it were a real signature.
+ *
+ * Deliberately defined here rather than in lib/waiver-validation.ts: that module is
+ * shared with the browser form (WaiverForm.tsx), and `Buffer` is a Node global that
+ * does not exist in a browser. Putting it there once broke the React island's
+ * hydration outright - the whole waiver form stopped responding to any input - because
+ * the module threw at evaluation time before the component ever mounted. This route is
+ * server-only, so it is the one place that can safely use it.
+ */
+const signaturePngField = z
+  .string()
+  .startsWith('data:image/png;base64,')
+  .max(400_000)
+  .refine((value) => {
+    const base64 = value.slice('data:image/png;base64,'.length);
+    try {
+      return Buffer.from(base64, 'base64').subarray(0, 8).equals(PNG_MAGIC);
+    } catch {
+      return false;
+    }
+  }, 'That signature could not be read. Please sign again.');
+
 const schema = z.object({
   waiverType: z.enum(['fishing-adventure', 'lodge']),
   groupCode: z.string().trim().max(100).optional(),
@@ -15,9 +48,7 @@ const schema = z.object({
   // Shared with the browser form, so the two cannot drift apart, the client copy is
   // only a courtesy, this is the one that protects the table.
   ...waiverGuestFields,
-  // A data: URL PNG from the signature canvas. Capped well above what a signature
-  // trace actually produces, to keep someone from posting an arbitrary large blob.
-  signaturePng: z.string().startsWith('data:image/png;base64,').max(400_000),
+  signaturePng: signaturePngField,
 });
 
 export const POST: APIRoute = async ({ request }) => {

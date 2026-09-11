@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly ADMIN_USER?: string;
   readonly ADMIN_PASSWORD?: string;
   readonly ADMIN_SESSION_SECRET?: string;
+  readonly CUSTOMER_SESSION_SECRET?: string;
   /** Set whichever one matches the provider you signed up with. First set wins, in this order. */
   readonly SMTP2GO_API_KEY?: string;
   readonly RESEND_API_KEY?: string;

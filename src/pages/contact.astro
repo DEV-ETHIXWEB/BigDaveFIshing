@@ -5,6 +5,7 @@ import Layout from '../layouts/Layout.astro';
 import PageHero from '../components/PageHero.astro';
 import SectionHeading from '../components/home/SectionHeading.astro';
 import Sponsors from '../components/home/Sponsors.astro';
+import BookingForm from '../components/home/BookingForm';
 import { photos } from '../lib/photos';
 import { business, seasons } from '../lib/business';
 
@@ -12,10 +13,12 @@ import { business, seasons } from '../lib/business';
 // kept. What is added is the part that actually books a trip: telling someone what to have
 // ready before they dial, and a map link so they can find the lodge.
 //
-// No enquiry form here on purpose. The site already runs a real form pipeline for waivers
-// (Turso + admin dashboard), and standing up a second one that emails into the void, with
-// no inbox configured and no confirmation to the sender, would look functional and
-// quietly lose bookings. Phone is how this business actually takes work.
+// An enquiry form now sits below, for a visitor who'd rather not call. It was left off
+// earlier over a real concern: a form with no inbox configured and no confirmation would
+// look functional while quietly losing every booking. `/api/booking` no longer allows that
+// (see its own header comment) - it only confirms once a mail provider has accepted the
+// message, and says so plainly, pointing back to the phone, if it hasn't. Phone stays the
+// lead action either way; the form is the alternative, not a replacement.
 const mapQuery = encodeURIComponent(
   `${business.address.street}, ${business.address.locality}, ${business.address.region} ${business.address.postalCode}`,
 );
@@ -67,7 +70,7 @@ const beforeYouCall = [
     <div
       class="mx-auto grid max-w-6xl gap-10 px-6 sm:px-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-14"
     >
-      <div data-reveal>
+      <div class="min-w-0" data-reveal>
         <div class="mb-6 flex items-center gap-4">
           <span class="index-num text-ink shrink-0">01</span>
           <p class="eyebrow text-graphite shrink-0">Reach us</p>
@@ -143,6 +146,31 @@ const beforeYouCall = [
           Hosts {business.hosts}, Wilson River Lodge.
         </p>
       </div>
+    </div>
+  </section>
+
+  <section class="bg-ink text-cream py-16 lg:py-20">
+    <div class="mx-auto max-w-lg px-6 sm:px-10" data-reveal>
+      <div class="text-center">
+        <p class="eyebrow text-cream/70">Would rather not call?</p>
+        <h2 class="mt-2 text-[1.6rem] md:text-4xl">Send an Enquiry</h2>
+        <p class="text-cream/70 mt-3 text-sm">
+          Tell us the dates and we'll get back to you. For anything urgent, calling is still faster.
+        </p>
+      </div>
+
+      <div class="mt-9">
+        <BookingForm client:visible />
+      </div>
+
+      <p class="mt-6 text-center">
+        <a
+          href={business.phoneHref}
+          class="font-body text-cream/70 hover:text-cream text-sm tracking-wide"
+        >
+          Or call {business.phone}
+        </a>
+      </p>
     </div>
   </section>
 

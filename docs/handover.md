@@ -30,9 +30,9 @@ typing anything.
 `WAIVER_DIGEST_TO`. The form only shows its confirmation once the mail provider has
 confirmed acceptance; on any failure it shows the phone number instead.
 
-> ⚠️ The booking form components (`src/components/home/BookingCTA*.astro`,
-> `BookingForm*.tsx`) are **not currently placed on any page**. They work, and the endpoint
-> behind them is live, but nothing renders them. See
+> The enquiry form (`BookingForm.tsx`) is placed on `/contact`, below the phone/email/address
+> block, for a visitor who'd rather not call. Phone is still the primary call to action on
+> that page. `BookingCTA*.astro` and `BookingFormDesktop.tsx` remain unused - see
 > [Known limitations](#3-known-limitations-and-outstanding-issues).
 
 ### Access control
@@ -65,6 +65,15 @@ normally; the log just shows "No signature on file" rather than fabricating one.
 reuses the guest waiver signature's own capture widget (`SignaturePad.tsx`) and PNG
 validation approach unmodified - the guest-facing signing flow itself was not touched.
 
+**Customer accounts** (`/login`, `/signup`, `/account`) are a separate, later addition -
+a real `customers` table (name, email, scrypt-hashed password), a second signed session
+cookie (`big_dave_customer`, distinct from the admin one on purpose), its own rate limit
+bucket so hammering one login can't lock out the other, and its own required
+`CUSTOMER_SESSION_SECRET`. See `src/lib/customer-auth.ts` and `customer-password.ts`.
+There is currently nothing behind an account beyond the account page itself - no cart, no
+booking tied to a login, no members content - so before this goes further, decide what a
+signed-in customer is actually for.
+
 ---
 
 ## 2. Environment variables
@@ -72,19 +81,20 @@ validation approach unmodified - the guest-facing signing flow itself was not to
 Names only, values go in the Vercel project settings, never in the repo. `.env.example` is
 the current, annotated copy; this table is the summary.
 
-| Variable               | Required?                    | Owner  | What breaks without it                                                                                                                 |
-| ---------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `TURSO_DATABASE_URL`   | **Yes (production)**         | Dev    | Waivers try to write to a local file on a read-only filesystem, every waiver 500s                                                      |
-| `TURSO_AUTH_TOKEN`     | **Yes (production)**         | Dev    | Same as above                                                                                                                          |
-| `ADMIN_USER`           | **Yes**                      | Dev    | `/admin` returns 503; Dave cannot read waivers                                                                                         |
-| `ADMIN_PASSWORD`       | **Yes**                      | Dev    | Same as above                                                                                                                          |
-| `ADMIN_SESSION_SECRET` | **Yes**                      | Dev    | Session cookie falls back to being signed with the password, forgeable offline                                                         |
-| `SMTP2GO_API_KEY`      | **Yes** (or Resend/Postmark) | Dev    | Booking form answers 503; waiver digest refuses to run                                                                                 |
-| `WAIVER_DIGEST_FROM`   | **Yes**                      | Client | Same as above. Must be a sender the provider has verified                                                                              |
-| `WAIVER_DIGEST_TO`     | **Yes**                      | Client | Leads and rosters have nowhere to go                                                                                                   |
-| `CRON_SECRET`          | **Yes**                      | Dev    | Scheduled digest disabled (manual button still works)                                                                                  |
-| `PUBLIC_SITE_URL`      | **Yes**                      | Dev    | Canonicals, `og:image` and `sitemap.xml` fall back to the request hostname, which on Vercel can be the internal `*.vercel.app` address |
-| `VERCEL_ENV`           | Set by Vercel                | ,      | Decides whether a deployment may be indexed. Do not set by hand                                                                        |
+| Variable                  | Required?                    | Owner  | What breaks without it                                                                                                                 |
+| ------------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `TURSO_DATABASE_URL`      | **Yes (production)**         | Dev    | Waivers try to write to a local file on a read-only filesystem, every waiver 500s                                                      |
+| `TURSO_AUTH_TOKEN`        | **Yes (production)**         | Dev    | Same as above                                                                                                                          |
+| `ADMIN_USER`              | **Yes**                      | Dev    | `/admin` returns 503; Dave cannot read waivers                                                                                         |
+| `ADMIN_PASSWORD`          | **Yes**                      | Dev    | Same as above                                                                                                                          |
+| `ADMIN_SESSION_SECRET`    | **Yes**                      | Dev    | Session cookie falls back to being signed with the password, forgeable offline                                                         |
+| `CUSTOMER_SESSION_SECRET` | **Yes**                      | Dev    | `/api/customer/*` refuses outright (503) - no fallback exists, unlike admin                                                            |
+| `SMTP2GO_API_KEY`         | **Yes** (or Resend/Postmark) | Dev    | Booking form answers 503; waiver digest refuses to run                                                                                 |
+| `WAIVER_DIGEST_FROM`      | **Yes**                      | Client | Same as above. Must be a sender the provider has verified                                                                              |
+| `WAIVER_DIGEST_TO`        | **Yes**                      | Client | Leads and rosters have nowhere to go                                                                                                   |
+| `CRON_SECRET`             | **Yes**                      | Dev    | Scheduled digest disabled (manual button still works)                                                                                  |
+| `PUBLIC_SITE_URL`         | **Yes**                      | Dev    | Canonicals, `og:image` and `sitemap.xml` fall back to the request hostname, which on Vercel can be the internal `*.vercel.app` address |
+| `VERCEL_ENV`              | Set by Vercel                | ,      | Decides whether a deployment may be indexed. Do not set by hand                                                                        |
 
 **Rotation note.** These are all read through `process.env` at request time
 (`src/lib/env.ts`), not baked in at build. Changing one in the Vercel dashboard takes effect
@@ -97,13 +107,13 @@ rotating it signs everyone out, which is the intended way to force re-login.
 
 Listed explicitly rather than left implicit.
 
-1. **The booking form is built but not placed.** It was previously a dead form that
-   `console.log`ed enquiries and showed "Thanks, we got it" to every visitor. It now posts
-   to a real endpoint and only confirms on a confirmed send. Nothing renders it, though,
-   the contact page deliberately carries phone/email/address instead. **Decide before
-   launch:** put the working form on `/contact` (and/or the homepage), or delete the four
-   components and `/api/booking` with them. Leaving it as-is is the one option that will
-   confuse the next person.
+1. **The booking form is now placed on `/contact`.** It was previously a dead form that
+   `console.log`ed enquiries and showed "Thanks, we got it" to every visitor; it now posts
+   to a real endpoint and only confirms on a confirmed send. It sits below the existing
+   phone/email/address block as the alternative, not the replacement - phone stays the
+   page's primary call to action. `BookingCTA.astro`, `BookingCTADesktop.astro` and
+   `BookingFormDesktop.tsx` are still unused; either place one on the homepage too, or
+   delete them along with the plain `BookingForm.tsx` copy if a single placement is enough.
 
 2. **The end-to-end test send has not been performed.** The mail path is wired, validated
    and its failure modes are handled, but no real message has been pushed through
@@ -153,6 +163,13 @@ Listed explicitly rather than left implicit.
 10. **In-memory rate limiting.** The waiver, booking and login throttles are per-instance
     maps. On serverless that means a spread-out attacker gets more than the stated number.
     Fine for this traffic; move to the database if abuse becomes real.
+
+    Separately, `callerKey()` (`src/lib/login-throttle.ts`) used to trust the _first_
+    entry of `x-forwarded-for`, which is whatever the client itself claims, not what
+    Vercel's edge observed. Confirmed locally: one spoofed header reset an active login
+    lockout instantly, no distributed attack needed. Fixed to trust the _last_ entry, the
+    one hop a client can't rewrite - see the function's own comment for the full
+    reasoning. Worth knowing if this is ever pointed at a host other than Vercel.
 
 11. **Photos are web-sized copies** pulled from the old WordPress host, mostly 800–1500px on
     the long edge. Drop hi-res originals into `src/assets/photos/` under the same filenames
@@ -204,7 +221,7 @@ Run against the **real production URL**, not a preview. Staging passing is not s
 - [ ] A made-up URL shows the branded 404, not Astro's default
 - [ ] Sign a test waiver end-to-end → row appears in `/admin/waivers`
 - [ ] "Email roster now" → email actually arrives in the client's inbox (check spam)
-- [ ] Booking enquiry (if the form is placed) → email actually arrives
+- [ ] Booking enquiry on `/contact` → email actually arrives
 - [ ] `curl -I` the homepage and confirm CSP, HSTS, X-Frame-Options, Referrer-Policy
 - [ ] Rich Results Test on the homepage → zero errors
 
@@ -221,6 +238,73 @@ Run against the **real production URL**, not a preview. Staging passing is not s
 
 **Flag:** everything above except the domain is on an EthixWeb-owned account today. Decide
 per account whether it transfers or stays, and write the answer here before sign-off.
+
+---
+
+## 8. Pre-launch QA & security pass (2026-09-11)
+
+Run against EthixWeb's own Full-Stack Ready Checklist, a 5-part security audit (secret
+leaks, personal-data flow, pre-deploy hardening, deep auth/logic review, attacker's-eye
+review), and a general production-readiness pass - every item actually tested (curl,
+Playwright, real browser interaction), not read and assumed correct. Full detail lives in
+this session's transcript; summary here so the next person doesn't have to re-derive it.
+
+**Fixed, real bugs:**
+
+- `/contact` overflowed horizontally at 320px width with the email address visibly cut off
+  mid-word - a CSS grid sizing quirk (`min-w-0` missing on the grid item) stopped
+  `break-words` from ever getting a chance to apply. One class fixed it site-wide (the
+  footer's own email link was unaffected - different container).
+- Footer copyright line rendered as "2026Big Dave's..." with no space, because Astro
+  concatenates adjacent expressions on separate lines with nothing between them. Fixed
+  with the same `{' '}` pattern already used elsewhere in the codebase - a plain joined
+  line looked right in source but Prettier reflows it back apart on the next format run,
+  so the explicit space is required, not optional.
+- `login-throttle.ts`'s rate limiter trusted the first `x-forwarded-for` entry (client-
+  controlled) instead of the last (Vercel-controlled) - see item 10 above.
+- A `localStorage` write in `WaiverForm.tsx` persisted a guest's phone number in a key
+  name, and nothing ever read it back. Dead code with a PII cost and no benefit; removed.
+- Added real PNG magic-byte validation on the signature upload (`api/waivers.ts`) - the
+  prior check only confirmed the string _claimed_ to be a PNG, not that it was one.
+- **Self-caught regression, worth flagging explicitly:** that same PNG-validation fix
+  first landed in `lib/waiver-validation.ts`, a module shared with the browser-side
+  `WaiverForm.tsx`. It used Node's `Buffer`, which doesn't exist in a browser - the
+  import crashed the React island's hydration outright, so the _entire_ public waiver
+  form stopped responding to any input (not just the signature pad). Server-side `curl`
+  tests of the API alone did not catch this; only driving the actual form in a real
+  browser did. Moved the Buffer-using code into the API route itself, the only place
+  that's genuinely server-only. Lesson: anything touching `lib/waiver-validation.ts`
+  needs a real-browser check, not just an endpoint test, because it ships to the client.
+- The booking and waiver digest emails now carry the company logo (`public/email-logo.png`
+  - a PNG, deliberately, since Outlook desktop and others don't render the site's own
+    WebP) as an absolute URL, with the existing text branding kept as a visible fallback for
+    clients that block remote images by default.
+
+**Verified clean (tested, not assumed):**
+
+- No hardcoded secrets, no debug logging, `.env` gitignored.
+- Security headers (CSP/HSTS/X-Frame-Options/etc.), CSRF (Astro's same-origin check),
+  error pages never leak a stack trace, `/api/health` never leaks a secret value.
+- Auth: every `/admin/*` and `/api/admin/*` route correctly rejects no cookie, a garbage
+  cookie, and a tampered signature; login lockout triggers at exactly 8 failed attempts as
+  documented.
+- SQL injection: every query is parameterized; the only string-built SQL fragments are
+  `?` placeholder lists, never interpolated values.
+- Duplicate-waiver protection (`waivers_one_submission_per_guest`) holds under a real
+  retry.
+- Zero console errors, zero broken images, zero failed requests, zero horizontal overflow
+  across all 11 pages, 5 viewport widths (320/375/768/1280/1920), and all three browser
+  engines (Chromium, WebKit, Firefox) - 165 checks, run twice (before and after the fixes
+  above).
+- Full end-to-end waiver signing tested through an actual browser: fill form, draw
+  signature, submit, confirm the row lands correctly.
+
+**Not fixed, and why (all pre-existing, all already listed above under Known
+limitations):** the video/sponsor/Facebook content gaps (client-owned), missing
+analytics/error monitoring (never asked for, no IDs to install), and the deferred
+`path-to-regexp` advisory from the previous session (forcing it breaks the Astro 7 build
+for a build-time-only, non-attacker-reachable issue). Nothing here was fabricated to make
+a checklist look more complete than it is.
 
 ---
 

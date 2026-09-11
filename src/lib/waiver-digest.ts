@@ -143,12 +143,21 @@ export function digestText(parties: DigestParty[], dashboardUrl: string) {
 
 /**
  * HTML body, built for a phone held one-handed on a boat ramp: a single column, tables
- * only for layout, inline styles, no images and no web fonts. Email clients strip
- * <style> blocks and external CSS, so everything that must survive is on the element.
+ * only for layout, inline styles, no web fonts. Email clients strip <style> blocks and
+ * external CSS, so everything that must survive is on the element.
+ *
+ * The logo is the one image in the email, and it is a PNG on an absolute URL, not the
+ * site's own WebP: most email clients (Outlook desktop among them) don't render WebP at
+ * all, and a relative path resolves to nothing once the HTML has left the site. It's
+ * served from `dashboardUrl`'s own origin, so it always points at the same deployment
+ * the "View signatures" link below does. The uppercase business-name text next to it is
+ * kept as a visible fallback, not just `alt` text, for the real share of inboxes that
+ * block remote images until a person clicks "show images."
  */
 export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
   const ink = '#1c1a17';
   const cream = '#ece0cb';
+  const logoUrl = `${new URL(dashboardUrl).origin}/email-logo.png`;
 
   const partyBlocks = parties
     .map((party) => {
@@ -193,7 +202,22 @@ export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;padding:24px;">
         <tr><td>
-          <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8c867e;">${escapeHtml(business.name)}</div>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+            <tr>
+              <td style="padding-right:12px;">
+                <img
+                  src="${escapeHtml(logoUrl)}"
+                  width="44"
+                  height="44"
+                  alt=""
+                  style="display:block;width:44px;height:44px;border-radius:50%;border:0;"
+                />
+              </td>
+              <td style="vertical-align:middle;">
+                <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8c867e;">${escapeHtml(business.name)}</div>
+              </td>
+            </tr>
+          </table>
           <h1 style="font-size:24px;margin:6px 0 4px;color:${ink};font-weight:600;">New signed waivers</h1>
           <p style="font-size:14px;color:#55504a;margin:0 0 22px;">Everyone who has signed since the last of these emails.</p>
           ${partyBlocks}

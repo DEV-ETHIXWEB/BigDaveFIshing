@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { bookingEnquirySchema } from '../../lib/booking-enquiry';
 import { sendBookingEnquiry } from '../../lib/booking-notify';
 import { callerKey, submissionRetryAfter } from '../../lib/submission-throttle';
+import { siteOrigin } from '../../lib/site-url';
 
 // Sends mail on each request, so it can never be prerendered.
 export const prerender = false;
@@ -43,7 +44,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'Please check the form and try again.' }, 400);
   }
 
-  const outcome = await sendBookingEnquiry(parsed.data);
+  const outcome = await sendBookingEnquiry(parsed.data, siteOrigin(request.url));
 
   if (outcome.status === 'not-configured') {
     // 503, and the missing variable names go to the server log rather than the response:

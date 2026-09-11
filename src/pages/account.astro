@@ -1,0 +1,56 @@
+---
+export const prerender = false;
+import Layout from '../layouts/Layout.astro';
+import { db, ensureSchema, type Customer } from '../lib/db';
+import { validCustomerSession } from '../lib/customer-auth';
+import { envSetting } from '../lib/env';
+
+// A real, honest landing spot for a signed-in customer - not a promise of more than
+// this site currently has. There is no cart, no booking tied to an account, no members
+// content yet; this confirms the account exists and gives a way to sign out.
+//
+// Checked here rather than in src/middleware.ts: that middleware is deliberately scoped
+// to /admin, a second sitewide gate for one page would be more machinery than the
+// single check below.
+const secret = envSetting('CUSTOMER_SESSION_SECRET');
+const customerId = await validCustomerSession(
+  Astro.cookies.get('big_dave_customer')?.value,
+  secret,
+);
+
+if (!customerId) {
+  return Astro.redirect('/login', 303);
+}
+
+await ensureSchema();
+const result = await db.execute({
+  sql: 'SELECT * FROM customers WHERE id = ?',
+  args: [customerId],
+});
+const customer = result.rows[0] as unknown as Customer | undefined;
+
+// The session named a real, signed id, but the row is gone (deleted directly in the
+// database, the only way that can happen today). Treat it the same as no session.
+if (!customer) {
+  Astro.cookies.delete('big_dave_customer', { path: '/' });
+  return Astro.redirect('/login', 303);
+}
+---
+
+<Layout title="My Account | Big Dave's Fishing Adventures" description="Your account.">
+  <section
+    class="bg-paper flex min-h-[70vh] items-center justify-center px-6 pt-28 pb-20 sm:px-10 md:pt-36"
+  >
+    <div
+      class="w-full max-w-md border border-ink/15 bg-white p-7 text-center shadow-[8px_8px_0_#191919] md:p-9"
+    >
+      <p class="eyebrow text-graphite">My Account</p>
+      <h1 class="text-ink mt-2 text-3xl">Welcome back, {customer.name.split(/\s+/)[0]}</h1>
+      <p class="text-graphite mt-3 text-sm">{customer.email}</p>
+
+      <form action="/api/customer/logout" method="post" class="mt-8">
+        <button class="btn btn-outline-dark w-full" type="submit">Sign Out</button>
+      </form>
+    </div>
+  </section>
+</Layout>

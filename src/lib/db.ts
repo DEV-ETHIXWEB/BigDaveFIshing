@@ -1,4 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
+import { mkdirSync } from 'node:fs';
 import { envVar } from './env';
 
 /**
@@ -27,6 +28,10 @@ function getClient(): Client {
   if (!client) {
     const url = envVar('TURSO_DATABASE_URL') || 'file:./data/waivers.db';
     const authToken = envVar('TURSO_AUTH_TOKEN');
+    // The local-file fallback has no server to create its own directory. A fresh clone
+    // has no ./data yet, and libSQL fails to open the file rather than creating the
+    // parent dir itself - so "zero setup" actually needs this one line.
+    if (url.startsWith('file:')) mkdirSync('./data', { recursive: true });
     client = createClient(authToken ? { url, authToken } : { url });
   }
   return client;
@@ -85,7 +90,21 @@ export function ensureSchema() {
           // team up by group_code on each insert. Both were full scans.
           `CREATE INDEX IF NOT EXISTS waivers_signed_at ON waivers (signed_at DESC)`,
           `CREATE INDEX IF NOT EXISTS waivers_group_code ON waivers (group_code)`,
+          // Customer accounts: unrelated to waivers, just created alongside them since
+          // this is the one place schema setup happens. COLLATE NOCASE on email so
+          // Jane@x.com and jane@x.com are the same account, not two.
+          `CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
           // Staff logins the master admin (env-var ADMIN_USER/ADMIN_PASSWORD) creates.
+          // Deliberately a separate table from `customers`: two unrelated kinds of
+          // account that happen to share a hashing scheme should never share a table,
+          // an accidental join or a copy-pasted query must not be able to hand a
+          // customer staff access or vice versa.
           `CREATE TABLE IF NOT EXISTS staff_accounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -197,6 +216,14 @@ export interface WaiverTeam {
   waiver_type: 'fishing-adventure' | 'lodge';
   trip_date: string | null;
   group_code: string;
+  created_at: string;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  password_hash: string;
   created_at: string;
 }
 

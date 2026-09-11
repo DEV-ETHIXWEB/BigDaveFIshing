@@ -95,10 +95,6 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       });
       const response = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(response.error || 'Submission failed');
-      window.localStorage.setItem(
-        `big-dave-waiver:${waiverType}:${groupCode || 'individual'}:${data.guestPhone}`,
-        'signed',
-      );
       // First name only, "Thank you, Michael" reads like a person wrote it; the full
       // legal name they just typed into a waiver does not.
       setSignedName(data.guestName.trim().split(/\s+/)[0] ?? '');
