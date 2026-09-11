@@ -33,6 +33,13 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       ...jsxA11y.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
+      // A leading underscore is how this codebase says "destructured only to drop it",
+      // as in the minorNames split in WaiverForm. Without this the convention is an
+      // error, and the only way to keep it is a disable comment on each use.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^_', argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
   {

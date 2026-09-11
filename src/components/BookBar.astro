@@ -42,18 +42,36 @@ import { business } from '../lib/business';
         `ml-auto` keeps it flush right there too, where `justify-between` would have
         nothing left to push against and would drop it to the start instead. */
     }
+    {
+      /* Signed-out pair and signed-in link both ship in the markup, and a script below
+         hides whichever does not apply. Nearly every page here is prerendered static
+         HTML, so there is no request to read a session from at render time - the bar was
+         inviting people who were already signed in, on their own account page, to log in
+         again. `hidden` on the signed-in link is the right default: a first-time visitor
+         is the common case, and it is what a reader with no JS should see. */
+    }
     <div class="ml-auto flex shrink-0 items-center gap-2 sm:ml-0 sm:gap-3">
       <a
         href="/login"
+        data-signed-out
         class="border-cream/40 text-cream hover:bg-cream hover:text-ink shrink-0 rounded-sm border px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
       >
         Login
       </a>
       <a
         href="/signup"
+        data-signed-out
         class="bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
       >
         Sign Up
+      </a>
+      <a
+        href="/account"
+        data-signed-in
+        hidden
+        class="bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
+      >
+        My Account
       </a>
 
       {
@@ -81,3 +99,27 @@ import { business } from '../lib/business';
     </div>
   </div>
 </div>
+
+<script>
+  // Swaps Login/Sign Up for My Account when a customer is signed in.
+  //
+  // Reads a non-httpOnly hint cookie that carries nothing but "1" - the real session
+  // cookie stays httpOnly and unreadable here, and nothing on this bar is a permission
+  // check. It only decides which of two links to show; /account verifies the actual
+  // session for itself.
+  //
+  // Inline and synchronous so the swap happens with the first paint rather than
+  // flickering "Login" at someone who is already signed in.
+  (() => {
+    const signedIn = document.cookie
+      .split('; ')
+      .some((entry) => entry.startsWith('big_dave_customer_present='));
+    if (!signedIn) return;
+    document.querySelectorAll('[data-signed-out]').forEach((el) => {
+      (el as HTMLElement).hidden = true;
+    });
+    document.querySelectorAll('[data-signed-in]').forEach((el) => {
+      (el as HTMLElement).hidden = false;
+    });
+  })();
+</script>

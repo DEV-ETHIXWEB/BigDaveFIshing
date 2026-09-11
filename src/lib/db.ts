@@ -68,6 +68,7 @@ export function ensureSchema() {
         guest_phone TEXT NOT NULL,
         emergency_contact_name TEXT NOT NULL,
         emergency_contact_phone TEXT NOT NULL,
+        minor_names TEXT,
         signature_png TEXT NOT NULL,
         signed_at TEXT NOT NULL DEFAULT (datetime('now'))
       )
@@ -152,7 +153,10 @@ export function ensureSchema() {
  *
  * `archived_at` is set when a human presses Archive on the dashboard. `emailed_at` is
  * set only after a mail provider has confirmed the digest went out, so a failed send
- * leaves the row queued for tomorrow rather than silently dropping it.
+ * leaves the row queued for tomorrow rather than silently dropping it. `minor_names`
+ * holds the under-18s a signing adult is bringing; NULL on every waiver signed before
+ * the form asked, which is not the same as "came alone" and is why nothing infers a
+ * child count from its absence.
  */
 async function migrate() {
   const info = await db.execute('PRAGMA table_info(waivers)');
@@ -161,6 +165,7 @@ async function migrate() {
   const statements = [
     !existing.has('archived_at') && 'ALTER TABLE waivers ADD COLUMN archived_at TEXT',
     !existing.has('emailed_at') && 'ALTER TABLE waivers ADD COLUMN emailed_at TEXT',
+    !existing.has('minor_names') && 'ALTER TABLE waivers ADD COLUMN minor_names TEXT',
   ].filter((sql): sql is string => Boolean(sql));
 
   if (statements.length) await db.batch(statements);
@@ -184,6 +189,12 @@ export interface WaiverRecord {
   guest_phone: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
+  /**
+   * JSON array of the under-18s this adult is bringing, e.g. `["Sam Ruiz","Ada Ruiz"]`.
+   * NULL for waivers signed before the field existed, and for adults bringing no kids.
+   * Read it through `parseMinorNames`, never `JSON.parse` at the call site.
+   */
+  minor_names: string | null;
   signature_png: string;
   signed_at: string;
   /** Set when staff pressed Archive. NULL while the waiver is still on the active list. */
@@ -206,8 +217,26 @@ export type WaiverListRow = Omit<WaiverRecord, 'signature_png'>;
 
 /** Column list for list views. Explicit so `SELECT *` can't quietly re-add the blob. */
 export const WAIVER_LIST_COLUMNS = `id, waiver_type, group_code, group_leader_name, trip_date,
-  guest_name, guest_email, guest_phone, emergency_contact_name, emergency_contact_phone, signed_at,
-  archived_at, emailed_at`;
+  guest_name, guest_email, guest_phone, emergency_contact_name, emergency_contact_phone,
+  minor_names, signed_at, archived_at, emailed_at`;
+
+/**
+ * Reads the `minor_names` column back into a list.
+ *
+ * Tolerant on purpose: the column is NULL on every row written before the field shipped,
+ * and a malformed value should cost one waiver its child list, not throw and take down
+ * the whole dashboard or digest send.
+ */
+export function parseMinorNames(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((name): name is string => typeof name === 'string' && name.trim() !== '');
+  } catch {
+    return [];
+  }
+}
 
 export interface WaiverTeam {
   id: number;

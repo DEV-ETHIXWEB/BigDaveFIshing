@@ -27,7 +27,20 @@ function safeEqual(a: string, b: string): boolean {
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const form = await request.formData();
-  const username = String(form.get('username') || '');
+  /**
+   * Trimmed once, here, so both branches below see the same thing.
+   *
+   * The staff branch already trimmed for its lookup; the master comparison did not, so a
+   * username pasted with a trailing space failed on length inside safeEqual before a
+   * single character was compared, and the page said only "incorrect username or
+   * password". A correct credential that silently does not work is the worst version of
+   * this screen, and pasting from a handover document is exactly how these get entered.
+   *
+   * The password is deliberately left alone: it is allowed to begin or end with a space,
+   * and quietly changing what someone typed into a password field is not this route's
+   * business.
+   */
+  const username = String(form.get('username') || '').trim();
   const password = String(form.get('password') || '');
   const next = String(form.get('next') || '/admin/waivers');
 
@@ -65,7 +78,8 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   await ensureSchema();
   const result = await db.execute({
     sql: 'SELECT * FROM staff_accounts WHERE email = ? COLLATE NOCASE',
-    args: [username.trim().toLowerCase()],
+    // Already trimmed above; only the case fold is this lookup's own concern.
+    args: [username.toLowerCase()],
   });
   const staff = result.rows[0] as unknown as StaffAccount | undefined;
 

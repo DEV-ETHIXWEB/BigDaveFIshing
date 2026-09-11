@@ -1,0 +1,3 @@
+# PDFs are binary. Without this, autocrlf rewrites bytes inside them and the
+# file is corrupt on checkout.
+*.pdf binary

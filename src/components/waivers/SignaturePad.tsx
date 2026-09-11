@@ -144,7 +144,10 @@ const SignaturePad = forwardRef<SignaturePadHandle, { className?: string }>(func
       <button
         type="button"
         onClick={clear}
-        className="mt-2 text-xs tracking-wide text-cream/60 underline underline-offset-2 hover:text-cream"
+        /* Padded to a real target rather than a bare 28x16 word. It wipes a signature
+           someone has just drawn with a fingertip, so it is the last control on this
+           page that should be easy to hit by accident and hard to hit on purpose. */
+        className="mt-1 inline-flex min-h-11 items-center px-1 py-2 text-xs tracking-wide text-cream/60 underline underline-offset-2 hover:text-cream"
       >
         Clear
       </button>

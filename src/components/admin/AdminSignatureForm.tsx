@@ -27,6 +27,17 @@ export default function AdminSignatureForm({ existingSignatureUrl, adminName }: 
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The signature currently on file, as this component understands it.
+   *
+   * Seeded from the server's value but owned here from then on, because saving changes it
+   * and the prop cannot: it was captured when the page rendered. Reading the prop after a
+   * save meant the screen said "Saved." and, directly above it, "You haven't drawn a
+   * signature yet" - the save had worked, but the only way to see that was a reload, and
+   * the obvious response to being told it had not worked is to draw it again.
+   */
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(existingSignatureUrl);
+
   const onSave = async () => {
     const signaturePng = sigRef.current?.toPNG();
     if (!signaturePng) {
@@ -45,6 +56,10 @@ export default function AdminSignatureForm({ existingSignatureUrl, adminName }: 
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error || 'Could not save your signature.');
       }
+      // Cache-busted so the <img> refetches rather than redisplaying the old drawing.
+      // The endpoint already sends no-store, but a query that changes every save makes
+      // this independent of what any layer in between decides to do.
+      setSignatureUrl(`/api/admin/my-signature?v=${Date.now()}`);
       setStatus('saved');
       setRedrawing(false);
     } catch (err) {
@@ -61,14 +76,14 @@ export default function AdminSignatureForm({ existingSignatureUrl, adminName }: 
     return (
       <div>
         <p className="text-cream/70 text-sm">
-          {existingSignatureUrl
+          {signatureUrl
             ? 'This is what gets attached to your actions.'
             : "You haven't drawn a signature yet - until you do, this is what gets attached instead:"}
         </p>
 
-        {existingSignatureUrl ? (
+        {signatureUrl ? (
           <img
-            src={existingSignatureUrl}
+            src={signatureUrl}
             alt="Your saved signature"
             className="border-cream/25 bg-cream mt-3 h-24 w-full max-w-xs border object-contain object-left"
           />
@@ -84,7 +99,7 @@ export default function AdminSignatureForm({ existingSignatureUrl, adminName }: 
           onClick={() => setRedrawing(true)}
           className="text-cream mt-4 text-sm underline underline-offset-2"
         >
-          {existingSignatureUrl ? 'Redraw signature' : 'Draw your own signature'}
+          {signatureUrl ? 'Redraw signature' : 'Draw your own signature'}
         </button>
         {status === 'saved' && <p className="text-cream mt-3 text-sm">Saved.</p>}
       </div>

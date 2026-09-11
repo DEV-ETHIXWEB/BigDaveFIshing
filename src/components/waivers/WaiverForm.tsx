@@ -1,17 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Check } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import SignaturePad, { type SignaturePadHandle } from './SignaturePad';
-import { waiverGuestFields, digitsOnly, lettersOnly } from '../../lib/waiver-validation';
+import {
+  waiverGuestFields,
+  digitsOnly,
+  lettersOnly,
+  MAX_MINORS,
+} from '../../lib/waiver-validation';
 import { sanitize } from '../../lib/field-sanitize';
 import { business } from '../../lib/business';
+
+// minorNames is overridden rather than taken from waiverGuestFields: the shared rule is
+// an array of strings, and useFieldArray can only key rows by object identity, so the
+// browser form holds `[{ name }]` and flattens back to `[string]` on submit. The server
+// still validates the shared rule, which is the copy that protects the table.
+const { minorNames: _sharedMinorNames, ...guestFields } = waiverGuestFields;
 
 const schema = z.object({
   groupLeaderName: z.string().trim().max(200).optional(),
   tripDate: z.string().trim().max(50).optional(),
-  ...waiverGuestFields,
+  ...guestFields,
+  minorNames: z.array(z.object({ name: z.string().trim().max(200) })).max(MAX_MINORS),
   agree: z.literal(true, { error: 'You must agree to continue' }),
 });
 
@@ -19,8 +31,59 @@ type FormData = z.infer<typeof schema>;
 
 const field = 'w-full rounded border border-cream/15 bg-cream/[0.06] px-4 pt-2.5 pb-3';
 const label = 'block text-[0.5625rem] font-medium uppercase tracking-[0.22em] text-cream/65';
+/**
+ * 16px on phones, 14px from `sm` up.
+ *
+ * Not a style choice: iOS Safari zooms the page in whenever a focused input's text is
+ * under 16px, and it does not zoom back out. A guest filling this in on a phone got the
+ * layout jumping and staying magnified from the first field onwards. 16px is the
+ * threshold that stops it, and the smaller size is kept everywhere it does no harm.
+ */
 const control =
-  'mt-1 w-full bg-transparent text-sm text-cream outline-none placeholder:text-cream/40';
+  'mt-1 w-full bg-transparent text-base text-cream outline-none placeholder:text-cream/40 sm:text-sm';
+
+/** What each field is called on screen, for when the server is the one rejecting it. */
+const FIELD_LABELS: Record<string, string> = {
+  guestName: 'your name',
+  guestEmail: 'your email',
+  guestPhone: 'your phone number',
+  emergencyContactName: "your emergency contact's name",
+  emergencyContactPhone: "your emergency contact's phone number",
+  minorNames: "a child's name",
+  signaturePng: 'your signature',
+  waiverType: 'the waiver type',
+  groupCode: 'the group link',
+};
+
+/**
+ * Turns a failed response into something the guest can act on.
+ *
+ * The server already answers with a specific reason for every rejection - 409 already
+ * signed, 400 dead link or bad field, 429 too fast. Those used to be thrown away and
+ * replaced with "please try again", which is wrong for all three: two of them can never
+ * succeed on a retry and the third is made worse by one.
+ */
+function messageForFailure(
+  status: number,
+  body: { error?: string; details?: { fieldErrors?: Record<string, string[] | undefined> } },
+): string {
+  // A 400 from the shared schema means the browser and the server disagreed about a
+  // value, so name the field rather than showing the raw "Invalid submission".
+  const fieldErrors = body.details?.fieldErrors;
+  if (status === 400 && fieldErrors) {
+    const named = Object.entries(fieldErrors)
+      .filter(([, messages]) => messages?.length)
+      .map(([key, messages]) => `${FIELD_LABELS[key] ?? key}: ${messages![0]}`);
+    if (named.length) return `Please check ${named.join('; ')}.`;
+  }
+
+  if (body.error) return body.error;
+
+  // No JSON body, or one without a reason. Still says something honest per status.
+  if (status === 429) return 'Too many submissions just now. Please wait a minute and try again.';
+  if (status >= 500) return 'Our end had a problem saving this. Please try again in a moment.';
+  return 'That could not be submitted. Please check your details, or call us.';
+}
 
 interface Props {
   waiverType: 'fishing-adventure' | 'lodge';
@@ -37,6 +100,18 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
   const sigRef = useRef<SignaturePadHandle>(null);
   const [sigTouched, setSigTouched] = useState(false);
   const [sigError, setSigError] = useState<string | null>(null);
+  /**
+   * False until this island has actually hydrated in the browser.
+   *
+   * Astro server-renders this form as static HTML and only hydrates it on `client:visible`.
+   * In the gap, the markup is a plain <form> with no action, so tapping Submit made the
+   * browser do its own GET to the current URL - which wiped everything typed and put the
+   * guest's name, phone and emergency contact into the address bar, browser history and
+   * every server log along the way. Gating the button on this means the browser has
+   * nothing to submit until React is in control. Nothing else here works without JS
+   * anyway: the signature pad is a canvas.
+   */
+  const [hydrated, setHydrated] = useState(false);
 
   // The group code rides on the link Dave sends the group leader
   // (…/waivers/fishing-adventure?g=turner-0814), so guests never have to type it,
@@ -50,6 +125,10 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
     const g = new URLSearchParams(window.location.search).get('g');
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (g) setGroupCode(g);
+    // Same effect on purpose: the group code and the submit button both become correct
+    // at exactly this moment, so flipping them together avoids a render where the button
+    // is live but the banner has not replaced the "who booked your trip" fields yet.
+    setHydrated(true);
   }, []);
 
   // The confirmation replaces the form in place, often below the fold on a phone. Move
@@ -62,9 +141,14 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
 
   const {
     register,
+    control: formControl,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { minorNames: [] } });
+
+  // Starts empty. Most guests bring no kids, and an empty row sitting there reads as a
+  // field they are required to fill in.
+  const minors = useFieldArray({ control: formControl, name: 'minorNames' });
 
   const onSubmit = async (data: FormData) => {
     const signaturePng = sigRef.current?.toPNG() ?? null;
@@ -90,16 +174,31 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           guestPhone: data.guestPhone,
           emergencyContactName: data.emergencyContactName,
           emergencyContactPhone: data.emergencyContactPhone,
+          minorNames: data.minorNames.map((minor) => minor.name),
           signaturePng,
         }),
       });
-      const response = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(response.error || 'Submission failed');
+      const response = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        details?: { fieldErrors?: Record<string, string[] | undefined> };
+      };
+
+      if (!res.ok) {
+        // The server's reason, shown as-is. Every one of these is something the guest can
+        // act on - already signed, link no longer valid, slow down - and "please try
+        // again" is the one response that helps with none of them: retrying a duplicate
+        // or a dead link can never succeed, and retrying a rate limit makes it worse.
+        setSubmitError(messageForFailure(res.status, response));
+        return;
+      }
+
       // First name only, "Thank you, Michael" reads like a person wrote it; the full
       // legal name they just typed into a waiver does not.
       setSignedName(data.guestName.trim().split(/\s+/)[0] ?? '');
       setSubmitted(true);
     } catch {
+      // Only a genuine network failure reaches here now, fetch rejecting rather than
+      // answering. That really is worth retrying, so this keeps the old wording.
       setSubmitError(
         'Something went wrong sending this. Please try again, or call us if it keeps happening.',
       );
@@ -172,8 +271,12 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
     // render time; fn itself, and its sigRef.current read, runs later, on the real
     // submit event, never during render. The lint rule can't see through that and
     // flags it defensively.
+    //
+    // method=post belongs here even though React handles the real submit: it decides what
+    // a *native* submit would do if one ever escaped the disabled button above. The
+    // default, GET, is what put guest details in the URL. POST cannot.
     // eslint-disable-next-line react-hooks/refs
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} method="post" className="grid gap-3" noValidate>
       {groupCode ? (
         <div className="rounded border border-copper/30 bg-copper/10 px-4 py-3 text-sm text-cream/85">
           Signing as part of group: <span className="font-medium text-copper">{groupCode}</span>
@@ -286,6 +389,65 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         <p className="-mt-1 text-xs text-cream/90">{errors.emergencyContactPhone.message}</p>
       )}
 
+      {/* Children under 18 the signing adult is bringing. Optional and collapsed to a
+          single button until used: most guests bring nobody, and an always-open list of
+          empty rows reads as something they are required to fill in. */}
+      <fieldset className="border-cream/15 bg-cream/[0.04] mt-3 rounded border p-4">
+        <legend className={`${label} px-1`}>Children Under 18</legend>
+
+        <p className="text-cream/55 mt-1 text-xs leading-relaxed">
+          Only if you are bringing them. List each child by name.
+        </p>
+
+        {minors.fields.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {minors.fields.map((row, index) => (
+              <li key={row.id}>
+                <div className="flex items-center gap-2">
+                  <div className={`${field} flex-1`}>
+                    <label htmlFor={`minor-${index}`} className={label}>
+                      {`Child ${index + 1}`}
+                    </label>
+                    <input
+                      id={`minor-${index}`}
+                      type="text"
+                      placeholder="Full name"
+                      className={control}
+                      {...register(`minorNames.${index}.name` as const)}
+                      onInput={sanitize(lettersOnly)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => minors.remove(index)}
+                    aria-label={`Remove child ${index + 1}`}
+                    className="border-cream/20 text-cream/70 hover:bg-cream/10 hover:text-cream flex h-9 w-9 shrink-0 items-center justify-center rounded border transition-colors"
+                  >
+                    <X size={15} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </div>
+                {errors.minorNames?.[index]?.name && (
+                  <p className="mt-1 text-xs text-cream/90">
+                    {errors.minorNames[index]?.name?.message}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {minors.fields.length < MAX_MINORS && (
+          <button
+            type="button"
+            onClick={() => minors.append({ name: '' })}
+            className="border-cream/25 text-cream hover:bg-cream/10 mt-3 inline-flex items-center gap-1.5 rounded border px-3 py-2 text-xs font-medium transition-colors"
+          >
+            <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
+            {minors.fields.length === 0 ? 'Add a child' : 'Add another child'}
+          </button>
+        )}
+      </fieldset>
+
       <div className="mt-3 max-h-48 overflow-y-auto rounded border border-cream/15 bg-cream/[0.04] p-4 text-xs leading-relaxed text-cream/70">
         <p className="mb-2 font-display text-sm uppercase tracking-[0.06em] text-cream">
           {waiverTitle}
@@ -293,9 +455,18 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         <div dangerouslySetInnerHTML={{ __html: waiverBodyHtml }} />
       </div>
 
-      <label className="mt-1 flex items-start gap-2.5 text-sm text-cream/80">
-        <input type="checkbox" className="mt-1" {...register('agree')} />
-        <span>I have read and agree to the waiver above.</span>
+      {/* The one thing a guest is required to tick before signing, and at the browser
+          default of 13px it was the smallest target on a page meant to be used one-handed
+          on a phone. Sized to 24px, the minimum a pointer target should be. The whole row
+          is a <label>, so the text has always been tappable too - this makes the box
+          itself worth aiming at. */}
+      <label className="mt-1 flex items-start gap-2.5 py-1 text-sm text-cream/80">
+        <input
+          type="checkbox"
+          className="accent-copper mt-0.5 h-6 w-6 shrink-0"
+          {...register('agree')}
+        />
+        <span className="pt-0.5">I have read and agree to the waiver above.</span>
       </label>
       {errors.agree && <p className="-mt-1 text-xs text-cream/90">{errors.agree.message}</p>}
 
@@ -305,14 +476,23 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         {sigTouched && sigError && <p className="mt-1 text-xs text-cream/90">{sigError}</p>}
       </div>
 
-      {submitError && <p className="text-sm text-cream/90">{submitError}</p>}
+      {/* role=alert: the form is long and the button is at the bottom, so a guest who
+          taps Submit needs this announced, not just rendered somewhere above them. */}
+      {submitError && (
+        <p
+          role="alert"
+          className="border-copper/40 bg-copper/10 text-cream rounded border px-4 py-3 text-sm"
+        >
+          {submitError}
+        </p>
+      )}
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !hydrated}
         className="btn btn-solid-light mt-2 w-full disabled:opacity-60"
       >
-        {isSubmitting ? 'Sending…' : 'Sign & Submit'}
+        {isSubmitting ? 'Sending…' : hydrated ? 'Sign & Submit' : 'Preparing form…'}
       </button>
     </form>
   );

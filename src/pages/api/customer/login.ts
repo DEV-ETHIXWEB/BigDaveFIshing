@@ -1,7 +1,11 @@
 import type { APIRoute } from 'astro';
 import { db, ensureSchema, type Customer } from '../../../lib/db';
 import { hashPassword, verifyPassword } from '../../../lib/customer-password';
-import { createCustomerSession, customerSessionMaxAge } from '../../../lib/customer-auth';
+import {
+  createCustomerSession,
+  customerSessionMaxAge,
+  CUSTOMER_HINT_COOKIE,
+} from '../../../lib/customer-auth';
 import { envSetting } from '../../../lib/env';
 import {
   callerKey,
@@ -15,9 +19,9 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const secret = envSetting('CUSTOMER_SESSION_SECRET');
   if (!secret) {
-    return new Response('Accounts are not configured. Set CUSTOMER_SESSION_SECRET.', {
-      status: 503,
-    });
+    // Named in the log, not to the visitor - see the matching note in signup.ts.
+    console.error('[customer/login] refused, because CUSTOMER_SESSION_SECRET is not set');
+    return redirect('/login?error=unavailable', 303);
   }
 
   const form = await request.formData();
@@ -56,6 +60,16 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   cookies.set('big_dave_customer', await createCustomerSession(customer.id, secret), {
     httpOnly: true,
+    sameSite: 'lax',
+    secure: import.meta.env.PROD,
+    path: '/',
+    maxAge: customerSessionMaxAge,
+  });
+
+  // Readable companion cookie so the prerendered footer bar can tell it is showing a
+  // signed-in visitor. Carries no identity - see CUSTOMER_HINT_COOKIE.
+  cookies.set(CUSTOMER_HINT_COOKIE, '1', {
+    httpOnly: false,
     sameSite: 'lax',
     secure: import.meta.env.PROD,
     path: '/',

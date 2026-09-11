@@ -44,6 +44,14 @@ const schema = z.union([
 ]);
 
 export const POST: APIRoute = async ({ request, redirect, locals }) => {
+  // Master only, the same guard staff/create.ts and staff/delete.ts use. A signed waiver
+  // is a legal record and this is the one action that destroys one with no undo, so it
+  // belongs with the other things only the owner can do. Staff still archive, which is
+  // how a finished trip leaves the list and is fully reversible.
+  if (locals.admin?.role !== 'master') {
+    return new Response('Only the master admin can delete waivers or teams.', { status: 403 });
+  }
+
   const parsed = schema.safeParse(Object.fromEntries(await request.formData()));
   if (!parsed.success) return redirect('/admin/waivers?delete-error=1', 303);
 

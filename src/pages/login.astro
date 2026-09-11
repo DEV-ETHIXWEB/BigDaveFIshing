@@ -2,7 +2,11 @@
 export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 
-const error = Astro.url.searchParams.get('error') === '1';
+const errorCode = Astro.url.searchParams.get('error');
+const error = errorCode === '1';
+// Accounts are switched off at the deployment (no CUSTOMER_SESSION_SECRET). Nothing the
+// visitor can fix, so it points at the one route that still works: the phone.
+const unavailable = errorCode === 'unavailable';
 const lockedFor = Number(Astro.url.searchParams.get('locked') || 0);
 const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0;
 ---
@@ -31,6 +35,14 @@ const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0
         error && (
           <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">
             Incorrect email or password.
+          </p>
+        )
+      }
+      {
+        unavailable && (
+          <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">
+            Accounts are temporarily unavailable. You can still book by phone on (503) 538-5607 —
+            and you do not need an account to sign a waiver.
           </p>
         )
       }

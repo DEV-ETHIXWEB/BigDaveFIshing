@@ -2,7 +2,11 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { db, ensureSchema } from '../../lib/db';
 import { waiverGuestFields } from '../../lib/waiver-validation';
-import { callerKey, submissionRetryAfter } from '../../lib/submission-throttle';
+import {
+  callerKey,
+  recordAcceptedSubmission,
+  submissionRetryAfter,
+} from '../../lib/submission-throttle';
 
 // On-demand, not prerendered: this route writes to the database on each request.
 export const prerender = false;
@@ -52,8 +56,11 @@ const schema = z.object({
 });
 
 export const POST: APIRoute = async ({ request }) => {
-  // Checked before parsing, so a flood costs us as little work as possible.
-  const retryAfter = submissionRetryAfter(callerKey(request));
+  // Checked before parsing, so a flood costs us as little work as possible. This spends
+  // the attempt budget; the smaller stored-submission budget is only spent once a row
+  // actually lands, so a guest fixing a typo is not charged for the mistake.
+  const caller = callerKey(request);
+  const retryAfter = submissionRetryAfter(caller);
   if (retryAfter > 0) {
     return new Response(
       JSON.stringify({ error: 'Too many submissions from this connection. Please try shortly.' }),
@@ -105,8 +112,8 @@ export const POST: APIRoute = async ({ request }) => {
     await db.execute({
       sql: `INSERT INTO waivers
       (waiver_type, group_code, group_leader_name, trip_date, guest_name, guest_email,
-       guest_phone, emergency_contact_name, emergency_contact_phone, signature_png)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       guest_phone, emergency_contact_name, emergency_contact_phone, minor_names, signature_png)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         w.waiverType,
         w.groupCode || null,
@@ -117,6 +124,9 @@ export const POST: APIRoute = async ({ request }) => {
         w.guestPhone,
         w.emergencyContactName,
         w.emergencyContactPhone,
+        // NULL rather than "[]" when nobody is listed, so "brought no kids" and "signed
+        // before the form asked" stay distinguishable in the column.
+        w.minorNames.length ? JSON.stringify(w.minorNames) : null,
         w.signaturePng,
       ],
     });
@@ -132,6 +142,9 @@ export const POST: APIRoute = async ({ request }) => {
     }
     throw error;
   }
+
+  // The row is in the table, so this is the point the expensive budget is spent.
+  recordAcceptedSubmission(caller);
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 201,

@@ -1,5 +1,9 @@
-import { db, ensureSchema, WAIVER_LIST_COLUMNS, type WaiverListRow } from './db';
+import { db, ensureSchema, parseMinorNames, WAIVER_LIST_COLUMNS, type WaiverListRow } from './db';
 import { business } from './business';
+import { formatSignedAt, formatTripDate } from './dates';
+
+// Re-exported because the digest was where this lived before it was shared.
+export { formatTripDate };
 
 /**
  * Builds the daily roster email.
@@ -79,19 +83,6 @@ export function groupIntoParties(waivers: WaiverListRow[]): DigestParty[] {
   });
 }
 
-/** `2026-08-12 14:30` in the database is UTC; render it in the shop's own timezone. */
-function formatSigned(signedAt: string) {
-  const date = new Date(signedAt.replace(' ', 'T') + 'Z');
-  if (Number.isNaN(date.getTime())) return signedAt;
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/Los_Angeles',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -100,12 +91,36 @@ function escapeHtml(value: string) {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * `3 adults · 2 children` for a party header. Children are counted separately rather
+ * than folded into the total: an adult and a child are not interchangeable on a boat,
+ * and only the adults signed anything.
+ */
+function partyCount(party: DigestParty) {
+  const adults = party.members.length;
+  const minors = party.members.reduce(
+    (total, member) => total + parseMinorNames(member.minor_names).length,
+    0,
+  );
+  const adultLabel = `${adults} adult${adults === 1 ? '' : 's'}`;
+  return minors ? `${adultLabel} · ${minors} child${minors === 1 ? '' : 'ren'}` : adultLabel;
+}
+
+/**
+ * Leader name and trip date, because those are what the office sorts a trip by and the
+ * subject is the only part of an email you can read without opening it.
+ *
+ * A digest can cover several parties, and only one of them fits. Parties arrive from
+ * groupIntoParties already sorted soonest-first, so the lead party is the trip that
+ * happens next, and the rest are acknowledged by count rather than dropped silently.
+ */
 export function digestSubject(parties: DigestParty[], guestCount: number) {
-  const partyLabel = `${parties.length} part${parties.length === 1 ? 'y' : 'ies'}`;
-  const guestLabel = `${guestCount} guest${guestCount === 1 ? '' : 's'}`;
-  const dated = parties.filter((party) => party.tripDate).map((party) => party.tripDate!);
-  const next = dated.length ? ` · next trip ${dated[0]}` : '';
-  return `Waivers: ${guestLabel}, ${partyLabel}${next}`;
+  if (parties.length === 0) return `Waivers: ${guestCount} guest${guestCount === 1 ? '' : 's'}`;
+
+  const [first, ...rest] = parties;
+  const date = first.tripDate ? formatTripDate(first.tripDate) : 'no trip date';
+  const more = rest.length ? ` (+${rest.length} more part${rest.length === 1 ? 'y' : 'ies'})` : '';
+  return `Waivers: ${first.leader} · ${date}${more}`;
 }
 
 /**
@@ -117,18 +132,28 @@ export function digestText(parties: DigestParty[], dashboardUrl: string) {
 
   for (const party of parties) {
     lines.push(
-      `${party.leader}: ${TRIP_LABEL[party.waiverType] || party.waiverType}${
-        party.tripDate ? `, ${party.tripDate}` : ', no trip date'
+      `${party.leader} - ${TRIP_LABEL[party.waiverType] || party.waiverType}, ${
+        party.tripDate ? formatTripDate(party.tripDate) : 'no trip date'
       }`,
     );
+    lines.push(`  ${partyCount(party)}`);
     for (const member of party.members) {
+      const minors = parseMinorNames(member.minor_names);
+      lines.push('');
       lines.push(`  ${member.guest_name}`);
-      lines.push(`    Phone: ${member.guest_phone}`);
-      if (member.guest_email) lines.push(`    Email: ${member.guest_email}`);
+      lines.push(
+        `    Fishing: ${party.tripDate ? formatTripDate(party.tripDate) : 'date not set'}`,
+      );
+      lines.push(
+        `    Agreed to the waiver terms - signed ${formatSignedAt(member.signed_at, 'short')}`,
+      );
+      if (minors.length) {
+        lines.push(`    Children under 18 (${minors.length}):`);
+        for (const minor of minors) lines.push(`      ${minor}`);
+      }
       lines.push(
         `    Emergency: ${member.emergency_contact_name}, ${member.emergency_contact_phone}`,
       );
-      lines.push(`    Signed: ${formatSigned(member.signed_at)}`);
     }
     lines.push('');
   }
@@ -161,24 +186,48 @@ export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
 
   const partyBlocks = parties
     .map((party) => {
+      // Lower case: this reads mid-sentence on the guest line ("Fishing date not set"),
+      // and the party header uppercases whatever it is given.
+      const tripLine = party.tripDate ? formatTripDate(party.tripDate) : 'date not set';
+
       const rows = party.members
-        .map(
-          (member) => `
+        .map((member) => {
+          const minors = parseMinorNames(member.minor_names);
+
+          // Listed as their own line per child rather than a comma run, so a parent with
+          // three kids is countable at a glance instead of parsed out of a sentence.
+          const minorBlock = minors.length
+            ? `
+          <div style="margin-top:8px;padding:8px 10px;background:#f6f1e8;border-left:3px solid ${ink};">
+            <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#55504a;">
+              Children under 18 &middot; ${minors.length}
+            </div>
+            ${minors
+              .map(
+                (minor) =>
+                  `<div style="font-size:15px;color:${ink};margin-top:4px;">${escapeHtml(minor)}</div>`,
+              )
+              .join('')}
+          </div>`
+            : '';
+
+          return `
       <tr>
         <td style="padding:14px 0;border-top:1px solid #e2ddd3;">
-          <div style="font-size:16px;font-weight:600;color:${ink};">${escapeHtml(member.guest_name)}</div>
-          <div style="font-size:14px;color:#55504a;margin-top:4px;">
-            <a href="tel:${escapeHtml(member.guest_phone.replace(/[^\d+]/g, ''))}" style="color:#55504a;">${escapeHtml(member.guest_phone)}</a>
-            ${member.guest_email ? ` &middot; <a href="mailto:${escapeHtml(member.guest_email)}" style="color:#55504a;">${escapeHtml(member.guest_email)}</a>` : ''}
+          <div style="font-size:17px;font-weight:600;color:${ink};">${escapeHtml(member.guest_name)}</div>
+          <div style="font-size:14px;color:#55504a;margin-top:4px;">Fishing ${escapeHtml(tripLine)}</div>
+          <div style="font-size:14px;color:#2f6b3d;margin-top:6px;">
+            &#10003; Agreed to the waiver terms
+            <span style="color:#8c867e;">&middot; signed ${escapeHtml(formatSignedAt(member.signed_at, 'short'))}</span>
           </div>
-          <div style="font-size:14px;color:#8a2d2d;margin-top:6px;">
+          ${minorBlock}
+          <div style="font-size:14px;color:#8a2d2d;margin-top:8px;">
             Emergency: ${escapeHtml(member.emergency_contact_name)} &middot;
             <a href="tel:${escapeHtml(member.emergency_contact_phone.replace(/[^\d+]/g, ''))}" style="color:#8a2d2d;font-weight:600;">${escapeHtml(member.emergency_contact_phone)}</a>
           </div>
-          <div style="font-size:12px;color:#8c867e;margin-top:6px;">Signed ${escapeHtml(formatSigned(member.signed_at))}</div>
         </td>
-      </tr>`,
-        )
+      </tr>`;
+        })
         .join('');
 
       return `
@@ -186,10 +235,10 @@ export function digestHtml(parties: DigestParty[], dashboardUrl: string) {
       <tr>
         <td style="background:${ink};color:${cream};padding:14px 18px;">
           <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c9bda8;">
-            ${escapeHtml(TRIP_LABEL[party.waiverType] || party.waiverType)}${party.tripDate ? ` &middot; ${escapeHtml(party.tripDate)}` : ' &middot; no trip date'}
+            ${escapeHtml(TRIP_LABEL[party.waiverType] || party.waiverType)} &middot; ${escapeHtml(tripLine)}
           </div>
           <div style="font-size:19px;margin-top:4px;">${escapeHtml(party.leader)}</div>
-          <div style="font-size:13px;color:#c9bda8;margin-top:2px;">${party.members.length} guest${party.members.length === 1 ? '' : 's'}</div>
+          <div style="font-size:13px;color:#c9bda8;margin-top:2px;">${partyCount(party)}</div>
         </td>
       </tr>
       <tr><td style="padding:4px 18px 14px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table></td></tr>
@@ -253,6 +302,7 @@ export function digestCsv(parties: DigestParty[]) {
       'Guest email',
       'Emergency contact',
       'Emergency phone',
+      'Children under 18',
       'Signed (UTC)',
     ].join(','),
   ];
@@ -269,6 +319,9 @@ export function digestCsv(parties: DigestParty[]) {
           csvCell(member.guest_email),
           csvCell(member.emergency_contact_name),
           csvCell(member.emergency_contact_phone),
+          // One cell, semicolon-separated: a column per child would make the header
+          // depend on whichever party happened to bring the most kids.
+          csvCell(parseMinorNames(member.minor_names).join('; ')),
           csvCell(member.signed_at),
         ].join(','),
       );

@@ -1,7 +1,11 @@
 import type { APIRoute } from 'astro';
 import { bookingEnquirySchema } from '../../lib/booking-enquiry';
 import { sendBookingEnquiry } from '../../lib/booking-notify';
-import { callerKey, submissionRetryAfter } from '../../lib/submission-throttle';
+import {
+  callerKey,
+  recordAcceptedSubmission,
+  submissionRetryAfter,
+} from '../../lib/submission-throttle';
 import { siteOrigin } from '../../lib/site-url';
 
 // Sends mail on each request, so it can never be prerendered.
@@ -20,10 +24,16 @@ export const prerender = false;
  * plainly broken, because nobody notices it stopped.
  */
 export const POST: APIRoute = async ({ request }) => {
-  // Shared with the waiver endpoint: 20 submissions per caller per 10 minutes. An
-  // enquiry form has no legitimate reason to exceed that, and it keeps the mail provider
-  // from being used as a relay.
-  const retryAfter = submissionRetryAfter(callerKey(request));
+  // Own namespace, like customer signup: enquiring and signing a waiver are different
+  // actions and must not share a budget. They used to, which meant a party working
+  // through their waivers on the lodge wifi could use up the allowance and leave the
+  // booking form answering 429 to the next visitor on that connection.
+  //
+  // Within that namespace the limit keeps the mail provider from being used as a relay.
+  // Only a message the provider actually accepted spends the smaller budget, so someone
+  // mistyping their phone number three times is not locked out of enquiring.
+  const caller = `booking:${callerKey(request)}`;
+  const retryAfter = submissionRetryAfter(caller);
   if (retryAfter > 0) {
     return json(
       { error: 'Too many messages from this connection. Please try shortly, or give us a call.' },
@@ -61,6 +71,9 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('[booking] enquiry not sent, because the provider rejected it:', outcome.error);
     return json({ error: 'sendFailed' }, 502);
   }
+
+  // The provider confirmed it, so this is the point the expensive budget is spent.
+  recordAcceptedSubmission(caller);
 
   return json({ ok: true }, 201);
 };

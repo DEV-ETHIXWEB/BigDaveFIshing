@@ -10,6 +10,10 @@ const FIELD_PROBLEM: Record<string, string> = {
   confirmPassword: 'Those passwords do not match.',
   'email-exists': 'An account with that email already exists. Try logging in instead.',
   'rate-limited': 'Too many attempts from this connection. Please try again shortly.',
+  // Accounts are switched off at the deployment (no CUSTOMER_SESSION_SECRET). Nothing
+  // the visitor can fix, so it points at the one route that still works: the phone.
+  unavailable:
+    'Accounts are temporarily unavailable. You can still book by phone on (503) 538-5607 — and you do not need an account to sign a waiver.',
 };
 const problem = errorCode ? (FIELD_PROBLEM[errorCode] ?? 'Check the details and try again.') : null;
 ---

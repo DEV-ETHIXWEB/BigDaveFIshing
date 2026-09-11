@@ -40,6 +40,23 @@ export const emailField = z
   .optional()
   .or(z.literal(''));
 
+/** How many under-18s one adult can list. A boat holds fewer than this. */
+export const MAX_MINORS = 10;
+
+/**
+ * Names of the under-18s a signing adult is bringing.
+ *
+ * Empty rows are dropped rather than rejected: the form renders a blank row for the
+ * common case of adding one child, and an adult bringing nobody should not have to clear
+ * it to submit. What survives trimming is held to the same name rule as an adult.
+ */
+export const minorNamesField = z
+  .array(z.string().trim().max(200))
+  .max(MAX_MINORS, `Up to ${MAX_MINORS} children per adult`)
+  .optional()
+  .transform((names) => (names ?? []).filter((name) => name !== ''))
+  .pipe(z.array(nameField("the child's name")).max(MAX_MINORS));
+
 /** The guest-supplied fields, identical on both sides of the request. */
 export const waiverGuestFields = {
   guestName: nameField('your name'),
@@ -47,6 +64,7 @@ export const waiverGuestFields = {
   guestPhone: phoneField,
   emergencyContactName: nameField("a contact's name"),
   emergencyContactPhone: phoneField,
+  minorNames: minorNamesField,
 };
 
 /** Strips anything that is not a digit, and caps length. Used on every keystroke. */
