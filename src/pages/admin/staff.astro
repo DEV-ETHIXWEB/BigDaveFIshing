@@ -7,7 +7,7 @@ import { db, ensureSchema, type StaffAccount } from '../../lib/db';
 // dashboard - this isn't hidden-but-reachable, middleware has already set
 // locals.admin from the cookie itself, so there is nothing for a staff session to spoof.
 if (Astro.locals.admin?.role !== 'master') {
-  return Astro.redirect('/admin/waivers');
+  return Astro.redirect('/admin/waivers', 303);
 }
 
 await ensureSchema();

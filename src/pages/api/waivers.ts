@@ -4,6 +4,7 @@ import { db, ensureSchema } from '../../lib/db';
 import { waiverGuestFields } from '../../lib/waiver-validation';
 import { validCustomerSession } from '../../lib/customer-auth';
 import { envSetting } from '../../lib/env';
+import { isSameOrigin } from '../../lib/origin-check';
 import {
   callerKey,
   recordAcceptedSubmission,
@@ -57,7 +58,17 @@ const schema = z.object({
   signaturePng: signaturePngField,
 });
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, cookies, url }) => {
+  // See src/lib/origin-check.ts for why this route checks it explicitly rather than
+  // relying only on Astro's built-in same-origin check, which does not look at
+  // application/json requests.
+  if (!isSameOrigin(request, url)) {
+    return new Response(JSON.stringify({ error: 'Cross-site submissions are forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Checked before parsing, so a flood costs us as little work as possible. This spends
   // the attempt budget; the smaller stored-submission budget is only spent once a row
   // actually lands, so a guest fixing a typo is not charged for the mistake.

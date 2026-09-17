@@ -16,9 +16,10 @@ export const prerender = false;
  * The one rule this route cannot break: whether an email address has an account here
  * must never be observable from the response. So every outcome that isn't a hard,
  * account-independent failure (accounts switched off, rate limited) redirects to the
- * exact same "check your email" state - a real customer sees a real email land, and
- * someone probing for registered addresses learns nothing either way from the response
- * body.
+ * exact same "check your email" state, regardless of whether an account was found, and
+ * regardless of whether the send to a real one actually succeeded - a real customer
+ * sees a real email land when the mail provider cooperates, and someone probing for
+ * registered addresses learns nothing either way from the response body.
  *
  * Known, accepted gap: the "found" branch does real work (a DB insert, an outbound call
  * to the mail provider) that the "not found" branch skips, so response *timing* still
@@ -73,18 +74,19 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const resetUrl = `${siteOrigin(request.url)}/reset-password?token=${token}`;
     const outcome = await sendPasswordResetEmail(customer.email, resetUrl);
 
-    // A transient failure here (network blip, provider outage) is rarer and a much
-    // weaker oracle than the deterministic "configured or not" check above, but it is
-    // still a real, if small, remaining gap: this specific address triggered an actual
-    // send attempt that then failed, and no such attempt is ever made for the "no
-    // account" branch below. Logged for whoever is watching the mail provider, since
-    // there is no way to retry it without asking the customer to submit again anyway.
+    // A transient failure here (network blip, provider outage) used to answer
+    // ?error=unavailable while a never-registered address fell through to ?sent=1 below
+    // - two different responses for one input, which is exactly the oracle this route
+    // exists to deny a prober, even though the underlying cause (a flaky send, not a
+    // missing account) has nothing to do with whether the address is real. Logged for
+    // whoever is watching the mail provider; the caller still sees the same
+    // confirmation either way, same as every other outcome here.
     if (outcome.status === 'failed') {
       console.error('[customer/forgot-password] send failed:', outcome.error);
-      return redirect('/forgot-password?error=unavailable', 303);
     }
   }
 
-  // No account for that address: fall through to the same confirmation, silently.
+  // No account for that address, or a real one whose send just failed: same
+  // confirmation either way, silently.
   return redirect('/forgot-password?sent=1', 303);
 };

@@ -9,20 +9,30 @@ import { db } from './db';
  */
 
 const TOKEN_BYTES = 32;
-const EXPIRY_MS = 24 * 60 * 60 * 1000; // A day - longer than the password reset window,
-// since confirming an address is not time-sensitive the way proving you still hold an
-// account is, and there is no harm in a guest clicking it a day later.
+// A day - longer than the password reset window, since confirming an address is not
+// time-sensitive the way proving you still hold an account is, and there is no harm in
+// a guest clicking it a day later. A SQLite interval literal, not a JS-computed value -
+// see the comment on createEmailVerificationToken for why.
+const EXPIRY_INTERVAL = '+1 day';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * `expires_at` is computed by SQLite (`datetime('now', ...)`), not by
+ * `new Date().toISOString()` - see the identical note on
+ * customer-password-reset.ts's createPasswordResetToken for the exact bug this avoids:
+ * comparing an ISO string against `datetime('now')` as plain TEXT does not sort the way
+ * the timestamps actually order, and a token that should have expired hours ago was
+ * still accepted.
+ */
 export async function createEmailVerificationToken(customerId: number): Promise<string> {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
-  const expiresAt = new Date(Date.now() + EXPIRY_MS).toISOString();
   await db.execute({
-    sql: 'INSERT INTO customer_email_verifications (customer_id, token_hash, expires_at) VALUES (?, ?, ?)',
-    args: [customerId, hashToken(token), expiresAt],
+    sql: `INSERT INTO customer_email_verifications (customer_id, token_hash, expires_at)
+          VALUES (?, ?, datetime('now', ?))`,
+    args: [customerId, hashToken(token), EXPIRY_INTERVAL],
   });
   return token;
 }

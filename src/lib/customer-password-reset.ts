@@ -13,20 +13,35 @@ import { db } from './db';
  */
 
 const TOKEN_BYTES = 32;
-const EXPIRY_MS = 60 * 60 * 1000; // 1 hour, long enough for an inbox check, short
-// enough that a stale link found later in an old email cannot still work.
+// 1 hour, long enough for an inbox check, short enough that a stale link found later in
+// an old email cannot still work. A SQLite interval literal, not a JS-computed value -
+// see the comment on createPasswordResetToken for why that distinction is load-bearing.
+const EXPIRY_INTERVAL = '+1 hour';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-/** Issues a new token for this customer. The raw token is returned once and never stored. */
+/**
+ * Issues a new token for this customer. The raw token is returned once and never stored.
+ *
+ * `expires_at` is computed by SQLite itself (`datetime('now', ...)`), not by
+ * `new Date().toISOString()` handed in as a parameter. Both LOOK like timestamps, but
+ * `toISOString()` produces `2026-09-17T14:49:37.532Z` while every `datetime('now')` in
+ * this schema produces `2026-09-17 14:49:37` - a space where the other has `T`, no
+ * fractional seconds, no `Z`. `expires_at > datetime('now')` in consumePasswordResetToken
+ * compares these as plain TEXT, and `'T'` (0x54) sorts after `' '` (0x20), so an
+ * ISO-formatted `expires_at` compared against a same- or later-dated `datetime('now')`
+ * came out "greater than" regardless of the actual times - confirmed locally: a token
+ * timestamped one second in the past was still accepted as unexpired. Letting SQLite
+ * generate both sides of the comparison is what makes the formats actually match.
+ */
 export async function createPasswordResetToken(customerId: number): Promise<string> {
   const token = randomBytes(TOKEN_BYTES).toString('hex');
-  const expiresAt = new Date(Date.now() + EXPIRY_MS).toISOString();
   await db.execute({
-    sql: 'INSERT INTO customer_password_resets (customer_id, token_hash, expires_at) VALUES (?, ?, ?)',
-    args: [customerId, hashToken(token), expiresAt],
+    sql: `INSERT INTO customer_password_resets (customer_id, token_hash, expires_at)
+          VALUES (?, ?, datetime('now', ?))`,
+    args: [customerId, hashToken(token), EXPIRY_INTERVAL],
   });
   return token;
 }

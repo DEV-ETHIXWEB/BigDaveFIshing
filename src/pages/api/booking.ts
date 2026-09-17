@@ -4,6 +4,7 @@ import { sendBookingEnquiry } from '../../lib/booking-notify';
 import { db, ensureSchema } from '../../lib/db';
 import { validCustomerSession } from '../../lib/customer-auth';
 import { envSetting } from '../../lib/env';
+import { isSameOrigin } from '../../lib/origin-check';
 import {
   callerKey,
   recordAcceptedSubmission,
@@ -26,7 +27,14 @@ export const prerender = false;
  * loudly is the point, a booking form that degrades silently is worse than one that is
  * plainly broken, because nobody notices it stopped.
  */
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, cookies, url }) => {
+  // See src/lib/origin-check.ts for why this route checks it explicitly rather than
+  // relying only on Astro's built-in same-origin check, which does not look at
+  // application/json requests.
+  if (!isSameOrigin(request, url)) {
+    return json({ error: 'Cross-site submissions are forbidden' }, 403);
+  }
+
   // Own namespace, like customer signup: enquiring and signing a waiver are different
   // actions and must not share a budget. They used to, which meant a party working
   // through their waivers on the lodge wifi could use up the allowance and leave the
