@@ -52,12 +52,18 @@ const { offers, class: className = '' } = Astro.props;
               ]}
             >
               <div class="offer__media relative overflow-hidden">
+                {/* The photo's own focal point, same as every other frame on the site
+                     (see the `focus` note in src/lib/photos.ts). This card is 16:10 and
+                     the photographs are 4:3, so it trims a sixth of the height - and
+                     centred, that took the top of the left angler's cap off and grazed
+                     the middle one's. */}
                 <Image
                   src={offer.photo.src}
                   alt={offer.photo.alt}
                   width={1200}
                   widths={[600, 900, 1200]}
                   sizes="(min-width: 1024px) 45vw, 100vw"
+                  style={offer.photo.focus ? `object-position: ${offer.photo.focus};` : undefined}
                   class="aspect-[16/10] w-full object-cover"
                 />
 
