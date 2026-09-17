@@ -25,11 +25,17 @@ const { eyebrow, title, intro, photo } = Astro.props;
 <section
   class="relative isolate h-[42vh] min-h-[19rem] w-full overflow-hidden xl:h-auto xl:aspect-[21/9] xl:max-h-[30rem]"
 >
+  {
+    /* The top candidate is above any source we hold on purpose: Astro clamps a width to
+       the source's own, so a 1500px photo now serves all 1500 instead of stopping at
+       1400, and a smaller one is unaffected. The hero is the one image on the page that
+       draws full-bleed, so it is where every pixel the source has is worth spending. */
+  }
   <Image
     src={photo.src}
     alt={photo.alt}
     width={1400}
-    widths={[900, 1400]}
+    widths={[900, 1400, 2000]}
     sizes="100vw"
     class="h-full w-full origin-top object-cover object-[50%_28%]"
     loading="eager"

@@ -12,7 +12,13 @@ import { business } from '../lib/business';
 // checkerboard so each run of fish gets its own photo and heading. No words were altered.
 const rows: Row[] = [
   {
-    photo: photos.lodgeRiver,
+    // The 563px-wide "private river access" shot, placed here rather than in the hero:
+    // it is the smallest photo in the project and the hero draws over 1100px wide, which
+    // was stretching it to twice its own resolution. In this column it renders at
+    // 390-568px, near its native size, and it illustrates the private-access paragraph
+    // below it exactly. The hero takes lodgeRiver (1500px) instead. Ask the client for
+    // the camera original if this photo is ever wanted full-bleed again.
+    photo: photos.lodgeFishing,
     eyebrow: 'The lodge',
     heading: 'On the Wilson River',
     body: [
@@ -81,7 +87,7 @@ const rows: Row[] = [
     eyebrow="Hwy 6 · Tillamook, Oregon"
     title="Wilson River Lodge"
     intro="Lodging for up to six on the river, with private access right behind the lodge."
-    photo={photos.lodgeFishing}
+    photo={photos.lodgeRiver}
   />
 
   <Checkerboard rows={rows} startIndex={0} />
