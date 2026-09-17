@@ -49,12 +49,6 @@
      all clear of the 3:1 that non-text contrast asks for. See the focus rule lower down. */
   --color-focus: #767676;
 
-  /* Deprecated aliases. The waiver and admin screens still use these names; pointing
-     them at the greys above turned those pages monochrome with no edits. Prefer
-     graphite/silver in new work, and delete these once nothing references them. */
-  --color-cedar: #4a4a4a;
-  --color-copper: #c2c2c2;
-
   /* One easing curve for everything that enters the page. A long, soft deceleration,
      most of the distance is covered immediately and the last few pixels take their time,
      which is what makes motion read as weighted rather than mechanical. Tailwind exposes
@@ -154,15 +148,12 @@
     padding: 0.85rem 1.9rem;
     border-radius: 0.125rem;
     border: 1px solid transparent;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      border-color 0.2s,
-      transform 0.2s;
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
+    /* transition and :hover live in the unlayered "Interaction polish" section near the
+       foot of this file, not here - see its own comment for why. A `transition` and a
+       `:hover.transform` used to be duplicated here too, inside @layer components,
+       where Tailwind's cascade layers mean they can never win against an unlayered
+       rule regardless of source order or specificity. Removed rather than left as
+       dead weight that looks like it does something. */
   }
 
   /* On dark grounds and over photographs */
@@ -188,7 +179,7 @@
     color: var(--color-cream);
   }
   .btn-solid-dark:hover {
-    background-color: var(--color-cedar);
+    background-color: var(--color-graphite);
   }
   .btn-outline-dark {
     border-color: rgb(from var(--color-ink) r g b / 0.35);
@@ -395,6 +386,15 @@
     }
     .marquee {
       overflow-x: auto;
+      /* The edge mask exists to soften content that's always mid-motion under the
+         auto-scroll animation above - fine to fade something nobody is trying to read
+         at that exact instant. Without the animation this becomes a manually-scrolled
+         rail instead, and the same mask now permanently fades whatever a person has
+         just scrolled to the edge to read. Dropped here for exactly that reason; the
+         hidden overflow above still gives the container its edge, just without
+         translucency layered on top of it. */
+      -webkit-mask-image: none;
+      mask-image: none;
     }
   }
 

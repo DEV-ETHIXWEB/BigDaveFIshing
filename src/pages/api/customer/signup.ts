@@ -9,7 +9,10 @@ import {
   customerSessionMaxAge,
   CUSTOMER_HINT_COOKIE,
 } from '../../../lib/customer-auth';
+import { createEmailVerificationToken } from '../../../lib/customer-email-verification';
+import { sendVerificationEmail } from '../../../lib/customer-email-verification-email';
 import { envSetting } from '../../../lib/env';
+import { siteOrigin } from '../../../lib/site-url';
 import {
   callerKey,
   recordAcceptedSubmission,
@@ -79,7 +82,26 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   // who mistyped their password confirmation three times is not charged for it.
   recordAcceptedSubmission(caller);
 
-  cookies.set('big_dave_customer', await createCustomerSession(customerId, secret), {
+  // Best-effort, and never blocks the signup itself: the account is real and usable
+  // either way (nothing currently checks email_verified_at to gate anything), this is
+  // only what lets /account later tell a customer their address is confirmed rather
+  // than merely claimed. A failure here is logged, not surfaced - the alternative is
+  // failing an otherwise-successful signup over an email the visitor cannot resend
+  // themselves yet at this point in the flow (that's what the resend link on /account
+  // is for).
+  try {
+    const token = await createEmailVerificationToken(customerId);
+    const verifyUrl = `${siteOrigin(request.url)}/api/customer/verify-email?token=${token}`;
+    const outcome = await sendVerificationEmail(parsed.data.email, verifyUrl);
+    if (outcome.status !== 'sent') {
+      console.error('[customer/signup] verification email not sent:', outcome);
+    }
+  } catch (error) {
+    console.error('[customer/signup] verification email threw:', error);
+  }
+
+  // A brand-new row is always at session_version 1 - see that column's default in db.ts.
+  cookies.set('big_dave_customer', await createCustomerSession(customerId, 1, secret), {
     httpOnly: true,
     sameSite: 'lax',
     secure: import.meta.env.PROD,

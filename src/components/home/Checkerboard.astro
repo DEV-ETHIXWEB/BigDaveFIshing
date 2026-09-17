@@ -51,6 +51,13 @@ const sideFor = (i: number, row: Row) =>
                 same element would silently never apply. The drift is the better effect,
                 it's always working, not only when a pointer happens to be over the tile,
                 and there is no pointer at all on a phone. */}
+            {/* With no loading attr, Astro's <Image> defaults every tile to lazy - fine
+                for every row but the very first, which on every page this renders on
+                sits directly under the hero and is on screen (or nearly) at first
+                paint. Lazy there means an intersection observer decides when to fetch
+                it, arriving a frame or two after the surrounding layout, which reads
+                as a pop-in right below the one thing on the page guaranteed to already
+                be loaded eagerly. */}
             <Image
               src={row.photo.src}
               alt={row.photo.alt}
@@ -58,6 +65,7 @@ const sideFor = (i: number, row: Row) =>
               widths={[600, 900, 1200]}
               sizes="(min-width: 768px) 50vw, 100vw"
               class="parallax-media aspect-[4/3] h-full w-full object-cover md:aspect-auto md:min-h-[22rem]"
+              loading={startIndex === 0 && i === 0 ? 'eager' : 'lazy'}
             />
           </div>
 

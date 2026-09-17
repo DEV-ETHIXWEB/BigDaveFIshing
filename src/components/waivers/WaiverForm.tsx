@@ -12,6 +12,7 @@ import {
 } from '../../lib/waiver-validation';
 import { sanitize } from '../../lib/field-sanitize';
 import { business } from '../../lib/business';
+import { formatSignedAt } from '../../lib/dates';
 
 // minorNames is overridden rather than taken from waiverGuestFields: the shared rule is
 // an array of strings, and useFieldArray can only key rows by object identity, so the
@@ -115,11 +116,14 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
   const [groupCode, setGroupCode] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [signedName, setSignedName] = useState('');
+  const [signedAt, setSignedAt] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
   const sigRef = useRef<SignaturePadHandle>(null);
   const [sigTouched, setSigTouched] = useState(false);
   const [sigError, setSigError] = useState<string | null>(null);
+  const sigErrorRef = useRef<HTMLParagraphElement>(null);
+  const submitErrorRef = useRef<HTMLParagraphElement>(null);
   /**
    * False until this island has actually hydrated in the browser.
    *
@@ -159,16 +163,53 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
     confirmRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [submitted]);
 
+  // Same reasoning, for the two failure paths react-hook-form's own field-level
+  // validation never sees: a missing signature isn't a registered field, and a
+  // rejected submission (already signed, rate limited, dead link) comes back from the
+  // server after every field already passed. Both used to just set state and rely on
+  // the guest already being scrolled to wherever the message rendered - true if they
+  // had just tapped Submit at the very bottom, false the moment either message
+  // reappears after they've scrolled away, or on the long lodge waiver where the
+  // signature pad sits well above the button.
+  useEffect(() => {
+    if (!sigError) return;
+    sigErrorRef.current?.focus();
+    sigErrorRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [sigError]);
+
+  useEffect(() => {
+    if (!submitError) return;
+    submitErrorRef.current?.focus();
+    submitErrorRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [submitError]);
+
   const {
     register,
     control: formControl,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { minorNames: [] } });
 
   // Starts empty. Most guests bring no kids, and an empty row sitting there reads as a
   // field they are required to fill in.
   const minors = useFieldArray({ control: formControl, name: 'minorNames' });
+
+  // This form has no autosave and no draft: a name, phone and emergency contact typed
+  // in, then lost to a stray back-gesture or a phone locking mid-fill, means starting
+  // over from a blank page. `isDirty` is react-hook-form's own "has anything actually
+  // been touched" flag, so an untouched form (someone who just landed here) can still
+  // navigate away with no prompt - only someone who has actually typed something gets
+  // asked. The signature pad is drawn on a canvas react-hook-form doesn't see, so it is
+  // checked separately here rather than left out of the guard entirely.
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => {
+      if (submitted) return;
+      if (!isDirty && !sigRef.current?.toPNG()) return;
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty, submitted]);
 
   const onSubmit = async (data: FormData) => {
     const signaturePng = sigRef.current?.toPNG() ?? null;
@@ -201,6 +242,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       const response = (await res.json().catch(() => ({}))) as {
         error?: string;
         details?: { fieldErrors?: Record<string, string[] | undefined> };
+        signedAt?: string;
       };
 
       if (!res.ok) {
@@ -215,6 +257,11 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       // First name only, "Thank you, Michael" reads like a person wrote it; the full
       // legal name they just typed into a waiver does not.
       setSignedName(data.guestName.trim().split(/\s+/)[0] ?? '');
+      // The server's own record of when this INSERT happened, not the guest's device
+      // clock - see the matching note on api/waivers.ts's response. This is what keeps
+      // the confirmation screen and the admin dashboard agreeing on the date for the
+      // same row.
+      setSignedAt(response.signedAt ?? null);
       setSubmitted(true);
     } catch {
       // Only a genuine network failure reaches here now, fetch rejecting rather than
@@ -266,7 +313,12 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           )}
           <div className="flex items-baseline justify-between gap-4 py-1.5">
             <dt className="text-cream/55">Signed</dt>
-            <dd className="text-cream">{new Date().toLocaleDateString()}</dd>
+            {/* The server's own signed_at, formatted the same way the dashboard formats
+                the very same column (see lib/dates.ts) - not the guest's device clock,
+                which has no reason to agree with either the server's clock or its
+                timezone. Falls back to "just now" only if an older server response
+                ever omits signedAt; a real one always includes it. */}
+            <dd className="text-cream">{signedAt ? formatSignedAt(signedAt) : 'Just now'}</dd>
           </div>
         </dl>
 
@@ -298,8 +350,8 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
     // eslint-disable-next-line react-hooks/refs
     <form onSubmit={handleSubmit(onSubmit)} method="post" className="grid gap-3" noValidate>
       {groupCode ? (
-        <div className="rounded border border-copper/30 bg-copper/10 px-4 py-3 text-sm text-cream/85">
-          Signing as part of group: <span className="font-medium text-copper">{groupCode}</span>
+        <div className="rounded border border-silver/30 bg-silver/10 px-4 py-3 text-sm text-cream/85">
+          Signing as part of group: <span className="font-medium text-silver">{groupCode}</span>
         </div>
       ) : (
         <>
@@ -520,18 +572,27 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         <span className={label}>Your Signature</span>
         <SignaturePad ref={sigRef} className="mt-1" />
         {sigTouched && sigError && (
-          <p role="alert" className="text-alert mt-1 text-xs">
+          <p
+            ref={sigErrorRef}
+            tabIndex={-1}
+            role="alert"
+            className="text-alert mt-1 text-xs outline-none"
+          >
             {sigError}
           </p>
         )}
       </div>
 
       {/* role=alert: the form is long and the button is at the bottom, so a guest who
-          taps Submit needs this announced, not just rendered somewhere above them. */}
+          taps Submit needs this announced, not just rendered somewhere above them.
+          tabIndex + the scroll/focus effect above mean it's also brought into view for
+          a sighted guest, not just announced to a screen reader. */}
       {submitError && (
         <p
+          ref={submitErrorRef}
+          tabIndex={-1}
           role="alert"
-          className="border-alert/40 bg-alert/10 text-alert rounded border px-4 py-3 text-sm"
+          className="border-alert/40 bg-alert/10 text-alert rounded border px-4 py-3 text-sm outline-none"
         >
           {submitError}
         </p>

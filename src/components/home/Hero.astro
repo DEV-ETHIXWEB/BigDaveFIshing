@@ -99,29 +99,71 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
        most likely to be tapped with a thumb on a moving boat. The button is now padded to
        24px and the visible dot is unchanged, so nothing looks different and everything is
        hittable. -->
-  <div class="absolute inset-x-0 bottom-2 flex justify-center gap-0.5 sm:bottom-4">
+  <div class="absolute inset-x-0 bottom-2 flex items-center justify-center gap-3 sm:bottom-4">
+    <div class="flex gap-0.5">
+      {
+        slides.map((_, i) => (
+          <button
+            type="button"
+            data-hero-dot
+            aria-label={`Show slide ${i + 1} of ${slides.length}`}
+            aria-current={i === 0 ? 'true' : 'false'}
+            class="group grid h-6 w-6 place-items-center rounded-full"
+          >
+            <span
+              data-hero-dot-mark
+              aria-hidden="true"
+              class:list={[
+                // Hover lives on the mark but is driven by the button, so the whole 24px
+                // target lights the dot rather than only the 8px of it that is painted.
+                'block h-2 rounded-full transition-all duration-300 group-hover:bg-white',
+                i === 0 ? 'w-6 bg-white' : 'w-2 bg-white/50',
+              ]}
+            />
+          </button>
+        ))
+      }
+    </div>
+
     {
-      slides.map((_, i) => (
-        <button
-          type="button"
-          data-hero-dot
-          aria-label={`Show slide ${i + 1} of ${slides.length}`}
-          aria-current={i === 0 ? 'true' : 'false'}
-          class="group grid h-6 w-6 place-items-center rounded-full"
-        >
-          <span
-            data-hero-dot-mark
-            aria-hidden="true"
-            class:list={[
-              // Hover lives on the mark but is driven by the button, so the whole 24px
-              // target lights the dot rather than only the 8px of it that is painted.
-              'block h-2 rounded-full transition-all duration-300 group-hover:bg-white',
-              i === 0 ? 'w-6 bg-white' : 'w-2 bg-white/50',
-            ]}
-          />
-        </button>
-      ))
+      /* WCAG 2.2.2 (Pause, Stop, Hide): auto-advancing content longer than 5s needs a
+        mechanism to stop it that does not depend on a specific input. mouseenter/
+        mouseleave alone covers a mouse and nothing else - a keyboard user tabbing
+        through the page, or anyone on a touchscreen, had no way to stop the slideshow
+        at all before this button existed. Hidden entirely under prefers-reduced-motion:
+        autoplay already never starts there (see the script below), so a control for
+        pausing something that isn't running would just be confusing chrome. */
     }
+    <button
+      type="button"
+      data-hero-playpause
+      aria-label="Pause slideshow"
+      aria-pressed="false"
+      class="motion-safe:grid hidden h-6 w-6 place-items-center rounded-full text-white/85 hover:text-white"
+    >
+      <svg
+        data-hero-pause-icon
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <rect x="5" y="4" width="5" height="16"></rect>
+        <rect x="14" y="4" width="5" height="16"></rect>
+      </svg>
+      <svg
+        data-hero-play-icon
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+        class="hidden"
+      >
+        <path d="M6 4l14 8-14 8V4z"></path>
+      </svg>
+    </button>
   </div>
 </section>
 
@@ -132,6 +174,9 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
   // The button is the 24px target; the mark is the 8px dot drawn inside it. State classes
   // go on the mark, aria-current stays on the button that actually carries the semantics.
   const marks = Array.from(document.querySelectorAll<HTMLElement>('[data-hero-dot-mark]'));
+  const playPause = document.querySelector<HTMLButtonElement>('[data-hero-playpause]');
+  const pauseIcon = document.querySelector<SVGElement>('[data-hero-pause-icon]');
+  const playIcon = document.querySelector<SVGElement>('[data-hero-play-icon]');
   if (root && slides.length > 1) {
     let current = 0;
     let timer: number | undefined;
@@ -158,10 +203,14 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
     // Returning to a tab while still hovering the hero used to restart the slideshow and
     // pull the photo out from under whoever was reading the caption.
     let hovered = false;
+    // Explicit, and separate from `hovered`: a person who has pressed pause must stay
+    // paused through every other thing that would otherwise restart the timer (the
+    // pointer leaving, the tab regaining focus). Only pressing play again clears it.
+    let paused = false;
 
     const start = () => {
       stop();
-      if (hovered) return;
+      if (hovered || paused) return;
       // Only auto-advance for people who have not asked the OS for less motion.
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       timer = window.setInterval(() => show((current + 1) % slides.length), 6000);
@@ -189,6 +238,19 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
       start();
     });
     document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+
+    // WCAG 2.2.2: a mechanism to stop the auto-advance that works for keyboard and
+    // touch, not just a mouse hovering away. See the button's own comment in the markup
+    // above for why it is hidden under prefers-reduced-motion instead of disabled.
+    playPause?.addEventListener('click', () => {
+      paused = !paused;
+      playPause.setAttribute('aria-pressed', String(paused));
+      playPause.setAttribute('aria-label', paused ? 'Play slideshow' : 'Pause slideshow');
+      pauseIcon?.classList.toggle('hidden', paused);
+      playIcon?.classList.toggle('hidden', !paused);
+      if (paused) stop();
+      else start();
+    });
 
     start();
   }

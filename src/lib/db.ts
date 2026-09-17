@@ -171,6 +171,55 @@ export function ensureSchema() {
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
           )`,
+          // A customer's forgot-password flow. Only ever stores the SHA-256 of the
+          // token that goes out in the email, never the token itself - a leaked table
+          // must not hand out working reset links, the same reasoning that already
+          // keeps session cookies signed rather than storing a raw shared secret.
+          // customer_id has no foreign-key ON DELETE action because nothing here ever
+          // deletes a customer row; if that changes, this table needs the same look.
+          `CREATE TABLE IF NOT EXISTS customer_password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          `CREATE INDEX IF NOT EXISTS customer_password_resets_token_hash ON customer_password_resets (token_hash)`,
+          `CREATE INDEX IF NOT EXISTS customer_password_resets_customer_id ON customer_password_resets (customer_id)`,
+          // A separate table from customer_password_resets rather than a shared one
+          // with a "purpose" column, on purpose: a token leaked or reused across
+          // purposes (a verification link that could also reset a password) is a
+          // strictly worse failure mode than two nearly-identical tables, and the two
+          // are consumed by completely different routes that have no reason to share a
+          // query.
+          `CREATE TABLE IF NOT EXISTS customer_email_verifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          `CREATE INDEX IF NOT EXISTS customer_email_verifications_token_hash ON customer_email_verifications (token_hash)`,
+          `CREATE INDEX IF NOT EXISTS customer_email_verifications_customer_id ON customer_email_verifications (customer_id)`,
+          // A record of a booking enquiry, kept for a signed-in customer to see on
+          // /account. Written only after the email to Dave has already been confirmed
+          // sent (see sendBookingEnquiry's caller in api/booking.ts) - this table is a
+          // side effect of a successful enquiry, never what decides whether one
+          // succeeded. customer_id is NULL for every enquiry from a visitor who wasn't
+          // signed in, which is most of them; nothing here requires an account.
+          `CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            email TEXT,
+            trip_type TEXT NOT NULL,
+            message TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )`,
+          `CREATE INDEX IF NOT EXISTS bookings_customer_id ON bookings (customer_id)`,
           // Staff logins the master admin (env-var ADMIN_USER/ADMIN_PASSWORD) creates.
           // Deliberately a separate table from `customers`: two unrelated kinds of
           // account that happen to share a hashing scheme should never share a table,
@@ -243,16 +292,43 @@ async function migrate() {
     !existing.has('archived_at') && 'ALTER TABLE waivers ADD COLUMN archived_at TEXT',
     !existing.has('emailed_at') && 'ALTER TABLE waivers ADD COLUMN emailed_at TEXT',
     !existing.has('minor_names') && 'ALTER TABLE waivers ADD COLUMN minor_names TEXT',
+    // NULL for every waiver signed by a guest with no account, which is most of them,
+    // and for every waiver signed before this column existed - both correctly, there is
+    // no account to attribute those to. Set only going forward, at submission time, for
+    // whoever is actually signed in at that moment (api/waivers.ts) - never guessed
+    // afterwards by matching name, phone or email against old rows, which would risk
+    // handing one guest's signed waiver to a different customer's account on nothing
+    // more than a coincidence of contact details.
+    !existing.has('customer_id') && 'ALTER TABLE waivers ADD COLUMN customer_id INTEGER',
   ].filter((sql): sql is string => Boolean(sql));
 
   if (statements.length) await db.batch(statements);
 
   // The dashboard's default view is "not archived", and the digest's query is
   // "not archived and not yet emailed". Both filter on these before ordering.
+  // customer_id is what /account's own waiver list filters and orders by.
   await db.batch([
     `CREATE INDEX IF NOT EXISTS waivers_archived_at ON waivers (archived_at)`,
     `CREATE INDEX IF NOT EXISTS waivers_emailed_at ON waivers (emailed_at)`,
+    `CREATE INDEX IF NOT EXISTS waivers_customer_id ON waivers (customer_id)`,
   ]);
+
+  // Added after `customers` first shipped, same reasoning as above: read the existing
+  // shape, only add what's missing. Every pre-existing row gets DEFAULT 1, which is
+  // exactly right - it is indistinguishable from an account that has never had its
+  // password reset.
+  const customerInfo = await db.execute('PRAGMA table_info(customers)');
+  const customerColumns = new Set(customerInfo.rows.map((row) => String(row.name)));
+  if (!customerColumns.has('session_version')) {
+    await db.execute('ALTER TABLE customers ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1');
+  }
+  // NULL until the address is confirmed. Every row that existed before this column did
+  // starts NULL too - correctly: nobody had proven ownership of their address before
+  // this existed either, so treating pre-existing accounts as verified would be the
+  // one actively wrong default here.
+  if (!customerColumns.has('email_verified_at')) {
+    await db.execute('ALTER TABLE customers ADD COLUMN email_verified_at TEXT');
+  }
 }
 
 export interface WaiverRecord {
@@ -278,6 +354,19 @@ export interface WaiverRecord {
   archived_at: string | null;
   /** Set only after a provider confirmed the digest send that included this row. */
   emailed_at: string | null;
+  /** The signed-in customer who submitted this, if any - see the column's own note in db.ts. */
+  customer_id: number | null;
+}
+
+export interface Booking {
+  id: number;
+  customer_id: number | null;
+  name: string;
+  phone: string;
+  email: string | null;
+  trip_type: string;
+  message: string | null;
+  created_at: string;
 }
 
 /**
@@ -330,6 +419,24 @@ export interface Customer {
   name: string;
   email: string;
   password_hash: string;
+  /**
+   * Bumped on every successful password reset (never on a normal login). A session
+   * cookie signed under an older version fails validation - see customer-auth.ts - so
+   * resetting a password also closes out any session issued before the reset, without
+   * needing a server-side session table.
+   */
+  session_version: number;
+  /** NULL until the address is confirmed via the link sent on signup. See db.ts's migration note. */
+  email_verified_at: string | null;
+  created_at: string;
+}
+
+export interface CustomerPasswordReset {
+  id: number;
+  customer_id: number;
+  token_hash: string;
+  expires_at: string;
+  used_at: string | null;
   created_at: string;
 }
 

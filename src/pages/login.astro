@@ -9,6 +9,7 @@ const error = errorCode === '1';
 const unavailable = errorCode === 'unavailable';
 const lockedFor = Number(Astro.url.searchParams.get('locked') || 0);
 const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0;
+const justReset = Astro.url.searchParams.get('reset') === '1';
 ---
 
 <Layout
@@ -31,6 +32,13 @@ const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0
         >.
       </p>
 
+      {
+        justReset && (
+          <p class="mt-5 border border-emerald-900/20 bg-emerald-900/5 px-3 py-2 text-sm">
+            Your password has been reset. Log in with your new password below.
+          </p>
+        )
+      }
       {
         error && (
           <p class="mt-5 border border-red-900/20 bg-red-900/5 px-3 py-2 text-sm">
@@ -75,7 +83,12 @@ const lockedMinutes = lockedFor > 0 ? Math.max(1, Math.ceil(lockedFor / 60)) : 0
           class="border-ink/20 focus:border-ink mt-1 w-full border px-3 py-3 outline-none"
         />
       </label>
-      <button class="btn btn-solid-dark mt-6 w-full" type="submit">Log In</button>
+      <p class="mt-2 text-right text-sm">
+        <a href="/forgot-password" class="text-ink underline underline-offset-2">
+          Forgot password?
+        </a>
+      </p>
+      <button class="btn btn-solid-dark mt-4 w-full" type="submit">Log In</button>
     </form>
   </section>
 </Layout>

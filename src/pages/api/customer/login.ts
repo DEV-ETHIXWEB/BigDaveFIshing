@@ -58,13 +58,17 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   clearFailures(caller);
 
-  cookies.set('big_dave_customer', await createCustomerSession(customer.id, secret), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: import.meta.env.PROD,
-    path: '/',
-    maxAge: customerSessionMaxAge,
-  });
+  cookies.set(
+    'big_dave_customer',
+    await createCustomerSession(customer.id, customer.session_version, secret),
+    {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: import.meta.env.PROD,
+      path: '/',
+      maxAge: customerSessionMaxAge,
+    },
+  );
 
   // Readable companion cookie so the prerendered footer bar can tell it is showing a
   // signed-in visitor. Carries no identity - see CUSTOMER_HINT_COOKIE.

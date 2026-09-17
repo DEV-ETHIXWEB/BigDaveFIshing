@@ -1,6 +1,9 @@
 import type { APIRoute } from 'astro';
 import { bookingEnquirySchema } from '../../lib/booking-enquiry';
 import { sendBookingEnquiry } from '../../lib/booking-notify';
+import { db, ensureSchema } from '../../lib/db';
+import { validCustomerSession } from '../../lib/customer-auth';
+import { envSetting } from '../../lib/env';
 import {
   callerKey,
   recordAcceptedSubmission,
@@ -23,7 +26,7 @@ export const prerender = false;
  * loudly is the point, a booking form that degrades silently is worse than one that is
  * plainly broken, because nobody notices it stopped.
  */
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   // Own namespace, like customer signup: enquiring and signing a waiver are different
   // actions and must not share a budget. They used to, which meant a party working
   // through their waivers on the lodge wifi could use up the allowance and leave the
@@ -74,6 +77,34 @@ export const POST: APIRoute = async ({ request }) => {
 
   // The provider confirmed it, so this is the point the expensive budget is spent.
   recordAcceptedSubmission(caller);
+
+  // Persisted only now, after the email that actually is this feature's success
+  // condition has already been confirmed sent - this table is a record of that
+  // success for a signed-in customer to see on /account, never a second thing that
+  // could itself fail the request. A guest with no account gets customer_id NULL and
+  // nothing else changes for them.
+  try {
+    await ensureSchema();
+    const session = await validCustomerSession(
+      cookies.get('big_dave_customer')?.value,
+      envSetting('CUSTOMER_SESSION_SECRET'),
+    );
+    await db.execute({
+      sql: `INSERT INTO bookings (customer_id, name, phone, email, trip_type, message)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [
+        session?.id ?? null,
+        parsed.data.name,
+        parsed.data.phone,
+        parsed.data.email || null,
+        parsed.data.tripType,
+        parsed.data.message || null,
+      ],
+    });
+  } catch (error) {
+    // The enquiry already reached Dave's inbox regardless - see the comment above.
+    console.error('[booking] enquiry sent but not recorded for account history:', error);
+  }
 
   return json({ ok: true }, 201);
 };

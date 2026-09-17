@@ -10,6 +10,10 @@ import { videos as allVideos } from '../../lib/videos';
 // Titles come from lib/videos.ts, which holds them verbatim from the live site's slider.
 // They used to be hand-written here and three of the four were guesses read off image
 // filenames; sharing one manifest means the teaser and the gallery cannot disagree.
+//
+// The play button is gated on video.url, same as the gallery itself: every url is null
+// today (see the note in lib/videos.ts), and a play icon promising a video that doesn't
+// play is worse than no icon at all.
 const videos = allVideos.slice(0, 4);
 ---
 
@@ -41,11 +45,13 @@ const videos = allVideos.slice(0, 4);
               class="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/10"
               aria-hidden="true"
             />
-            <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-              <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg transition-transform duration-300 group-hover:scale-110">
-                <Play size={18} fill="currentColor" strokeWidth={0} className="ml-0.5" />
+            {video.url && (
+              <span class="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg transition-transform duration-300 group-hover:scale-110">
+                  <Play size={18} fill="currentColor" strokeWidth={0} className="ml-0.5" />
+                </span>
               </span>
-            </span>
+            )}
           </div>
 
           <h3 class="text-ink group-hover:text-graphite mt-3 text-[1.05rem] leading-snug transition-colors">

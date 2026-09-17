@@ -111,6 +111,7 @@ const ACTION_LABEL: Record<string, string> = {
   'team.delete': 'Deleted',
   'staff.create': 'Added staff',
   'staff.remove': 'Removed staff',
+  'staff.change-password': 'Changed their password',
   'digest.send': 'Emailed roster',
 };
 
@@ -278,6 +279,9 @@ const digestReason = params.get('reason');
       <div class="flex flex-col items-end gap-2">
         <a href="/admin/signature" class="border border-ink/25 px-4 py-2 text-sm">
           Your signature
+        </a>
+        <a href="/admin/change-password" class="border border-ink/25 px-4 py-2 text-sm">
+          Change password
         </a>
         {
           /* Only the master account can create or remove staff logins - shown only to
