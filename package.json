@@ -5,6 +5,12 @@
   "engines": {
     "node": "22.x"
   },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "overrides": {
+    "path-to-regexp": "^6.3.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

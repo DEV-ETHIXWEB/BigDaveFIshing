@@ -20,6 +20,15 @@ const hashOf = (source) => `sha256-${createHash('sha256').update(source, 'utf8')
 export default defineConfig({
   integrations: [react()],
 
+  // No .md/.mdx anywhere in this project, so Shiki (Astro's default code-block
+  // highlighter) never actually runs - but it stays configured by default regardless,
+  // and it renders inline styles that this site's CSP (below) does not allow, which is
+  // exactly what Astro's own build warned about. Turned off outright rather than left
+  // as a warning for a feature nothing here uses.
+  markdown: {
+    syntaxHighlight: false,
+  },
+
   /**
    * Content-Security-Policy.
    *
