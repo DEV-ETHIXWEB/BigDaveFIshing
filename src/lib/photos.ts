@@ -32,12 +32,30 @@ import lodgeRiver from '../assets/photos/wilson-river-lodge-oregon-river-fishing
 export interface Photo {
   src: ImageMetadata;
   alt: string;
+  /**
+   * Where to hold the crop, as a CSS `object-position`.
+   *
+   * Every frame on this site is `object-cover`, so a photo taller than its frame loses
+   * the top and bottom equally - and in these photographs the faces are in the top
+   * fifth, which is exactly what a centred crop throws away. Set here rather than at the
+   * call site because it is a property of the photograph, not of the layout: wherever
+   * the photo is used, the faces are in the same place.
+   *
+   * Values were derived from face detection over each file: the band every face occupies
+   * was measured, then the crop pulled up until that band sits inside the visible window
+   * with headroom, at every frame the photo renders in. Omitted means centred, which is
+   * correct for a landscape photo that is never cropped vertically.
+   */
+  focus?: string;
 }
 
 export const photos = {
   threeAnglers: {
     src: threeAnglers,
     alt: 'Three anglers on the boat holding up a morning of bright salmon on Tillamook Bay',
+    // Faces sit at 25-39% down; a centred crop clips the top of a head in the
+    // wide closing band on the homepage.
+    focus: '50% 30%',
   },
   boatCatch: {
     src: boatCatch,
@@ -46,6 +64,8 @@ export const photos = {
   bayChinookPair: {
     src: bayChinookPair,
     alt: 'Two guests holding a matched pair of chinook salmon on the river bank',
+    // Highest face is 9% from the top.
+    focus: '50% 8%',
   },
   daveSalmonTillamook: {
     src: daveSalmonTillamook,
@@ -79,6 +99,8 @@ export const photos = {
   wilsonRiverLevel: {
     src: wilsonRiverLevel,
     alt: 'The Wilson River running clear and green through the coast range',
+    // Face reaches to 13% from the top, right at the hero crop line.
+    focus: '50% 8%',
   },
   lodgeRiver: {
     src: lodgeRiver,
@@ -87,6 +109,8 @@ export const photos = {
   lodgeFishing: {
     src: lodgeFishing,
     alt: 'Private river access behind the Wilson River Lodge',
+    // Face sits at 11-21% from the top; centred, a tile crop cut it off entirely.
+    focus: '50% 24%',
   },
   lodgeSilverSalmon: {
     src: lodgeSilverSalmon,
@@ -95,6 +119,8 @@ export const photos = {
   daveAndLeslie: {
     src: daveAndLeslie,
     alt: 'Hosts Dave and Leslie Manners holding a pair of king salmon on the river',
+    // Both hosts are in the top third of a portrait frame.
+    focus: '50% 18%',
   },
 } satisfies Record<string, Photo>;
 

@@ -64,6 +64,7 @@ const sideFor = (i: number, row: Row) =>
               width={1200}
               widths={[600, 900, 1200]}
               sizes="(min-width: 768px) 50vw, 100vw"
+              style={row.photo.focus ? `object-position: ${row.photo.focus};` : undefined}
               class="parallax-media aspect-[4/3] h-full w-full object-cover md:aspect-auto md:min-h-[22rem]"
               loading={startIndex === 0 && i === 0 ? 'eager' : 'lazy'}
             />
