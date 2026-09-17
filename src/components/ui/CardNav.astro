@@ -16,6 +16,9 @@ export interface CardNavItem {
 
 interface Props {
   logo: string;
+  /** Density candidates for the badge, so it stays sharp on 2x/3x screens. */
+  logoSrcset?: string;
+  logoSizes?: string;
   logoAlt?: string;
   items: CardNavItem[];
   baseColor?: string;
@@ -28,6 +31,8 @@ interface Props {
 
 const {
   logo,
+  logoSrcset,
+  logoSizes,
   logoAlt = '',
   items,
   baseColor = '#f4f4f4',
@@ -77,7 +82,15 @@ if (import.meta.env.DEV && items.length > 3) {
       taller than the collapsed bar. CSS positions it over the bar. */
   }
   <a href="/" class="logo-container" aria-label="Big Dave's Fishing Adventures home">
-    <img src={logo} alt={logoAlt} class="logo" width="120" height="112" />
+    <img
+      src={logo}
+      srcset={logoSrcset}
+      sizes={logoSizes}
+      alt={logoAlt}
+      class="logo"
+      width="240"
+      height="225"
+    />
   </a>
 
   <nav

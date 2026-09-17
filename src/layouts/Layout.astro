@@ -19,7 +19,22 @@ import shareImage from '../assets/photos/wilson-river-lodge-oregon-river-fishing
 
 // Both resolved here rather than inside the island: Astro owns the hashed asset URLs,
 // and this way no image imports ship to the client.
-const badgeImg = await getImage({ src: badge, width: 120, format: 'webp' });
+/**
+ * The badge in the mobile header bar.
+ *
+ * It draws at 51-58 CSS px, and a single 120px copy was all that existed - fine at 1x,
+ * soft on the 2x and 3x screens nearly every phone has, and softer still the moment
+ * anyone zooms in. The candidates below let the browser take the one that matches its
+ * own pixel density: `sizes` is quoted a little above the real drawn width deliberately,
+ * so a 2x phone takes the 240 rather than scraping by on the 120.
+ */
+const badgeImg = await getImage({
+  src: badge,
+  width: 240,
+  widths: [120, 240, 360],
+  sizes: '72px',
+  format: 'webp',
+});
 
 // 1200x630 is what Facebook, LinkedIn and X all crop to. Generated once here rather than
 // per page, because every page shares the same card image.
@@ -206,6 +221,8 @@ if (canEmitSchema) Astro.csp?.insertScriptHash(await scriptHash(schemaJson));
     <div style={`--bd-board: url(${wood.src});`}>
       <CardNav
         logo={badgeImg.src}
+        logoSrcset={badgeImg.srcSet.attribute}
+        logoSizes="72px"
         logoAlt=""
         items={navCards}
         baseColor="#f4f4f4"
