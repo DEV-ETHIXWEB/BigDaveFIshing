@@ -1,12 +1,13 @@
 /* Floating nav for tablet and phone. Above 1280px the fixed brand rail takes over and
    this hides itself, so the two are never on screen together. */
 .card-nav-container {
-  /* Height of the collapsed bar. The badge is deliberately taller than this and
-     overhangs it (see .logo-container) rather than forcing the bar to grow: the header
-     stays slim while the one piece of branding it carries reads at full size. Read by
-     CardNav.tsx too, which animates this height. */
-  --card-nav-bar: 60px;
-  --card-nav-logo: 80px;
+  /* Height of the collapsed bar, and of the badge centred inside it. The badge used to
+     be taller than the bar and overhang its bottom edge, which read as a logo slipping
+     out of the strip rather than as a deliberate overlap. It now sits wholly inside,
+     with an even gap above and below. Read by CardNav.astro's script too, which
+     animates this height. */
+  --card-nav-bar: 68px;
+  --card-nav-logo: 54px;
   position: fixed;
   top: 1.2em;
   left: 50%;
@@ -123,11 +124,11 @@
 
 .logo-container {
   /* Sits in the container, not in .card-nav: the nav clips to its animated height, so a
-     badge taller than the bar would be cut off in there. Stays put when the menu expands.
-     Overhangs downward rather than centring on the bar - centred, the taller badge came
-     within 3px of the top of the screen, and the container has no safe-area inset. */
+     badge placed in there would animate with it. Stays put when the menu expands.
+     Centred on the collapsed bar: the gap above and below is whatever the bar has left
+     over after the badge, split evenly, so changing either variable keeps it centred. */
   position: absolute;
-  top: -6px;
+  top: calc((var(--card-nav-bar) - var(--card-nav-logo)) / 2);
   left: 0.9rem;
   height: var(--card-nav-logo);
   display: flex;
@@ -324,7 +325,9 @@
     font-size: 0.7rem;
     letter-spacing: 0.1em;
   }
+  /* A little smaller on the narrowest phones, so the Book Now button keeps its room -
+     still centred in the bar with a gap above and below, never the bar's full height. */
   .card-nav-container {
-    --card-nav-logo: 68px;
+    --card-nav-logo: 48px;
   }
 }

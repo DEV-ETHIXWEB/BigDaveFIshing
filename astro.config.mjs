@@ -20,6 +20,40 @@ const hashOf = (source) => `sha256-${createHash('sha256').update(source, 'utf8')
 export default defineConfig({
   integrations: [react()],
 
+  /**
+   * No trailing slashes. Every address on the old WordPress site ended in one
+   * (/gallery/, /fishing-adventure-waiver/), and the redirects below only match the bare
+   * form. With this set, the Vercel adapter emits Vercel's own rule that sends /x/ to /x
+   * first, so the old links reach their redirect instead of a 404 - and /contact and
+   * /contact/ stop being served as two separate pages.
+   */
+  trailingSlash: 'never',
+
+  /**
+   * Addresses from the WordPress site this replaces, taken from its own wp-sitemap.
+   *
+   * The two waiver pages are the ones that matter most: they are in the old site's main
+   * menu, and they are the links Dave has been sending guests. Everything else either
+   * moved (the gallery is the video page now) or has no equivalent here - the Alaska
+   * pages were already out of the old menu, so they go to the home page rather than to
+   * a 404. 301 so search engines carry the old pages' standing across to the new ones.
+   *
+   * `/admin` has no page of its own; without this it answered 404 after signing in.
+   */
+  redirects: {
+    '/fishing-adventure-waiver': { status: 301, destination: '/waivers/fishing-adventure' },
+    '/wilson-river-lodge-waiver': { status: 301, destination: '/waivers/lodge' },
+    '/gallery': { status: 301, destination: '/videos' },
+    '/blog': { status: 301, destination: '/' },
+    '/alaska-fishing': { status: 301, destination: '/' },
+    '/alaska-lodge': { status: 301, destination: '/' },
+    '/alaska-faq': { status: 301, destination: '/' },
+    '/alaska-rates-packages': { status: 301, destination: '/' },
+    '/alaska-lodge-getting-here': { status: 301, destination: '/' },
+    '/alaska-packing-list': { status: 301, destination: '/' },
+    '/admin': { status: 302, destination: '/admin/waivers' },
+  },
+
   // No .md/.mdx anywhere in this project, so Shiki (Astro's default code-block
   // highlighter) never actually runs - but it stays configured by default regardless,
   // and it renders inline styles that this site's CSP (below) does not allow, which is

@@ -28,9 +28,15 @@ const shareImg = await getImage({ src: shareImage, width: 1200, height: 630, for
 interface Props {
   title: string;
   description: string;
+  /**
+   * Keeps a page out of search results. For the account screens: a login form or a
+   * password reset is not something anyone searches for, and each one indexed is a thin
+   * page competing with the real ones for the business's own name.
+   */
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 
 /**
  * The canonical URL for this page.
@@ -138,7 +144,7 @@ if (canEmitSchema) Astro.csp?.insertScriptHash(await scriptHash(schemaJson));
     <!-- Preview and branch deployments must never be indexed: a staging copy in the
          index competes with the real site for its own name. isIndexable() is true only
          on the production deployment. -->
-    {!isIndexable() && <meta name="robots" content="noindex, nofollow" />}
+    {(noindex || !isIndexable()) && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Social cards. og:image is an absolute URL on the canonical origin, because
          Facebook and X fetch it from their own servers and a relative path resolves to

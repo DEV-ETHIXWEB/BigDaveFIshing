@@ -10,7 +10,7 @@ import { business } from '../lib/business';
 
 <div class="bg-ink text-cream fixed inset-x-0 bottom-0 z-40 xl:left-[var(--rail-w)]" data-book-bar>
   <div
-    class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-nowrap sm:justify-between sm:px-8 xl:px-12 xl:py-5"
+    class="flex flex-col gap-2 px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-8 sm:py-3 xl:px-12 xl:py-5"
   >
     {
       /* The number is the single most valuable thing on the page, and at desktop widths
@@ -22,25 +22,23 @@ import { business } from '../lib/business';
         wraps to a second row instead: at 320px the phone number alone (unwrapped)
         already takes 226 of the row's 288px, leaving nowhere near enough room for two
         legible buttons beside it on the same line without either shrinking the number
-        or squeezing its own text into an ugly mid-string wrap. A clean second row reads
-        as intentional; a phone number broken after "Book Today:" does not. */
+        or squeezing its own text into an ugly mid-string wrap. So below sm the bar is
+        two deliberate rows - the number centred, then the buttons as an even pair -
+        rather than a row that wraps wherever the text happens to run out. */
     }
     <a
       href={business.phoneHref}
-      class="font-display hover:text-silver text-[1.05rem] transition-colors sm:text-[1.35rem] xl:text-[1.75rem] 2xl:text-[2rem]"
+      class="font-display hover:text-silver text-center text-[1.05rem] transition-colors sm:text-left sm:text-[1.35rem] xl:text-[1.75rem] 2xl:text-[2rem]"
     >
       Book Today: {business.phone}
     </a>
 
     {
       /* Grouped with the Facebook icon under one flex child, so the parent keeps pinning
-        exactly two things apart - the phone on the left, everything else on the right -
-        no matter how many icons/links end up in this group. `ml-auto` rather than the
-        parent's `justify-between` is what actually pins it to the right: `justify-between`
-        only has two things to space apart when both sit on the same line, but once the
-        bar wraps below sm this group becomes the only thing on its own second line, and
-        `ml-auto` keeps it flush right there too, where `justify-between` would have
-        nothing left to push against and would drop it to the start instead. */
+        exactly two things apart at sm+ - the phone on the left, everything else on the
+        right - no matter how many icons/links end up in this group. Below sm it is its
+        own row: a two-column grid, so Login and Sign Up are the same width and line up
+        under the number instead of hanging off the right edge. */
     }
     {
       /* Signed-out pair and signed-in link both ship in the markup, and a script below
@@ -50,18 +48,18 @@ import { business } from '../lib/business';
          again. `hidden` on the signed-in link is the right default: a first-time visitor
          is the common case, and it is what a reader with no JS should see. */
     }
-    <div class="ml-auto flex shrink-0 items-center gap-2 sm:ml-0 sm:gap-3">
+    <div class="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center sm:gap-3">
       <a
         href="/login"
         data-signed-out
-        class="border-cream/40 text-cream hover:bg-cream hover:text-ink shrink-0 rounded-sm border px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
+        class="border-cream/40 text-cream hover:bg-cream hover:text-ink shrink-0 rounded-sm border px-2.5 py-2 text-center text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
       >
         Login
       </a>
       <a
         href="/signup"
         data-signed-out
-        class="bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
+        class="bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-2 text-center text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
       >
         Sign Up
       </a>
@@ -69,7 +67,7 @@ import { business } from '../lib/business';
         href="/account"
         data-signed-in
         hidden
-        class="bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-1.5 text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
+        class="col-span-2 bg-cream text-ink hover:bg-white shrink-0 rounded-sm px-2.5 py-2 text-center text-[0.6875rem] font-medium tracking-[0.08em] uppercase transition-colors sm:px-3.5 sm:py-2 sm:text-xs xl:px-5 xl:py-2.5 xl:text-sm"
       >
         My Account
       </a>
