@@ -37,7 +37,9 @@
   transform-origin: center center;
   background: #111111;
   box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.8);
-  will-change: flex-grow, transform;
+  /* `will-change: flex-grow` was doing nothing useful in any case - flex-grow is a layout
+     property, so it cannot be handed to the compositor - while still paying the cost of
+     the hint. Removed along with the transform half, which only matters mid-tween. */
   -webkit-tap-highlight-color: transparent;
 
   /* The panels are <button> elements so they carry real control semantics; these
@@ -71,6 +73,10 @@
   width: var(--ag-media-size);
   height: 100%;
   filter: grayscale(var(--ag-gray));
+}
+
+/* Only the open panel's media is mid-animation often enough to be worth promoting. */
+.ag-panel--active .ag-panel__media {
   will-change: transform, filter;
 }
 
@@ -136,16 +142,27 @@
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
 }
 
-@media (max-width: 520px) {
+/* Stacked. The component mirrors this breakpoint (STACK_BREAKPOINT in
+   AccordionGallery.tsx) so its measurements and tweens switch axis with the layout.
+   Covers tablets as well as phones: a hover-opened horizontal accordion is the wrong
+   shape for any touch screen, not just a small one. */
+@media (max-width: 768px) {
   .accordion-gallery {
     flex-direction: column;
     perspective: none;
-    height: auto !important;
   }
+
+  /* No `height: auto` here any more, and no min-height on the panels. Both fought the
+     accordion rather than helping it: `auto` left flex-grow with no free space to hand
+     the open panel, and an 84px floor on five panels then overflowed whatever height was
+     set. The component supplies a definite stacked height and flex divides it. */
   .ag-panel {
-    min-height: 84px;
+    min-height: 0;
+    /* The tilt is a perspective effect and there is no perspective here, so it would only
+       ever squash the panel. */
     transform: none !important;
   }
+
   .accordion-gallery .ag-panel__media {
     width: 100%;
     height: var(--ag-media-size);

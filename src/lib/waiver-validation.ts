@@ -32,11 +32,14 @@ export const phoneField = z
   .trim()
   .regex(/^\d{7,15}$/, 'Numbers only, 7–15 digits');
 
+// `z.email()` in a pipe rather than the deprecated `.email()` method, keeping the
+// original order: trim and cap, then check the format. The trailing `.or(z.literal(''))`
+// is what makes an empty box mean "not given" rather than "invalid".
 export const emailField = z
   .string()
   .trim()
   .max(200)
-  .email('Enter a valid email')
+  .pipe(z.email('Enter a valid email'))
   .optional()
   .or(z.literal(''));
 

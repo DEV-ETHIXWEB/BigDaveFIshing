@@ -1,17 +1,6 @@
-const encoder = new TextEncoder();
-export const adminSessionMaxAge = 60 * 60 * 12;
+import { sign as signature, verify } from './hmac';
 
-async function signature(value: string, secret: string) {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const buffer = await crypto.subtle.sign('HMAC', key, encoder.encode(value));
-  return Array.from(new Uint8Array(buffer), (part) => part.toString(16).padStart(2, '0')).join('');
-}
+export const adminSessionMaxAge = 60 * 60 * 12;
 
 /** The one shared credential from ADMIN_USER/ADMIN_PASSWORD - unchanged since this existed alone. */
 export async function createAdminSession(secret: string) {
@@ -49,8 +38,10 @@ export async function validAdminSession(
     const [role, expires, suppliedSignature] = parts;
     if (role !== 'admin' || !expires || !suppliedSignature) return null;
     if (Number(expires) < Date.now() / 1000) return null;
-    const expected = await signature(`${role}.${expires}`, secret);
-    return expected === suppliedSignature ? { role: 'master' } : null;
+    // Constant time, see the note in src/lib/hmac.ts on why `===` is wrong here.
+    return (await verify(`${role}.${expires}`, suppliedSignature, secret))
+      ? { role: 'master' }
+      : null;
   }
 
   if (parts.length === 4) {
@@ -60,8 +51,9 @@ export async function validAdminSession(
       return null;
     }
     if (Number(expires) < Date.now() / 1000) return null;
-    const expected = await signature(`${role}.${idRaw}.${expires}`, secret);
-    return expected === suppliedSignature ? { role: 'staff', id } : null;
+    return (await verify(`${role}.${idRaw}.${expires}`, suppliedSignature, secret))
+      ? { role: 'staff', id }
+      : null;
   }
 
   return null;

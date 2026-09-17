@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request }) => {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return new Response(
-      JSON.stringify({ error: 'Invalid submission', details: parsed.error.flatten() }),
+      JSON.stringify({ error: 'Invalid submission', details: z.flattenError(parsed.error) }),
       {
         status: 400,
       },
@@ -132,8 +132,17 @@ export const POST: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     if (error instanceof Error && /unique/i.test(error.message)) {
+      // Two different duplicate rules now guard this table (see the indexes in
+      // src/lib/db.ts), so the reason has to say which one was hit. "Already submitted
+      // for this phone number" was the old catch-all and it described neither case
+      // accurately - it read as a permanent ban to a guest who had simply signed twice
+      // in one sitting.
       return new Response(
-        JSON.stringify({ error: 'A waiver has already been submitted for this phone number.' }),
+        JSON.stringify({
+          error: w.groupCode
+            ? 'Someone has already signed with this phone number for this trip.'
+            : 'This phone number has already signed this waiver today. There is nothing else to do.',
+        }),
         {
           status: 409,
           headers: { 'Content-Type': 'application/json' },

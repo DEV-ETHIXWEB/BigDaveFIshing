@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const raw = Object.fromEntries(await request.formData());
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    const fields = Object.keys(parsed.error.flatten().fieldErrors);
+    const fields = Object.keys(z.flattenError(parsed.error).fieldErrors);
     return redirect(`/admin/staff?error=${fields[0] ?? 'invalid'}`, 303);
   }
 

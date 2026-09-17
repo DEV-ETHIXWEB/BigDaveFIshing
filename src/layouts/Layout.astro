@@ -4,9 +4,11 @@ import '../styles/global.css';
 import BrandRail from '../components/BrandRail.astro';
 import Footer from '../components/Footer.astro';
 import BookBar from '../components/BookBar.astro';
-import CardNav from '../components/ui/CardNav.tsx';
+import CardNav from '../components/ui/CardNav.astro';
 import { business, nav, navCards, waiverLinks } from '../lib/business';
 import { isIndexable, siteOrigin } from '../lib/site-url';
+import { scriptHash } from '../lib/csp-hash';
+import { REVEAL_BOOTSTRAP } from '../lib/inline-scripts.mjs';
 import badge from '../assets/photos/logo-badge.png';
 import wood from '../assets/photos/wood-texture.png';
 // The share card's photo. Picked for resolution as much as subject: at 1500x1000 it is
@@ -57,6 +59,19 @@ const shareImageUrl = new URL(shareImg.src, origin).href;
  * `sameAs` is likewise omitted until the real Facebook URL is supplied, pointing it at
  * facebook.com's home page asserted that the business's profile is Facebook itself.
  */
+/**
+ * The two scripts on this page that have to be inline, and their CSP hashes.
+ *
+ * Both are rendered with `set:html` from these exact strings, and both hashes are
+ * registered below, so the Content-Security-Policy Astro emits admits them and nothing
+ * else. See src/lib/csp-hash.ts for why these are computed rather than configured.
+ *
+ * `is:inline` is not a style choice for either one. The JSON-LD has to be a real
+ * `<script type="application/ld+json">` in the document for search engines to read it -
+ * there is no external-file form they honour. The reveal bootstrap has to run before
+ * first paint; bundled, it would become a deferred module and every section would paint
+ * visible, then hide, then animate, which is worse than having no animation at all.
+ */
 const localBusinessSchema = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
@@ -77,6 +92,31 @@ const localBusinessSchema = {
   areaServed: business.serviceArea,
   ...(business.facebook ? { sameAs: [business.facebook] } : {}),
 };
+
+const schemaJson = JSON.stringify(localBusinessSchema);
+
+/**
+ * Structured data is emitted on prerendered pages only, and that is a CSP constraint
+ * rather than an SEO choice.
+ *
+ * The JSON-LD carries the share image's build-hashed URL, so its own hash is not
+ * knowable until the build has run - it cannot be declared in astro.config.mjs the way
+ * the reveal bootstrap is. It has to be registered at render time, and a render-time
+ * hash only reaches prerendered pages: Astro streams SSR responses and sends the CSP
+ * header before the body renders. On a server-rendered route the block would simply be
+ * refused by the browser, which is a console error and no structured data either way.
+ *
+ * Nothing of value is lost. Every page local search actually reads - the homepage,
+ * contact, the lodge, rates, fishing information, videos - is prerendered and keeps it.
+ * The routes that miss out are login, signup, account and the waiver signing pages,
+ * none of which have any business claiming to be the business's LocalBusiness record.
+ */
+const canEmitSchema = Astro.isPrerendered;
+
+// Optional-chained because `Astro.csp` only exists when security.csp is enabled, and it
+// is not applied at all in `astro dev`. Registering a hash is then simply a no-op rather
+// than a crash on every page of the dev server.
+if (canEmitSchema) Astro.csp?.insertScriptHash(await scriptHash(schemaJson));
 ---
 
 <!doctype html>
@@ -124,19 +164,29 @@ const localBusinessSchema = {
 
     <meta name="theme-color" content="#1c1a17" />
 
-    <script type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} is:inline />
+    <!-- Both are rendered from the exact strings their hashes were taken over, via
+         set:html, rather than typed out again here: retyping either one would change its
+         text and break its own hash. -->
+    {canEmitSchema && <script type="application/ld+json" set:html={schemaJson} is:inline />}
 
-    <!-- Arms the reveal animation before first paint, so sections start hidden rather
-         than flashing in once the observer attaches. Deliberately the only thing that
-         sets this class: if the script is blocked, the CSS hidden state never applies
-         and the page is simply visible. -->
-    <script is:inline>
-      document.documentElement.classList.add('js-reveal');
-    </script>
+    <script is:inline set:html={REVEAL_BOOTSTRAP} />
   </head>
 
   <body class="bg-cream text-ink">
     <span id="top"></span>
+
+    <!-- Skip link. Every page puts nine rail links, a waiver disclosure and the floating
+         nav ahead of the content in tab order, so reaching the page itself by keyboard
+         meant tabbing through the entire site menu first, on every page.
+
+         Hidden until focused rather than visually-hidden-always: the first Tab press on
+         a page reveals it, which is the one moment it is useful. -->
+    <a
+      href="#main"
+      class="bg-ink text-cream sr-only rounded-sm px-4 py-3 text-sm font-medium focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60]"
+    >
+      Skip to content
+    </a>
 
     <!-- One chrome, two shapes. The fixed rail is the nav at xl+; below that it hides
          and the floating CardNav takes over. Each hides itself at the other's widths,
@@ -149,7 +199,6 @@ const localBusinessSchema = {
 
     <div style={`--bd-board: url(${wood.src});`}>
       <CardNav
-        client:load
         logo={badgeImg.src}
         logoAlt=""
         items={navCards}
@@ -161,7 +210,7 @@ const localBusinessSchema = {
         ctaHref="/contact"
       />
 
-      <!-- The nav is a React island, so without JS there is no menu at all below xl.
+      <!-- The nav's panel is opened by a script, so without JS there is no menu below xl.
            This is the whole site in plain markup for that case; it costs nothing and
            renders only when scripting is off. -->
       <noscript>
@@ -182,7 +231,10 @@ const localBusinessSchema = {
     </div>
 
     <div class="rail-offset flex min-h-screen flex-col">
-      <main class="flex-1"><slot /></main>
+      <!-- tabindex="-1" so the skip link can actually move focus here; without it the
+           browser scrolls to <main> but focus stays on the link, and the next Tab
+           continues from the nav again. -->
+      <main id="main" tabindex="-1" class="flex-1 outline-none"><slot /></main>
       <Footer />
     </div>
     <BookBar />

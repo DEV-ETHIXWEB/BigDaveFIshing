@@ -28,7 +28,8 @@ const { eyebrow, title, intro, photo } = Astro.props;
   <Image
     src={photo.src}
     alt={photo.alt}
-    widths={[900, 1400, 1900]}
+    width={1400}
+    widths={[900, 1400]}
     sizes="100vw"
     class="h-full w-full origin-top object-cover object-[50%_28%]"
     loading="eager"

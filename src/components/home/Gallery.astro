@@ -18,8 +18,23 @@ const panels = await Promise.all(
   accordionPhotos.map(async (photo) => {
     // Width only - passing a height too would force every photo to one aspect ratio,
     // and these are not all 4:3 (the halibut is 1200x870). Let height follow the source.
-    const optimised = await getImage({ src: photo.src, width: 1000, format: 'webp' });
-    return { image: optimised.src, alt: photo.alt, label: photo.label };
+    //
+    // Two widths rather than one. Every panel used to load a single 1000px-wide file
+    // regardless of how much of the screen it occupied, and with five panels that is five
+    // full-size photographs fetched the moment the island hydrates. A closed panel on a
+    // phone is a ~340px-wide band; there is no reason for it to carry a 1000px image.
+    const [small, large] = await Promise.all([
+      getImage({ src: photo.src, width: 600, format: 'webp' }),
+      getImage({ src: photo.src, width: 1000, format: 'webp' }),
+    ]);
+    return {
+      image: large.src,
+      srcset: `${small.src} 600w, ${large.src} 1000w`,
+      width: large.attributes.width ?? large.options.width,
+      height: large.attributes.height ?? large.options.height,
+      alt: photo.alt,
+      label: photo.label,
+    };
   }),
 );
 ---

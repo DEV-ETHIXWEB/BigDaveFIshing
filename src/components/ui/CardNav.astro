@@ -1,0 +1,258 @@
+---
+import './CardNav.css';
+
+export interface CardNavLink {
+  label: string;
+  href: string;
+  ariaLabel?: string;
+}
+
+export interface CardNavItem {
+  label: string;
+  bgColor?: string;
+  textColor?: string;
+  links?: CardNavLink[];
+}
+
+interface Props {
+  logo: string;
+  logoAlt?: string;
+  items: CardNavItem[];
+  baseColor?: string;
+  menuColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  logo,
+  logoAlt = '',
+  items,
+  baseColor = '#f4f4f4',
+  menuColor = '#111111',
+  buttonBgColor = '#111111',
+  buttonTextColor = '#f4f4f4',
+  ctaLabel = 'Book Now',
+  ctaHref = '/contact',
+} = Astro.props;
+
+/**
+ * The tablet/phone navigation.
+ *
+ * This was a React island mounted with `client:load`, animated with GSAP. It was the only
+ * reason React (55K gzip) and GSAP (26K gzip) were downloaded on EVERY page of the site -
+ * roughly 82K of JavaScript, on pages like /videos and /fishing-information that have no
+ * other interactivity at all, to run a hamburger menu.
+ *
+ * Rewritten as a plain Astro component with a small inline script and CSS transitions.
+ * The behaviour is unchanged: it opens to fit its content, closes on Escape, closes on a
+ * click outside, and re-measures on resize. What is gone is the framework underneath it.
+ *
+ * Two things the GSAP version did not do, which fall out of using CSS for the motion:
+ * `prefers-reduced-motion` is now respected (a JS tween ignores the media query, so the
+ * panel used to animate regardless of the setting), and the panel keeps working with no
+ * JavaScript at all beyond this file.
+ *
+ * Three cards is the layout's limit - see the note in src/lib/business.ts. Extras are
+ * dropped, and the build warns when that happens rather than losing a destination
+ * silently.
+ */
+const cards = items.slice(0, 3);
+
+if (import.meta.env.DEV && items.length > 3) {
+  console.warn(
+    `[CardNav] renders 3 cards and was given ${items.length}. Dropped: ${items
+      .slice(3)
+      .map((item) => item.label)
+      .join(', ')}. Regroup the links in navCards (src/lib/business.ts) instead of adding a card.`,
+  );
+}
+---
+
+<div class="card-nav-container">
+  {
+    /* Outside <nav> on purpose - the nav clips to its animated height and the badge is
+      taller than the collapsed bar. CSS positions it over the bar. */
+  }
+  <a href="/" class="logo-container" aria-label="Big Dave's Fishing Adventures home">
+    <img src={logo} alt={logoAlt} class="logo" width="120" height="112" />
+  </a>
+
+  <nav
+    class="card-nav"
+    style={`background-color: ${baseColor};`}
+    aria-label="Primary"
+    data-card-nav
+  >
+    <div class="card-nav-board" aria-hidden="true"></div>
+
+    <div class="card-nav-top">
+      {
+        /* A real <button>, so Enter/Space, focus and screen-reader behaviour come from the
+          platform rather than from hand-rolled key handlers. */
+      }
+      <button
+        type="button"
+        class="hamburger-menu"
+        aria-label="Open menu"
+        aria-expanded="false"
+        style={`color: ${menuColor};`}
+        data-card-nav-toggle
+      >
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+
+      <a
+        href={ctaHref}
+        class="card-nav-cta-button"
+        style={`background-color: ${buttonBgColor}; color: ${buttonTextColor};`}
+      >
+        {ctaLabel}
+      </a>
+    </div>
+
+    <div class="card-nav-content" aria-hidden="true" data-card-nav-content>
+      {
+        cards.map((item, index) => (
+          <div
+            class="nav-card"
+            style={`background-color: ${item.bgColor}; color: ${item.textColor}; --card-index: ${index};`}
+          >
+            <div class="nav-card-label">{item.label}</div>
+            <div class="nav-card-links">
+              {item.links?.map((link) => (
+                <a class="nav-card-link" href={link.href} aria-label={link.ariaLabel}>
+                  {/* The arrow was a lucide-react icon, which is why this component pulled
+                      in a React component library for one 16px glyph. Inline SVG instead. */}
+                  <svg
+                    class="nav-card-link-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M7 17 17 7M7 7h10v10" />
+                  </svg>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </nav>
+</div>
+
+<script>
+  const nav = document.querySelector<HTMLElement>('[data-card-nav]');
+  const toggle = document.querySelector<HTMLButtonElement>('[data-card-nav-toggle]');
+  const content = document.querySelector<HTMLElement>('[data-card-nav-content]');
+
+  if (nav && toggle && content) {
+    /**
+     * The collapsed bar height lives in CardNav.css (--card-nav-bar) so the logo can
+     * drive it; read it back rather than repeating the number here and letting the two
+     * drift apart.
+     */
+    const barHeight = () => {
+      const value = parseFloat(getComputedStyle(nav).getPropertyValue('--card-nav-bar'));
+      return Number.isFinite(value) ? value : 60;
+    };
+
+    /**
+     * How tall the panel has to be to show everything inside it.
+     *
+     * Measured at every width. The React version returned a flat 260px above 768px, and
+     * the nav clips to this height, so any card taller than that lost its bottom links
+     * with nothing on screen to say so - the "Book" card, which carries both waivers,
+     * overflowed first.
+     *
+     * The panel is absolutely positioned and hidden while closed, so it has to be made
+     * measurable for one frame and put back exactly as it was.
+     */
+    const openHeight = () => {
+      const previous = {
+        visibility: content.style.visibility,
+        pointerEvents: content.style.pointerEvents,
+        position: content.style.position,
+        height: content.style.height,
+      };
+
+      content.style.visibility = 'visible';
+      content.style.pointerEvents = 'auto';
+      content.style.position = 'static';
+      content.style.height = 'auto';
+
+      const measured = content.scrollHeight;
+
+      content.style.visibility = previous.visibility;
+      content.style.pointerEvents = previous.pointerEvents;
+      content.style.position = previous.position;
+      content.style.height = previous.height;
+
+      // The floor keeps the cards from collapsing to a sliver if the measurement happens
+      // before the fonts have settled.
+      return Math.max(260, barHeight() + measured + 16);
+    };
+
+    let open = false;
+
+    const setOpen = (next: boolean) => {
+      open = next;
+      nav.classList.toggle('open', open);
+      toggle.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      // visibility:hidden is what takes the links out of the tab order while the panel is
+      // closed, so there is no hidden focus trap to manage.
+      content.setAttribute('aria-hidden', String(!open));
+      nav.style.height = `${open ? openHeight() : barHeight()}px`;
+    };
+
+    // Set the collapsed height explicitly up front, so the very first open has a value to
+    // transition FROM. Transitioning from `auto` does not animate.
+    nav.style.height = `${barHeight()}px`;
+
+    toggle.addEventListener('click', () => setOpen(!open));
+
+    // Escape closes the panel, and a click anywhere outside it does too. Without these an
+    // open nav can only be dismissed by finding the hamburger again, which on a phone is
+    // under whichever finger just opened it.
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && open) {
+        setOpen(false);
+        // Focus goes back to the control that opened it, or it would be left on a link
+        // that has just been hidden.
+        toggle.focus();
+      }
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (open && !nav.contains(event.target as Node)) setOpen(false);
+    });
+
+    /**
+     * Re-measure on resize, debounced.
+     *
+     * The old version rebuilt an entire GSAP timeline on every resize event, which fires
+     * continuously while a window is dragged. A rounded frame is plenty here: the only
+     * thing that needs updating is one height.
+     */
+    let resizeTimer: number | undefined;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        nav.style.height = `${open ? openHeight() : barHeight()}px`;
+      }, 120);
+    });
+  }
+</script>

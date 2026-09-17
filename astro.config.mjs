@@ -1,14 +1,97 @@
 // @ts-check
+import { createHash } from 'node:crypto';
 import { defineConfig } from 'astro/config';
+import { REVEAL_BOOTSTRAP } from './src/lib/inline-scripts.mjs';
 
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 import vercel from '@astrojs/vercel';
 
+/**
+ * The CSP hash of an inline script's exact text content.
+ *
+ * @param {string} source
+ * @returns {`sha256-${string}`} the value CSP expects inside quotes
+ */
+const hashOf = (source) => `sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}`;
+
 // https://astro.build/config
 export default defineConfig({
   integrations: [react()],
+
+  /**
+   * Content-Security-Policy.
+   *
+   * The policy used to live entirely in vercel.json and carried `script-src 'self'
+   * 'unsafe-inline'`, which is the one value that gives up most of what CSP is for: an
+   * injected <script> is inline, so allowing all inline scripts allows the attack the
+   * directive exists to stop.
+   *
+   * Astro hashes every script and style it compiles and emits them in a <meta> element
+   * per page, so `unsafe-inline` is no longer needed for scripts. The two scripts that
+   * genuinely must stay inline (the JSON-LD block and the reveal bootstrap, both in
+   * src/layouts/Layout.astro) register their own hashes at render time through
+   * `Astro.csp.insertScriptHash` - see src/lib/csp-hash.ts.
+   *
+   * ALL the directives live here rather than being split with the header. Two policies
+   * both apply, and a header carrying `default-src 'self'` with no `script-src` would
+   * fall back to default-src for scripts and refuse the very inline scripts these hashes
+   * exist to admit - the hashes in the <meta> policy cannot satisfy the header's policy.
+   * vercel.json keeps only `frame-ancestors`, which a <meta> policy is required to ignore.
+   *
+   * Not applied by `astro dev`; verify with `astro build` and `astro preview`.
+   */
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        // data: for the signature canvas PNGs, blob: for canvas export.
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        'upgrade-insecure-requests',
+      ],
+      scriptDirective: {
+        /**
+         * The reveal bootstrap, hashed here rather than registered at render time.
+         *
+         * Astro streams SSR responses and builds the CSP header before the body renders,
+         * so a hash inserted from inside Layout.astro never reaches a server-rendered
+         * route - verified: the bootstrap was blocked on /waivers/lodge with the browser
+         * naming this exact hash as the one it wanted. Declaring it in config puts it in
+         * the manifest, which covers the prerendered <meta> and the SSR header alike.
+         *
+         * Computed from the same constant Layout.astro renders, so editing the script
+         * updates the hash automatically instead of leaving a stale literal behind.
+         */
+        hashes: [hashOf(REVEAL_BOOTSTRAP)],
+      },
+      styleDirective: {
+        /**
+         * Inline `style` attributes stay allowed, deliberately.
+         *
+         * Astro sets them for real work - the board texture URL on the nav, the reveal
+         * stagger delay on the rates cards, React's own inline styles in the gallery -
+         * and a style ATTRIBUTE cannot be covered by a hash without `unsafe-hashes`,
+         * which is a bigger concession than this one. A style attribute cannot execute
+         * script, so this is a far smaller allowance than the `script-src 'unsafe-inline'`
+         * it replaces.
+         *
+         * ONLY the `attribute` kind is listed, and that is deliberate. Adding an
+         * `element` resource here would emit `style-src-elem`, which browsers do NOT
+         * fall back from - it would override `style-src` for <style> blocks and
+         * <link rel=stylesheet>, dropping the very hashes Astro generates for them.
+         * Leaving it out means elements keep using `style-src 'self' <hashes>` and only
+         * attributes get the exemption.
+         */
+        resources: [{ resource: "'unsafe-inline'", kind: 'attribute' }],
+      },
+    },
+  },
 
   // Wraps Astro's own sharp service to raise the default encode quality from 80 to 90.
   // See src/lib/image-service.ts for why. sharp is a direct dependency now rather than

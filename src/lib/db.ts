@@ -26,12 +26,49 @@ import { envVar } from './env';
 let client: Client | null = null;
 function getClient(): Client {
   if (!client) {
-    const url = envVar('TURSO_DATABASE_URL') || 'file:./data/waivers.db';
+    const configured = envVar('TURSO_DATABASE_URL');
+    const url = configured || 'file:./data/waivers.db';
     const authToken = envVar('TURSO_AUTH_TOKEN');
-    // The local-file fallback has no server to create its own directory. A fresh clone
-    // has no ./data yet, and libSQL fails to open the file rather than creating the
-    // parent dir itself - so "zero setup" actually needs this one line.
-    if (url.startsWith('file:')) mkdirSync('./data', { recursive: true });
+
+    if (url.startsWith('file:')) {
+      /**
+       * The local-file fallback is a convenience for `astro dev`, and it cannot work on
+       * a serverless host: the filesystem is read-only outside /tmp, and /tmp does not
+       * survive between invocations. Reaching here in production means TURSO_DATABASE_URL
+       * was never set on the deployment.
+       *
+       * It used to call mkdirSync and let it throw EROFS, which surfaced as a bare 500
+       * on every page that touches the database and named nothing useful - the failure
+       * looked like a code fault rather than a missing environment variable. Saying so
+       * directly is the whole fix; the condition is unchanged.
+       */
+      // Only the FALLBACK is refused, not a file: URL someone configured on purpose.
+      // Deliberately choosing a local file - a self-hosted Node deployment with a real
+      // disk, say - is a decision this has no business overriding; silently falling back
+      // to one on a serverless host is the accident worth stopping.
+      if (import.meta.env.PROD && !configured) {
+        throw new Error(
+          'TURSO_DATABASE_URL is not set. This deployment fell back to a local SQLite file, ' +
+            'which cannot work on a read-only serverless filesystem. Create a database at ' +
+            'https://turso.tech and set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN on the project.',
+        );
+      }
+
+      // A fresh clone has no ./data yet, and libSQL fails to open the file rather than
+      // creating the parent directory itself - so "zero setup" needs this one line.
+      // Wrapped because a directory that already exists, or one another process just
+      // created, must not take the request down.
+      try {
+        mkdirSync('./data', { recursive: true });
+      } catch (error) {
+        throw new Error(
+          `Could not create the local ./data directory for the development database: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
     client = createClient(authToken ? { url, authToken } : { url });
   }
   return client;
@@ -51,7 +88,15 @@ export const db = new Proxy({} as Client, {
 
 let initialized: Promise<void> | null = null;
 
-/** Creates the table on first use. Safe to call on every request; it's a no-op after. */
+/**
+ * Creates the table on first use. Safe to call on every request; it's a no-op after.
+ *
+ * A failure clears the memo rather than keeping it. The promise used to be cached
+ * whatever happened, so one transient error - the database asleep, a network blip on
+ * the first request an instance served - poisoned that instance permanently: every
+ * later request awaited the same rejected promise and 500'd, and only a cold start
+ * ever cleared it. Now a failed attempt is simply retried by the next request.
+ */
 export function ensureSchema() {
   if (!initialized) {
     initialized = db
@@ -76,8 +121,33 @@ export function ensureSchema() {
       )
       .then(() =>
         db.batch([
-          `CREATE UNIQUE INDEX IF NOT EXISTS waivers_one_submission_per_guest
-             ON waivers (waiver_type, COALESCE(group_code, ''), guest_phone)`,
+          /**
+           * Duplicate protection, scoped to the thing being protected against.
+           *
+           * There was one index here: UNIQUE (waiver_type, COALESCE(group_code,''),
+           * guest_phone). For a team link that is right - one person signs once for one
+           * trip. For a sign-ahead waiver, where group_code is NULL, it collapsed to
+           * "this phone number may sign this waiver type once, ever". A guest who fished
+           * last September and booked again this year was told "a waiver has already been
+           * submitted for this phone number" and had no way past it. So was the second
+           * adult in a couple who share a phone. That is a returning customer turned away
+           * by the booking system, which is the most expensive thing this table can do.
+           *
+           * Replaced by two narrower rules, both strictly looser than the old one, so no
+           * existing row can violate them:
+           *
+           *   team link  -> one signature per phone per team. Unchanged behaviour.
+           *   sign-ahead -> one signature per phone per waiver type PER DAY, which still
+           *                 stops a double-tap or a refreshed form, and says nothing about
+           *                 next season.
+           */
+          `DROP INDEX IF EXISTS waivers_one_submission_per_guest`,
+          `CREATE UNIQUE INDEX IF NOT EXISTS waivers_one_per_team_guest
+             ON waivers (waiver_type, group_code, guest_phone)
+             WHERE group_code IS NOT NULL`,
+          `CREATE UNIQUE INDEX IF NOT EXISTS waivers_one_per_day_guest
+             ON waivers (waiver_type, guest_phone, date(signed_at))
+             WHERE group_code IS NULL`,
           `CREATE TABLE IF NOT EXISTS waiver_teams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             team_number INTEGER NOT NULL UNIQUE,
@@ -138,7 +208,14 @@ export function ensureSchema() {
         ]),
       )
       .then(() => migrate())
-      .then(() => undefined);
+      .then(() => undefined)
+      .catch((error) => {
+        // Drop the memo so the next request starts a fresh attempt, then re-throw so
+        // this caller still fails honestly rather than continuing against a database
+        // whose schema was never confirmed.
+        initialized = null;
+        throw error;
+      });
   }
   return initialized;
 }

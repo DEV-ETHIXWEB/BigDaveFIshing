@@ -6,7 +6,8 @@
  * a cookie name alone.
  */
 
-const encoder = new TextEncoder();
+import { sign as signature, verify } from './hmac';
+
 export const customerSessionMaxAge = 60 * 60 * 12;
 
 /**
@@ -25,18 +26,6 @@ export const customerSessionMaxAge = 60 * 60 * 12;
  * the login page, which is the same place the old bar would have.
  */
 export const CUSTOMER_HINT_COOKIE = 'big_dave_customer_present';
-
-async function signature(value: string, secret: string) {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const buffer = await crypto.subtle.sign('HMAC', key, encoder.encode(value));
-  return Array.from(new Uint8Array(buffer), (part) => part.toString(16).padStart(2, '0')).join('');
-}
 
 export async function createCustomerSession(customerId: number, secret: string) {
   const expires = Math.floor(Date.now() / 1000) + customerSessionMaxAge;
@@ -62,6 +51,6 @@ export async function validCustomerSession(
   ) {
     return null;
   }
-  const expected = await signature(`${role}.${idRaw}.${expires}`, secret);
-  return expected === suppliedSignature ? id : null;
+  // Constant time, see the note in src/lib/hmac.ts on why `===` is wrong here.
+  return (await verify(`${role}.${idRaw}.${expires}`, suppliedSignature, secret)) ? id : null;
 }

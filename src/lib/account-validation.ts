@@ -7,8 +7,19 @@ import { z } from 'zod';
  * courtesy; these are what actually protect each account table.
  */
 
-/** Required, unlike waiver-validation.ts's emailField, which is optional (a guest's email). */
-export const accountEmailField = z.string().trim().max(200).email('Enter a valid email address');
+/**
+ * Required, unlike waiver-validation.ts's emailField, which is optional (a guest's email).
+ *
+ * Piped into `z.email()` rather than the deprecated `.email()` method. The pipe preserves
+ * the original order - trim and length-cap first, then validate the format - so an
+ * address pasted with a trailing space is still accepted, which chaining onto `z.email()`
+ * directly would have quietly stopped doing.
+ */
+export const accountEmailField = z
+  .string()
+  .trim()
+  .max(200)
+  .pipe(z.email('Enter a valid email address'));
 
 /**
  * A floor, not a strength meter. 8 characters is the common baseline; the cap keeps a

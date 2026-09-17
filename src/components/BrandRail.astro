@@ -28,11 +28,25 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
        column; on a 13" laptop the rail is shorter than that and the list was scrolling
        with "Home" pushed out of sight above the fold. -->
   <a href="/" class="rail-head block shrink-0 px-10 pt-9" aria-label={`${business.name} home`}>
+    {
+      /* The badge never renders wider than 12rem (192px), so the old 560px candidate was
+        nearly 3x oversampled - and at the project-wide default quality of 90 that one
+        file came out at 292K, for a logo. A 2000x1873 PNG with an alpha channel is
+        expensive to encode well; 384px covers a 2x display at the size it is actually
+        drawn, and 78 is generous for a flat badge. */
+    }
+    {
+      /* `width` as well as `widths`: without it Astro renders the `src` fallback at the
+        source's own size, so every page referenced a 2000x1873 copy of the badge (235K)
+        alongside the small srcset candidates it would actually use. */
+    }
     <Image
       src={badge}
       alt=""
-      widths={[280, 560]}
-      sizes="240px"
+      width={384}
+      widths={[192, 384]}
+      sizes="192px"
+      quality={78}
       class="rail-badge mx-auto h-auto w-full max-w-[12rem]"
       loading="eager"
     />

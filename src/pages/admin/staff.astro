@@ -132,8 +132,13 @@ const problem = errorCode ? (FIELD_PROBLEM[errorCode] ?? 'Check the details and 
   </section>
 </AdminLayout>
 
-<script is:inline>
-  document.querySelectorAll('[data-confirm]').forEach((button) => {
+{
+  /* Not is:inline: this is plain DOM code with nothing injected into it, so letting
+     Astro compile it means it ships as a bundled module that the Content-Security-Policy
+     covers under 'self', with no hash to keep in step. */
+}
+<script>
+  document.querySelectorAll<HTMLElement>('[data-confirm]').forEach((button) => {
     const form = button.closest('form');
     if (form)
       form.addEventListener('submit', (event) => {

@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   if (!parsed.success) {
     // Name the field rather than saying "complete the details", a leader name of one
     // character is the common case and was impossible to spot.
-    const fields = Object.keys(parsed.error.flatten().fieldErrors);
+    const fields = Object.keys(z.flattenError(parsed.error).fieldErrors);
     return back({ 'team-error': fields[0] ?? 'unknown' });
   }
 

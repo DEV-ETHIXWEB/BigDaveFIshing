@@ -39,10 +39,19 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
               origin-top makes the drift scale grow downward instead of outward from the
               centre. Centre-origin was quietly eating a further ~2% off the top at the
               peak of every cycle, on top of whatever object-cover had already taken. */}
+          {/* The 1900px candidate is dropped. These sources are 1200-1500px on the long
+              edge (see the note at the top of lib/photos.ts), so asking for 1900 was
+              upscaling - paying to invent pixels and then shipping them as the LCP image.
+              640 is added at the other end for phones, which were previously served a
+              900px file as the largest thing on the page.
+
+              Slides 2 and 3 keep loading="lazy": they are behind the first one and do not
+              compete with it for the first paint. */}
           <Image
             src={slide.src}
             alt={i === 0 ? slide.alt : ''}
-            widths={[900, 1400, 1900]}
+            width={1400}
+            widths={[640, 900, 1400]}
             sizes="100vw"
             class="h-full w-full origin-top object-cover object-[50%_12%] motion-safe:[animation:hero-drift_18s_ease-out_infinite_alternate]"
             loading={i === 0 ? 'eager' : 'lazy'}
@@ -85,7 +94,12 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
 
   <!-- Dots double as the only slider control. Arrows were dropped: at phone widths they
        sat on top of the photo's subject, and a three-slide loop does not need them. -->
-  <div class="absolute inset-x-0 bottom-4 flex justify-center gap-2.5 sm:bottom-6">
+  <!-- The dot is the mark inside the button, not the button itself. As a bare 8x8 control
+       this was a third of the 24px minimum pointer target, on the one piece of chrome
+       most likely to be tapped with a thumb on a moving boat. The button is now padded to
+       24px and the visible dot is unchanged, so nothing looks different and everything is
+       hittable. -->
+  <div class="absolute inset-x-0 bottom-2 flex justify-center gap-0.5 sm:bottom-4">
     {
       slides.map((_, i) => (
         <button
@@ -93,11 +107,19 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
           data-hero-dot
           aria-label={`Show slide ${i + 1} of ${slides.length}`}
           aria-current={i === 0 ? 'true' : 'false'}
-          class:list={[
-            'h-2 w-2 rounded-full transition-all duration-300',
-            i === 0 ? 'w-6 bg-white' : 'bg-white/50 hover:bg-white/80',
-          ]}
-        />
+          class="group grid h-6 w-6 place-items-center rounded-full"
+        >
+          <span
+            data-hero-dot-mark
+            aria-hidden="true"
+            class:list={[
+              // Hover lives on the mark but is driven by the button, so the whole 24px
+              // target lights the dot rather than only the 8px of it that is painted.
+              'block h-2 rounded-full transition-all duration-300 group-hover:bg-white',
+              i === 0 ? 'w-6 bg-white' : 'w-2 bg-white/50',
+            ]}
+          />
+        </button>
       ))
     }
   </div>
@@ -107,6 +129,9 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
   const root = document.querySelector('[data-hero-slides]');
   const slides = Array.from(document.querySelectorAll<HTMLElement>('[data-hero-slide]'));
   const dots = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-hero-dot]'));
+  // The button is the 24px target; the mark is the 8px dot drawn inside it. State classes
+  // go on the mark, aria-current stays on the button that actually carries the semantics.
+  const marks = Array.from(document.querySelectorAll<HTMLElement>('[data-hero-dot-mark]'));
   if (root && slides.length > 1) {
     let current = 0;
     let timer: number | undefined;
@@ -114,21 +139,29 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
     const show = (next: number) => {
       slides[current].classList.replace('opacity-100', 'opacity-0');
       slides[current].setAttribute('aria-hidden', 'true');
-      dots[current]?.classList.remove('w-6', 'bg-white');
-      dots[current]?.classList.add('bg-white/50', 'hover:bg-white/80');
+      marks[current]?.classList.remove('w-6', 'bg-white');
+      marks[current]?.classList.add('w-2', 'bg-white/50');
       dots[current]?.setAttribute('aria-current', 'false');
 
       current = next;
 
       slides[current].classList.replace('opacity-0', 'opacity-100');
       slides[current].removeAttribute('aria-hidden');
-      dots[current]?.classList.add('w-6', 'bg-white');
-      dots[current]?.classList.remove('bg-white/50', 'hover:bg-white/80');
+      marks[current]?.classList.add('w-6', 'bg-white');
+      marks[current]?.classList.remove('w-2', 'bg-white/50');
       dots[current]?.setAttribute('aria-current', 'true');
     };
 
+    // Whether a pointer is currently resting on the hero. Tracked rather than inferred,
+    // because two different things ask for autoplay to resume - leaving the hero, and the
+    // tab becoming visible again - and only one of them means the pointer has gone.
+    // Returning to a tab while still hovering the hero used to restart the slideshow and
+    // pull the photo out from under whoever was reading the caption.
+    let hovered = false;
+
     const start = () => {
       stop();
+      if (hovered) return;
       // Only auto-advance for people who have not asked the OS for less motion.
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       timer = window.setInterval(() => show((current + 1) % slides.length), 6000);
@@ -147,8 +180,14 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
 
     // Cheap wins: don't burn frames animating a hero nobody is looking at, and give
     // people a chance to read the caption when they hover it.
-    root.addEventListener('mouseenter', stop);
-    root.addEventListener('mouseleave', start);
+    root.addEventListener('mouseenter', () => {
+      hovered = true;
+      stop();
+    });
+    root.addEventListener('mouseleave', () => {
+      hovered = false;
+      start();
+    });
     document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
 
     start();

@@ -19,6 +19,13 @@ const label = 'block text-[0.5625rem] font-medium uppercase tracking-[0.22em] te
 const control =
   'mt-1 w-full bg-transparent text-sm text-cream outline-none placeholder:text-cream/40';
 
+/** See the matching note in WaiverForm.tsx: an error must not look like a label. */
+const errorText = 'text-alert -mt-1 text-xs';
+
+/** Ties a field to its message for anyone who cannot use colour to make the connection. */
+const errorProps = (id: string, hasError: unknown) =>
+  hasError ? { 'aria-invalid': true as const, 'aria-describedby': `${id}-error` } : {};
+
 export default function BookingForm() {
   // The mobile and desktop layouts each render this form, and both are in the DOM at
   // once (one is display:none), so the field ids have to be unique per instance or the
@@ -68,12 +75,18 @@ export default function BookingForm() {
           id={fieldId('name')}
           type="text"
           placeholder="Full name"
+          autoComplete="name"
           className={control}
           onInput={sanitize(lettersOnly)}
           {...register('name')}
+          {...errorProps(fieldId('name'), errors.name)}
         />
       </div>
-      {errors.name && <p className="text-cream/90 -mt-1 text-xs">{errors.name.message}</p>}
+      {errors.name && (
+        <p id={`${fieldId('name')}-error`} className={errorText}>
+          {errors.name.message}
+        </p>
+      )}
 
       <div className={field}>
         <label htmlFor={fieldId('phone')} className={label}>
@@ -82,13 +95,20 @@ export default function BookingForm() {
         <input
           id={fieldId('phone')}
           type="tel"
+          inputMode="numeric"
           placeholder="Best number to reach you"
+          autoComplete="tel"
           className={control}
           onInput={sanitize(digitsOnly)}
           {...register('phone')}
+          {...errorProps(fieldId('phone'), errors.phone)}
         />
       </div>
-      {errors.phone && <p className="text-cream/90 -mt-1 text-xs">{errors.phone.message}</p>}
+      {errors.phone && (
+        <p id={`${fieldId('phone')}-error`} className={errorText}>
+          {errors.phone.message}
+        </p>
+      )}
 
       <div className={field}>
         <label htmlFor={fieldId('email')} className={label}>
@@ -98,11 +118,17 @@ export default function BookingForm() {
           id={fieldId('email')}
           type="email"
           placeholder="you@example.com"
+          autoComplete="email"
           className={control}
           {...register('email')}
+          {...errorProps(fieldId('email'), errors.email)}
         />
       </div>
-      {errors.email && <p className="text-cream/90 -mt-1 text-xs">{errors.email.message}</p>}
+      {errors.email && (
+        <p id={`${fieldId('email')}-error`} className={errorText}>
+          {errors.email.message}
+        </p>
+      )}
 
       <div className={`${field} relative`}>
         <label htmlFor={fieldId('tripType')} className={label}>
@@ -147,7 +173,10 @@ export default function BookingForm() {
       </button>
 
       {submitError && (
-        <p role="alert" className="text-cream/85 border-cream/25 rounded border px-4 py-3 text-sm">
+        <p
+          role="alert"
+          className="text-alert border-alert/40 bg-alert/10 rounded border px-4 py-3 text-sm"
+        >
           {submitError}
         </p>
       )}

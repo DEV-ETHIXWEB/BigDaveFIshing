@@ -123,6 +123,7 @@ const species = [
               <Image
                 src={fish.photo.src}
                 alt={fish.photo.alt}
+                width={800}
                 widths={[400, 800]}
                 sizes="(min-width: 1024px) 33vw, 100vw"
                 loading="lazy"
@@ -152,7 +153,8 @@ const species = [
     <Image
       src={photos.threeAnglers.src}
       alt=""
-      widths={[900, 1600]}
+      width={1400}
+      widths={[900, 1400]}
       sizes="100vw"
       loading="lazy"
       class="absolute inset-0 h-full w-full object-cover"

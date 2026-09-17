@@ -8,17 +8,32 @@ import badge from '../assets/photos/logo-badge.png';
 // which meant every contact detail existed twice and could drift apart. It did: the
 // two disagreed about what the service area was.
 //
-// pb-24 clears the fixed Book Today bar so the copyright line is never sitting under it.
+// The bottom padding clears the fixed Book Today bar, which changes height at four
+// breakpoints, so the padding has to as well. A flat pb-24 (96px) was not enough at
+// either end: below sm the bar WRAPS to two rows (the phone number, then the account
+// buttons) and adds a safe-area inset on a notched phone, coming to roughly 112px; and
+// at 2xl the number is set at 2rem inside py-5, coming to about 93px with no margin
+// left over. Both put the copyright line underneath the bar.
 ---
 
-<footer class="bg-ink text-cream pb-24">
+<footer class="bg-ink text-cream pb-32 sm:pb-24 xl:pb-28 2xl:pb-32">
   <div class="mx-auto grid max-w-6xl gap-10 px-6 pt-16 sm:px-10 md:grid-cols-3 lg:gap-12">
     <div>
+      {
+        /* Drawn at w-44 (176px), and it is painted solid white by brightness-0 invert, so
+          encode quality buys nothing at all here - every pixel ends up one colour. */
+      }
+      {
+        /* `width` as well as `widths` - see the note in BrandRail.astro; without it the
+          `src` fallback is rendered at the source's full 2000px. */
+      }
       <Image
         src={badge}
         alt=""
-        widths={[240, 480]}
-        sizes="180px"
+        width={352}
+        widths={[176, 352]}
+        sizes="176px"
+        quality={70}
         class="h-auto w-44 brightness-0 invert"
         loading="lazy"
       />
@@ -92,8 +107,11 @@ import badge from '../assets/photos/logo-badge.png';
       </ul>
     </div>
 
-    <div>
-      <h2 class="text-silver text-[1.35rem]">Explore</h2>
+    <!-- A real <nav> with its own accessible name. This was a bare <ul>, so the site's
+         secondary link list was not reachable by landmark and read as loose list items;
+         the name distinguishes it from the primary nav in the rail. -->
+    <nav aria-labelledby="footer-explore">
+      <h2 id="footer-explore" class="text-silver text-[1.35rem]">Explore</h2>
 
       <ul
         class="text-cream/70 mt-5 grid grid-cols-1 gap-y-2.5 text-sm sm:grid-cols-2 md:grid-cols-1"
@@ -108,7 +126,7 @@ import badge from '../assets/photos/logo-badge.png';
           ))
         }
       </ul>
-    </div>
+    </nav>
   </div>
 
   <div class="border-cream/10 mx-auto mt-12 max-w-6xl border-t px-6 pt-6 sm:px-10">

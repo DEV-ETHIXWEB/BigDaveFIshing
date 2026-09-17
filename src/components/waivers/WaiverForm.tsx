@@ -42,6 +42,26 @@ const label = 'block text-[0.5625rem] font-medium uppercase tracking-[0.22em] te
 const control =
   'mt-1 w-full bg-transparent text-base text-cream outline-none placeholder:text-cream/40 sm:text-sm';
 
+/**
+ * A validation message.
+ *
+ * Set in --color-alert rather than text-cream/90, which was the same colour as the copy
+ * around it: an error that looks exactly like a label reads as something that was always
+ * there, not as something the guest just got wrong.
+ */
+const errorText = 'text-alert -mt-1 text-xs';
+
+/**
+ * Wires a field to its message so it is not colour alone that reports the problem.
+ *
+ * `aria-invalid` is what a screen reader announces on landing in the field, and
+ * `aria-describedby` is what makes it read the actual reason rather than just "invalid".
+ * Without these the messages existed only as loose paragraphs near the input, which a
+ * sighted user could associate by position and nobody else could.
+ */
+const errorProps = (id: string, hasError: unknown) =>
+  hasError ? { 'aria-invalid': true as const, 'aria-describedby': `${id}-error` } : {};
+
 /** What each field is called on screen, for when the server is the one rejecting it. */
 const FIELD_LABELS: Record<string, string> = {
   guestName: 'your name',
@@ -315,11 +335,14 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           autoComplete="name"
           className={control}
           {...register('guestName')}
+          {...errorProps('guestName', errors.guestName)}
           onInput={sanitize(lettersOnly)}
         />
       </div>
       {errors.guestName && (
-        <p className="-mt-1 text-xs text-cream/90">{errors.guestName.message}</p>
+        <p id="guestName-error" className={errorText}>
+          {errors.guestName.message}
+        </p>
       )}
 
       <div className="grid grid-cols-2 gap-3">
@@ -336,6 +359,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
             placeholder="5035385607"
             className={control}
             {...register('guestPhone')}
+            {...errorProps('guestPhone', errors.guestPhone)}
             onInput={sanitize(digitsOnly)}
           />
         </div>
@@ -343,14 +367,24 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           <label htmlFor="guestEmail" className={label}>
             Email (optional)
           </label>
-          <input id="guestEmail" type="email" className={control} {...register('guestEmail')} />
+          <input
+            id="guestEmail"
+            type="email"
+            className={control}
+            {...register('guestEmail')}
+            {...errorProps('guestEmail', errors.guestEmail)}
+          />
         </div>
       </div>
       {errors.guestPhone && (
-        <p className="-mt-1 text-xs text-cream/90">{errors.guestPhone.message}</p>
+        <p id="guestPhone-error" className={errorText}>
+          {errors.guestPhone.message}
+        </p>
       )}
       {errors.guestEmail && (
-        <p className="-mt-1 text-xs text-cream/90">{errors.guestEmail.message}</p>
+        <p id="guestEmail-error" className={errorText}>
+          {errors.guestEmail.message}
+        </p>
       )}
 
       <div className="grid grid-cols-2 gap-3">
@@ -364,6 +398,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
             placeholder="Name"
             className={control}
             {...register('emergencyContactName')}
+            {...errorProps('emergencyContactName', errors.emergencyContactName)}
             onInput={sanitize(lettersOnly)}
           />
         </div>
@@ -378,15 +413,20 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
             pattern="[0-9]*"
             className={control}
             {...register('emergencyContactPhone')}
+            {...errorProps('emergencyContactPhone', errors.emergencyContactPhone)}
             onInput={sanitize(digitsOnly)}
           />
         </div>
       </div>
       {errors.emergencyContactName && (
-        <p className="-mt-1 text-xs text-cream/90">{errors.emergencyContactName.message}</p>
+        <p id="emergencyContactName-error" className={errorText}>
+          {errors.emergencyContactName.message}
+        </p>
       )}
       {errors.emergencyContactPhone && (
-        <p className="-mt-1 text-xs text-cream/90">{errors.emergencyContactPhone.message}</p>
+        <p id="emergencyContactPhone-error" className={errorText}>
+          {errors.emergencyContactPhone.message}
+        </p>
       )}
 
       {/* Children under 18 the signing adult is bringing. Optional and collapsed to a
@@ -414,6 +454,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
                       placeholder="Full name"
                       className={control}
                       {...register(`minorNames.${index}.name` as const)}
+                      {...errorProps(`minor-${index}`, errors.minorNames?.[index]?.name)}
                       onInput={sanitize(lettersOnly)}
                     />
                   </div>
@@ -427,7 +468,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
                   </button>
                 </div>
                 {errors.minorNames?.[index]?.name && (
-                  <p className="mt-1 text-xs text-cream/90">
+                  <p id={`minor-${index}-error`} className="text-alert mt-1 text-xs">
                     {errors.minorNames[index]?.name?.message}
                   </p>
                 )}
@@ -463,17 +504,26 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       <label className="mt-1 flex items-start gap-2.5 py-1 text-sm text-cream/80">
         <input
           type="checkbox"
-          className="accent-copper mt-0.5 h-6 w-6 shrink-0"
+          className="accent-silver mt-0.5 h-6 w-6 shrink-0"
           {...register('agree')}
+          {...errorProps('agree', errors.agree)}
         />
         <span className="pt-0.5">I have read and agree to the waiver above.</span>
       </label>
-      {errors.agree && <p className="-mt-1 text-xs text-cream/90">{errors.agree.message}</p>}
+      {errors.agree && (
+        <p id="agree-error" className={errorText}>
+          {errors.agree.message}
+        </p>
+      )}
 
       <div className="mt-2">
         <span className={label}>Your Signature</span>
         <SignaturePad ref={sigRef} className="mt-1" />
-        {sigTouched && sigError && <p className="mt-1 text-xs text-cream/90">{sigError}</p>}
+        {sigTouched && sigError && (
+          <p role="alert" className="text-alert mt-1 text-xs">
+            {sigError}
+          </p>
+        )}
       </div>
 
       {/* role=alert: the form is long and the button is at the bottom, so a guest who
@@ -481,7 +531,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       {submitError && (
         <p
           role="alert"
-          className="border-copper/40 bg-copper/10 text-cream rounded border px-4 py-3 text-sm"
+          className="border-alert/40 bg-alert/10 text-alert rounded border px-4 py-3 text-sm"
         >
           {submitError}
         </p>

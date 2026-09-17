@@ -47,6 +47,10 @@ const details = [
   },
 ];
 
+// The hero photo is deliberately NOT daveAndLeslie. That one appears again further down
+// this same page beside a caption naming the hosts, so the page opened and closed on the
+// identical image. Big Dave with a Tillamook chinook is the right note for "Book Now"
+// anyway, and it leaves the hosts photo to do its own job next to its own caption.
 const beforeYouCall = [
   'The dates you’re looking at, and how many rods in your party',
   'Whether you’re after Salmon, Steelhead, or happy either way',
@@ -63,7 +67,7 @@ const beforeYouCall = [
     eyebrow="Get in touch"
     title="Contact Us / Book Now"
     intro="Call for dates and river conditions. We'll pick the water with the best shot at putting you on fish."
-    photo={photos.daveAndLeslie}
+    photo={photos.daveSalmonTillamook}
   />
 
   <section class="bg-paper py-16 lg:py-20">
@@ -137,6 +141,7 @@ const beforeYouCall = [
         <Image
           src={photos.daveAndLeslie.src}
           alt={photos.daveAndLeslie.alt}
+          width={900}
           widths={[600, 900]}
           sizes="(min-width: 1024px) 45vw, 100vw"
           class="aspect-[4/3] w-full object-cover"

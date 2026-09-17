@@ -55,6 +55,7 @@ const { offers, class: className = '' } = Astro.props;
                 <Image
                   src={offer.photo.src}
                   alt={offer.photo.alt}
+                  width={1200}
                   widths={[600, 900, 1200]}
                   sizes="(min-width: 1024px) 45vw, 100vw"
                   class="aspect-[16/10] w-full object-cover"
@@ -175,12 +176,14 @@ const { offers, class: className = '' } = Astro.props;
   .offer__media :global(img) {
     transform-origin: center;
     transition: transform 0.9s var(--ease-out-soft);
-    will-change: transform;
   }
 
+  /* will-change is promoted only while hovered rather than permanently - see the matching
+     note on .video-card__media in global.css. */
   .offer:hover .offer__media :global(img),
   .offer:focus-within .offer__media :global(img) {
     transform: scale(1.07);
+    will-change: transform;
   }
 
   .offer__sheen {

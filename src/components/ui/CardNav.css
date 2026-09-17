@@ -33,7 +33,12 @@
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45);
   position: relative;
   overflow: hidden;
-  will-change: height;
+  /* The open/close motion. This was a GSAP timeline, which is most of why every page on
+     the site downloaded 26K of animation library; the script now sets one height and CSS
+     interpolates it. No `will-change: height` - it was set permanently, which keeps a
+     compositor layer alive for the life of every page to serve an animation that runs
+     only when someone opens the menu. */
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* The client's own weathered board, desaturated - the same treatment the desktop rail
@@ -197,6 +202,39 @@
   padding: 12px 14px;
   gap: 8px;
   user-select: none;
+
+  /* The cards rise and fade in behind the panel as it opens, staggered in reading order.
+     GSAP did this with a timeline stagger; --card-index is set per card in the markup and
+     drives the delay here instead. */
+  opacity: 0;
+  transform: translateY(50px);
+  transition:
+    opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--card-index, 0) * 80ms);
+}
+
+.card-nav.open .nav-card {
+  opacity: 1;
+  transform: none;
+}
+
+/* Closing runs the other way with no stagger, so the panel does not appear to hesitate
+   on its way shut. */
+.card-nav:not(.open) .nav-card {
+  transition-delay: 0ms;
+}
+
+/* The GSAP version animated regardless of this setting, because a JS tween does not
+   consult the media query. CSS does. */
+@media (prefers-reduced-motion: reduce) {
+  .card-nav {
+    transition: none;
+  }
+  .nav-card {
+    transition: none;
+    transition-delay: 0ms;
+  }
 }
 
 .nav-card-label {
@@ -226,6 +264,18 @@
 
 .nav-card-link:hover {
   opacity: 0.72;
+}
+
+/* The nav cards are the one place on the site whose ground the global focus ring cannot
+   serve. That ring is a mid-grey chosen to clear 3:1 against both ends of the palette,
+   but these three cards step down a ramp - #111111, #2a2a2a, #4a4a4a - and against the
+   lightest of them a mid-grey is about 2:1. No single grey can clear both #4a4a4a and
+   white, so the links inside the cards get a white ring instead: 8.8:1 on the lightest
+   card and better on the two darker ones. */
+.nav-card-link:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .nav-card-link-icon {

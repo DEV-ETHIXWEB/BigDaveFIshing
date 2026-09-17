@@ -1,6 +1,11 @@
 ---
 export const prerender = false;
 import { envSetting } from '../lib/env';
+// A plain object literal with no side effects, so importing it cannot be what makes the
+// error page itself fail. Worth having: the number below was hardcoded, which meant the
+// one screen a guest reaches when everything else is broken was also the one screen that
+// would keep printing a disconnected number after the business changed it.
+import { business } from '../lib/business';
 
 /**
  * The 500 page.
@@ -18,6 +23,19 @@ import { envSetting } from '../lib/env';
  *
  * Guests see a plain apology and a phone number, which is the right outcome for someone
  * who came here to sign a waiver before a trip.
+ */
+/**
+ * A note on the colours below.
+ *
+ * They are written out as literals rather than read from tokens, because this page
+ * deliberately loads no stylesheet: if the fault that brought someone here was in the CSS
+ * pipeline, a page that depended on it would render as unstyled text. That part is
+ * intentional and stays.
+ *
+ * What was wrong is that they were the OLD palette - #ece0cb and #1c1a17, the warm cream
+ * and brown-black the site was redesigned away from - so the error page was the last
+ * screen still wearing the previous brand. They now match global.css: #f4f4f4 ground,
+ * #111111 ink. Keep them in step by hand if the palette moves again.
  */
 const { error } = Astro.props as { error?: unknown };
 
@@ -43,7 +61,7 @@ if (error instanceof Error) {
     <meta name="robots" content="noindex" />
   </head>
   <body
-    style="margin:0;padding:2.5rem 1.25rem;background:#ece0cb;color:#1c1a17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
+    style="margin:0;padding:2.5rem 1.25rem;background:#f4f4f4;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
   >
     <main style="max-width:38rem;margin:0 auto;">
       <h1 style="font-size:1.75rem;margin:0 0 .75rem;">Something went wrong</h1>
@@ -52,13 +70,13 @@ if (error instanceof Error) {
       </p>
       <p style="margin:0 0 1.5rem;line-height:1.6;">
         If you were trying to sign a waiver, call us on
-        <a href="tel:+15035385607" style="color:#1c1a17;">(503) 538-5607</a> and we'll sort it out.
+        <a href={business.phoneHref} style="color:#111111;">{business.phone}</a> and we'll sort it out.
       </p>
-      <p><a href="/" style="color:#1c1a17;">Back to the home page</a></p>
+      <p><a href="/" style="color:#111111;">Back to the home page</a></p>
 
       {
         showDetail && (
-          <pre style="margin-top:2rem;padding:1rem;background:#1c1a17;color:#ece0cb;overflow-x:auto;white-space:pre-wrap;word-break:break-word;font-size:.8rem;line-height:1.5;">
+          <pre style="margin-top:2rem;padding:1rem;background:#111111;color:#f4f4f4;overflow-x:auto;white-space:pre-wrap;word-break:break-word;font-size:.8rem;line-height:1.5;">
             {detail}
           </pre>
         )

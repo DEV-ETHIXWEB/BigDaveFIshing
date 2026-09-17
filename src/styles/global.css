@@ -30,6 +30,25 @@
   --color-graphite: #4a4a4a;
   --color-silver: #c2c2c2;
 
+  /* The one hue on the site, and it earns its place: form errors.
+
+     Validation messages on the booking and waiver forms were set in text-cream/90 - the
+     same colour as the copy beside them - so "Numbers only, 7-15 digits" read as a hint
+     that had always been there rather than as something that had just gone wrong. Colour
+     is not the only signal (every message is also wired to its field with aria-invalid
+     and aria-describedby, for anyone who cannot use colour at all), but it is the one
+     that makes a sighted person's eye go to the right line.
+
+     Pitched light rather than a true red because these forms sit on ink: #ffb3a7 is
+     about 10:1 there, where a conventional #c0392b would be under 4:1 and fail. */
+  --color-alert: #ffb3a7;
+
+  /* The focus ring. Deliberately a mid-grey rather than either end of the palette: it is
+     the one colour that contrasts with BOTH grounds this site uses, so a single ring
+     works everywhere. 4.5:1 on white, 4.3:1 on the #f4f4f4 page ground and 4.7:1 on ink -
+     all clear of the 3:1 that non-text contrast asks for. See the focus rule lower down. */
+  --color-focus: #767676;
+
   /* Deprecated aliases. The waiver and admin screens still use these names; pointing
      them at the greys above turned those pages monochrome with no edits. Prefer
      graphite/silver in new work, and delete these once nothing references them. */
@@ -104,10 +123,10 @@
     scroll-margin-top: 6rem;
   }
 
-  :focus-visible {
-    outline: 3px solid var(--color-cedar);
-    outline-offset: 2px;
-  }
+  /* The focus ring is deliberately NOT in this layer. See "Focus ring" near the foot of
+     this file: it has to outrank `.btn`, which is unlayered and sets its own box-shadow,
+     and anything inside @layer base loses to every unlayered rule regardless of
+     specificity. */
 }
 
 @layer components {
@@ -285,7 +304,10 @@
 
   .rt-word {
     display: inline-block;
-    will-change: transform, opacity;
+    /* No will-change. Every word of every [data-reveal-text] heading carried one, which
+       asks the browser to hold a compositor layer per WORD for the life of the page, to
+       serve a 0.75s transition that runs once. Promotion hints are a loan against memory,
+       and this was never repaid. */
     transform: translateY(105%);
     opacity: 0;
     transition:
@@ -470,7 +492,8 @@
       /* Starts as the tile enters and ends as it leaves, so the whole travel is spent
          on screen instead of most of it happening out of sight. */
       animation-range: entry 0% exit 100%;
-      will-change: transform;
+      /* No will-change: a scroll-driven animation already runs on the compositor by
+         definition, so the hint buys nothing and costs a retained layer per tile. */
     }
 
     /* Kept deliberately shallow. The scale only exists to stop the translate exposing an
@@ -508,6 +531,32 @@
 .btn:active {
   transform: translateY(0);
   transition-duration: 0.06s;
+}
+
+/* ---- Focus ring ---------------------------------------------------------------
+   One ring, one colour, legible on every ground this site has.
+
+   It was a 3px outline in --color-cedar (#4a4a4a). On the page ground that is fine, but
+   focusable things sit on ink just as often here - the footer, the brand rail, the Book
+   Today bar, the whole waiver form - and there #4a4a4a is about 2:1. A keyboard user
+   filling in a waiver could not tell which field they were in, which on a legal document
+   is the worst place to lose your place.
+
+   The obvious repair is a two-tone ring (a white outline plus a dark halo, so one half
+   always contrasts) and that was tried first. It relies on box-shadow for the halo, and
+   box-shadow is the one property half this stylesheet is already competing over: the
+   button lift, the video card, Tailwind's shadow compositing. On buttons the halo was
+   being dropped while the outline applied, which is the worst possible outcome - a ring
+   that looks right in review and silently disappears on exactly the controls that matter.
+
+   So: a single mid-grey that clears 3:1 against BOTH ends of the palette rather than
+   relying on two colours each covering one end. Nothing can partially apply, there is no
+   layering fight to lose, and it is verifiable by reading one property.
+
+   UNLAYERED so it outranks `.btn:hover` and friends, which are unlayered too. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 /* Inline text links get an underline that draws in from the left instead of blinking on. */
@@ -579,6 +628,13 @@
 .video-card__media {
   transform-origin: center;
   transition: transform 0.75s var(--ease-out-soft);
+}
+
+/* Promoted only while the card is actually being pointed at, rather than for every card
+   in the grid for the life of the page. The zoom here is large (1.22), so the hint earns
+   its place - but only for the moment it is needed. */
+.video-card:hover .video-card__media,
+.video-card:focus-within .video-card__media {
   will-change: transform;
 }
 

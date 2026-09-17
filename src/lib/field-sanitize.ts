@@ -1,4 +1,8 @@
-import type { FormEvent } from 'react';
+// SyntheticEvent rather than FormEvent: React's own types now carry "@deprecated
+// FormEvent doesn't actually exist", and this handler only ever reads `currentTarget`,
+// which SyntheticEvent supplies. Still assignable to `onInput`, whose handler type is
+// deliberately bivariant.
+import type { SyntheticEvent } from 'react';
 
 /**
  * Rewrites a field's own value as it is typed, so disallowed characters never appear.
@@ -12,7 +16,7 @@ import type { FormEvent } from 'react';
  * and being told off for it is a booking lost to a validation message.
  */
 export const sanitize =
-  (clean: (value: string) => string) => (event: FormEvent<HTMLInputElement>) => {
+  (clean: (value: string) => string) => (event: SyntheticEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const next = clean(input.value);
     if (next !== input.value) {
