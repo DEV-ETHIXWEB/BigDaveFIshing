@@ -185,12 +185,17 @@ const SignaturePad = forwardRef<SignaturePadHandle, { className?: string }>(func
           onPointerUp={typed ? undefined : end}
           onPointerLeave={typed ? undefined : end}
           onPointerCancel={typed ? undefined : end}
-          className={`h-40 w-full rounded border border-cream/25 bg-cream/5 ${typed ? '' : 'touch-none'}`}
+          /* White paper, black ink - always, whatever the page around it. The ink colour is
+             not a styling choice: the exported PNG is transparent apart from the strokes,
+             and the dashboard, the full-size view and the admin audit trail all show it on
+             a light background. White ink would vanish there. So the pad is what adapts:
+             it was a near-black box with #111 ink, which left a guest signing blind. */
+          className={`h-40 w-full rounded border border-cream/40 bg-white ${typed ? '' : 'touch-none'}`}
           role="img"
           aria-label={empty ? 'Signature not yet signed' : 'Signature signed'}
         />
         {empty && !typed && (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-cream/35">
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-ink/40">
             Sign here
           </span>
         )}

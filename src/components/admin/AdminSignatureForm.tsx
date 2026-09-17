@@ -69,9 +69,9 @@ export default function AdminSignatureForm({ existingSignatureUrl, adminName }: 
   };
 
   // This whole component only ever renders inside the dark bg-ink card on
-  // /admin/signature.astro (the same context SignaturePad's own canvas already assumes,
-  // hence its cream-toned placeholder text) - every color here is light-on-dark to
-  // match, not the ink-toned text the rest of the admin dashboard uses on its white cards.
+  // /admin/signature.astro - every color here is light-on-dark to match, not the
+  // ink-toned text the rest of the admin dashboard uses on its white cards. The pad
+  // itself is the exception: SignaturePad is always a white box with black ink.
   if (!redrawing) {
     return (
       <div>
