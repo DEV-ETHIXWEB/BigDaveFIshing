@@ -138,13 +138,20 @@ const beforeYouCall = [
       </div>
 
       <div class="lg:pt-4" data-reveal>
+        {
+          /* No forced aspect ratio here. This is the one portrait photo on the page -
+             662x800, close to 4:5 - and a 4:3 box with object-cover cut 38% off its
+             height from the middle, which took Dave's cap and the top of his head with
+             it. Letting it keep its own ratio is the fix; 662 is also its native width,
+             so nothing is upscaled either. Any replacement shot should stay portrait. */
+        }
         <Image
           src={photos.daveAndLeslie.src}
           alt={photos.daveAndLeslie.alt}
-          width={900}
-          widths={[600, 900]}
+          width={662}
+          widths={[450, 662]}
           sizes="(min-width: 1024px) 45vw, 100vw"
-          class="aspect-[4/3] w-full object-cover"
+          class="w-full"
           loading="lazy"
         />
         <p class="text-ink/60 mt-3 text-sm">
