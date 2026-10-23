@@ -24,16 +24,14 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
   <div class="board-tex" style={`background-image: url(${wood.src});`} aria-hidden="true"></div>
 
   <!-- rail-head/rail-nav/rail-foot are hooks for the short-viewport rules in global.css.
-       Nine nav items plus a 12rem badge plus the phone block needs roughly 700px of
+       Nine nav items plus a 17rem badge plus the phone block needs roughly 700px of
        column; on a 13" laptop the rail is shorter than that and the list was scrolling
        with "Home" pushed out of sight above the fold. -->
-  <a href="/" class="rail-head block shrink-0 px-10 pt-9" aria-label={`${business.name} home`}>
+  <a href="/" class="rail-head block shrink-0 px-4 pt-9" aria-label={`${business.name} home`}>
     {
-      /* The badge never renders wider than 12rem (192px), so the old 560px candidate was
-        nearly 3x oversampled - and at the project-wide default quality of 90 that one
-        file came out at 292K, for a logo. A 2000x1873 PNG with an alpha channel is
-        expensive to encode well; 384px covers a 2x display at the size it is actually
-        drawn, and 78 is generous for a flat badge. */
+      /* The badge renders at 17rem (272px) on tall screens and 12rem (192px) on short
+        ones - as wide as the 19rem rail allows. 544px covers a 2x display at the larger
+        size; quality 78 keeps the PNG-with-alpha source from encoding huge. */
     }
     {
       /* `width` as well as `widths`: without it Astro renders the `src` fallback at the
@@ -43,11 +41,11 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
     <Image
       src={badge}
       alt=""
-      width={384}
-      widths={[192, 384]}
-      sizes="192px"
+      width={544}
+      widths={[192, 272, 384, 544]}
+      sizes="(max-height: 52rem) 192px, 272px"
       quality={78}
-      class="rail-badge mx-auto h-auto w-full max-w-[12rem]"
+      class="rail-badge mx-auto h-auto w-full max-w-[17rem]"
       loading="eager"
     />
   </a>
