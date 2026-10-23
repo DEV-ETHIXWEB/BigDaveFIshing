@@ -416,7 +416,7 @@
 
 /* ---- Short-viewport brand rail ------------------------------------------------
    Deliberately OUTSIDE @layer components. The rail's sizing comes from Tailwind
-   utilities (max-w-[17rem], py-6), and utilities is a later cascade layer than
+   utilities (max-w-[18rem], py-6), and utilities is a later cascade layer than
    components, so anything written inside a layer here loses to them no matter how
    specific it is. Unlayered rules outrank every layer, which is exactly what an
    override needs to be.
@@ -433,7 +433,7 @@
     padding-top: 1.25rem;
   }
   .rail-badge {
-    max-width: 12rem;
+    max-width: 14rem;
   }
   .rail-nav {
     padding-block: 0.5rem;

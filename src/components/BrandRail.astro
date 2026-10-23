@@ -24,13 +24,13 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
   <div class="board-tex" style={`background-image: url(${wood.src});`} aria-hidden="true"></div>
 
   <!-- rail-head/rail-nav/rail-foot are hooks for the short-viewport rules in global.css.
-       Nine nav items plus a 17rem badge plus the phone block needs roughly 700px of
+       Nine nav items plus an 18rem badge plus the phone block needs roughly 700px of
        column; on a 13" laptop the rail is shorter than that and the list was scrolling
        with "Home" pushed out of sight above the fold. -->
-  <a href="/" class="rail-head block shrink-0 px-4 pt-9" aria-label={`${business.name} home`}>
+  <a href="/" class="rail-head block shrink-0 px-2 pt-9" aria-label={`${business.name} home`}>
     {
-      /* The badge renders at 17rem (272px) on tall screens and 12rem (192px) on short
-        ones - as wide as the 19rem rail allows. 544px covers a 2x display at the larger
+      /* The badge renders at 18rem (288px) on tall screens and 14rem (224px) on short
+        ones - as wide as the 19rem rail allows. 576px covers a 2x display at the larger
         size; quality 78 keeps the PNG-with-alpha source from encoding huge. */
     }
     {
@@ -41,11 +41,11 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
     <Image
       src={badge}
       alt=""
-      width={544}
-      widths={[192, 272, 384, 544]}
-      sizes="(max-height: 52rem) 192px, 272px"
+      width={576}
+      widths={[224, 288, 448, 576]}
+      sizes="(max-height: 52rem) 224px, 288px"
       quality={78}
-      class="rail-badge mx-auto h-auto w-full max-w-[17rem]"
+      class="rail-badge mx-auto h-auto w-full max-w-[18rem]"
       loading="eager"
     />
   </a>
