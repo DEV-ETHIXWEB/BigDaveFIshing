@@ -22,7 +22,8 @@ credentials, content, and confirmation of a few facts nobody on this side can ve
 ### The two things that carry business data
 
 **Waivers.** Guest signs at `/waivers/lodge` or `/waivers/fishing-adventure` →
-`POST /api/waivers` → Turso. Dave reads them at `/admin/waivers`, and a daily digest email
+`POST /api/waivers` → Turso. Each signing immediately emails a short "Waiver signed" alert
+to `WAIVER_DIGEST_TO`. Dave reads them at `/admin/waivers`, and a daily digest email
 goes out with a CSV attached. Group links carry a `?g=` code so a whole party signs without
 typing anything.
 

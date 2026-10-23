@@ -95,6 +95,13 @@ to trigger.
 
 ## How it behaves
 
+**Two emails, same inbox.** The moment a waiver is saved, a short "Waiver signed" alert
+goes to `WAIVER_DIGEST_TO` with the guest's details and a link to the signature. The full
+roster below still arrives each morning and is the complete record. The alert never fails
+the guest's submission: if it can't send, the reason goes to the Vercel function log and
+the morning roster still carries that waiver. Hitting reply on an alert answers the guest
+when they gave an email.
+
 **What's in the email.** Party leader, trip date, and for every guest: name, phone,
 email, emergency contact name and number, and when they signed. A CSV of the same roster
 is attached for anyone who wants to sort or print it.
@@ -119,6 +126,7 @@ working.
 - `src/lib/email.ts`, the provider call: SMTP2GO, Resend or Postmark
 - `src/lib/waiver-digest.ts`, what the email says (HTML, text, CSV)
 - `src/lib/waiver-digest-send.ts`, one run: gather, send, then mark sent
+- `src/lib/waiver-notify.ts`, the instant "waiver signed" alert
 - `src/pages/api/cron/waiver-digest.ts`, the scheduled trigger
 - `src/pages/api/admin/send-digest.ts`, the dashboard button
 - `src/pages/api/admin/archive.ts`, archive and restore

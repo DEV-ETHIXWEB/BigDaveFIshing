@@ -5,6 +5,8 @@ import { waiverGuestFields } from '../../lib/waiver-validation';
 import { validCustomerSession } from '../../lib/customer-auth';
 import { envSetting } from '../../lib/env';
 import { isSameOrigin } from '../../lib/origin-check';
+import { siteOrigin } from '../../lib/site-url';
+import { sendWaiverAlert } from '../../lib/waiver-notify';
 import {
   callerKey,
   recordAcceptedSubmission,
@@ -185,6 +187,36 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
 
   // The row is in the table, so this is the point the expensive budget is spent.
   recordAcceptedSubmission(caller);
+
+  // Tell the hosts now, not just in tomorrow's roster. Awaited because a serverless
+  // function can be frozen the moment it responds, which would cut the send off; the
+  // alert has its own short timeout so the guest is never left waiting long. Any
+  // failure is logged and swallowed: the waiver is saved, and the morning roster still
+  // carries it, so the guest must not be told something went wrong.
+  try {
+    const alert = await sendWaiverAlert(
+      {
+        waiverType: w.waiverType,
+        guestName: w.guestName,
+        guestPhone: w.guestPhone,
+        guestEmail: w.guestEmail || null,
+        emergencyContactName: w.emergencyContactName,
+        emergencyContactPhone: w.emergencyContactPhone,
+        minorNames: w.minorNames,
+        partyLeader: team?.leader_name || w.groupLeaderName || null,
+        tripDate: team?.trip_date || w.tripDate || null,
+        signedAt,
+      },
+      siteOrigin(request.url),
+    );
+    if (alert.status === 'not-configured') {
+      console.error('[waivers] alert not sent, mail is not configured:', alert.missing.join(', '));
+    } else if (alert.status === 'failed') {
+      console.error('[waivers] alert not sent, the provider rejected it:', alert.error);
+    }
+  } catch (error) {
+    console.error('[waivers] alert not sent:', error);
+  }
 
   // Returned so the confirmation screen can show the same date the dashboard will -
   // see the note on WaiverForm.tsx's use of it. Without this the confirmation used to
