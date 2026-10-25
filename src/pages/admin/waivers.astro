@@ -139,6 +139,19 @@ const mail = mailConfig();
 const mailReady = 'config' in mail;
 
 const waivers = waiverResult.rows as unknown as WaiverListRow[];
+
+// Which waiver each row is. A guest who ticked "also sign" on the form has two rows
+// from one signing - same phone, same moment, different waiver - and without these
+// labels the second one reads as an accidental duplicate.
+const WAIVER_TAG: Record<string, string> = { 'fishing-adventure': 'Fishing', lodge: 'Lodge' };
+const signingKey = (w: WaiverListRow) => `${w.guest_phone}|${w.signed_at}`;
+const typesPerSigning = new Map<string, Set<string>>();
+for (const w of waivers) {
+  const types = typesPerSigning.get(signingKey(w)) ?? new Set<string>();
+  types.add(w.waiver_type);
+  typesPerSigning.set(signingKey(w), types);
+}
+const signedBoth = (w: WaiverListRow) => (typesPerSigning.get(signingKey(w))?.size ?? 0) > 1;
 const teams = teamResult.rows as unknown as WaiverTeam[];
 const teamCodes = new Set(teams.map((team) => team.group_code));
 
@@ -555,7 +568,17 @@ const digestReason = params.get('reason');
                                 />
                               </a>
                               <div class="min-w-40 flex-1">
-                                <p class="font-medium">{member.guest_name}</p>
+                                <p class="font-medium">
+                                  {member.guest_name}
+                                  <span class="ml-1.5 inline-block border border-ink/20 px-1.5 py-px align-middle text-[0.65rem] font-normal tracking-wide text-ink/70 uppercase">
+                                    {WAIVER_TAG[member.waiver_type] ?? member.waiver_type}
+                                  </span>
+                                  {signedBoth(member) && (
+                                    <span class="ml-1 inline-block bg-ink px-1.5 py-px align-middle text-[0.65rem] font-normal tracking-wide text-cream uppercase">
+                                      Signed both
+                                    </span>
+                                  )}
+                                </p>
                                 <p class="text-xs text-ink/60">
                                   {member.guest_phone}
                                   {member.guest_email ? ` · ${member.guest_email}` : ''}
@@ -713,7 +736,17 @@ const digestReason = params.get('reason');
                         />
                       </a>
                       <div class="min-w-40 flex-1">
-                        <p class="font-medium">{member.guest_name}</p>
+                        <p class="font-medium">
+                          {member.guest_name}
+                          <span class="ml-1.5 inline-block border border-ink/20 px-1.5 py-px align-middle text-[0.65rem] font-normal tracking-wide text-ink/70 uppercase">
+                            {WAIVER_TAG[member.waiver_type] ?? member.waiver_type}
+                          </span>
+                          {signedBoth(member) && (
+                            <span class="ml-1 inline-block bg-ink px-1.5 py-px align-middle text-[0.65rem] font-normal tracking-wide text-cream uppercase">
+                              Signed both
+                            </span>
+                          )}
+                        </p>
                         <p class="text-xs text-ink/60">
                           {member.guest_phone}
                           {member.guest_email ? ` · ${member.guest_email}` : ''}

@@ -120,6 +120,14 @@ const ALSO_QUESTION: Record<WaiverType, string> = {
   lodge: 'Also going fishing with Big Dave?',
 };
 
+/** The one line of explanation under the tick. */
+const ALSO_HELP: Record<WaiverType, string> = {
+  'fishing-adventure':
+    'Tick this if you are also staying at the lodge. You can sign both waivers together using one form and one signature.',
+  lodge:
+    'Tick this if you are also going fishing. You can sign both waivers together using one form and one signature.',
+};
+
 /** The other waiver, offered as a tick so a guest doing both signs once. */
 export interface OtherWaiver {
   type: WaiverType;
@@ -605,8 +613,7 @@ export default function WaiverForm({
           <span className="pt-0.5">
             <span className="text-cream block font-medium">{ALSO_QUESTION[waiverType]}</span>
             <span className="text-cream/60 mt-1 block text-xs leading-relaxed">
-              Tick this and your one signature below covers the {WAIVER_NAME[otherWaiver.type]}{' '}
-              waiver too. No second form to fill in.
+              {ALSO_HELP[waiverType]}
             </span>
           </span>
         </label>

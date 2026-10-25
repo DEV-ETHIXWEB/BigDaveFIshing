@@ -653,3 +653,20 @@
     transition: none;
   }
 }
+
+/* The Book Today bar is fixed over the bottom of every page. Without this, tabbing
+   through a long form (the waivers especially) could land focus on a field that sits
+   behind the bar, out of sight. Matches the footer's own clearance for the bar. */
+html {
+  scroll-padding-bottom: 8rem;
+}
+@media (min-width: 40rem) {
+  html {
+    scroll-padding-bottom: 6rem;
+  }
+}
+@media (min-width: 80rem) {
+  html {
+    scroll-padding-bottom: 7rem;
+  }
+}
