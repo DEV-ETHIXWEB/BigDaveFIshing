@@ -45,6 +45,9 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
               640 is added at the other end for phones, which were previously served a
               900px file as the largest thing on the page.
 
+              Slides 2 and 3 are also fetchpriority="low": lazy alone does nothing for
+              them, because they sit exactly where slide 1 is and so count as on screen,
+              and at high priority they were competing with slide 1 for the connection.
               Slides 2 and 3 keep loading="lazy": they are behind the first one and do not
               compete with it for the first paint. */}
           <Image
@@ -55,7 +58,7 @@ const slides = [photos.threeAnglers, photos.boatCatch, photos.bayChinookPair];
             sizes="100vw"
             class="h-full w-full origin-top object-cover object-[50%_12%] motion-safe:[animation:hero-drift_18s_ease-out_infinite_alternate]"
             loading={i === 0 ? 'eager' : 'lazy'}
-            fetchpriority={i === 0 ? 'high' : undefined}
+            fetchpriority={i === 0 ? 'high' : 'low'}
           />
         </div>
       ))

@@ -670,3 +670,16 @@ html {
     scroll-padding-bottom: 7rem;
   }
 }
+
+/* iOS Safari zooms the whole page in whenever a focused field's text is under 16px, and
+   does not zoom back out. The waiver form already avoided it; the booking, login, signup,
+   password and staff forms were all 14px on phones. One rule for every field, below the
+   `sm` breakpoint only, so desktop sizing is untouched. Unlayered so it outranks the
+   text-sm utilities on the fields themselves. */
+@media (max-width: 39.99rem) {
+  input:not([type='checkbox'], [type='radio'], [type='hidden']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

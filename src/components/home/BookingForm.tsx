@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
@@ -34,6 +34,13 @@ export default function BookingForm() {
   const fieldId = (name: string) => `${uid}-${name}`;
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // False until React is running. Before that the server-rendered markup is a plain
+  // <form>, and a tap on Send did a native GET to this page: the typed name and phone
+  // were wiped and landed in the address bar, history and server logs instead. Same
+  // guard as WaiverForm.tsx.
+  const [hydrated, setHydrated] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setHydrated(true), []);
   const {
     register,
     handleSubmit,
@@ -66,7 +73,9 @@ export default function BookingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3" noValidate>
+    // method=post so that even an escaped native submit can never put guest details in
+    // the URL; React handles every real submit.
+    <form onSubmit={handleSubmit(onSubmit)} method="post" className="grid gap-3" noValidate>
       <div className={field}>
         <label htmlFor={fieldId('name')} className={label}>
           Your Name
@@ -166,10 +175,10 @@ export default function BookingForm() {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !hydrated}
         className="btn btn-solid-light mt-2 w-full disabled:opacity-60"
       >
-        {isSubmitting ? 'Sending…' : 'Send Enquiry'}
+        {isSubmitting ? 'Sending…' : hydrated ? 'Send Enquiry' : 'Preparing form…'}
       </button>
 
       {submitError && (

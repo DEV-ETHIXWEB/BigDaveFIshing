@@ -10,7 +10,7 @@ import { isIndexable, siteOrigin } from '../lib/site-url';
 import { scriptHash } from '../lib/csp-hash';
 import { REVEAL_BOOTSTRAP } from '../lib/inline-scripts.mjs';
 import badge from '../assets/photos/logo-badge.png';
-import wood from '../assets/photos/wood-texture.png';
+import { boardTexture } from '../lib/board-texture';
 // The share card's photo. Picked for resolution as much as subject: at 1500x1000 it is
 // the only photo on the site large enough to fill a 1200x630 card without being upscaled,
 // and every other candidate is 800x600 or 1200x900. Swap it when the hi-res originals
@@ -154,7 +154,11 @@ if (canEmitSchema) Astro.csp?.insertScriptHash(await scriptHash(schemaJson));
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {
+      /* No canonical on a noindex page: the 404 was declaring /404 as its own canonical
+        address, which is a page that does not exist under that name. */
+    }
+    {!noindex && <link rel="canonical" href={canonical} />}
 
     <!-- Preview and branch deployments must never be indexed: a staging copy in the
          index competes with the real site for its own name. isIndexable() is true only
@@ -218,7 +222,7 @@ if (canEmitSchema) Astro.csp?.insertScriptHash(await scriptHash(schemaJson));
          below xl, which clears it. -->
     <BrandRail />
 
-    <div style={`--bd-board: url(${wood.src});`}>
+    <div style={`--bd-board: url(${boardTexture.src});`}>
       <CardNav
         logo={badgeImg.src}
         logoSrcset={badgeImg.srcSet.attribute}

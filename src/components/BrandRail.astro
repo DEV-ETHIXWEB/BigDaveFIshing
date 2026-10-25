@@ -2,7 +2,7 @@
 import { Image } from 'astro:assets';
 import { ChevronDown, Phone } from 'lucide-react';
 import { business, nav, waiverLinks } from '../lib/business';
-import wood from '../assets/photos/wood-texture.png';
+import { boardTexture } from '../lib/board-texture';
 import badge from '../assets/photos/logo-badge.png';
 
 // The live site's defining piece of layout: a full-height column on the left holding
@@ -21,7 +21,8 @@ const waiverOpen = waiverLinks.some((link) => isActive(link.href));
 <div
   class="board border-ink/10 fixed inset-y-0 left-0 z-40 hidden w-[var(--rail-w)] flex-col border-r xl:flex"
 >
-  <div class="board-tex" style={`background-image: url(${wood.src});`} aria-hidden="true"></div>
+  <div class="board-tex" style={`background-image: url(${boardTexture.src});`} aria-hidden="true">
+  </div>
 
   <!-- rail-head/rail-nav/rail-foot are hooks for the short-viewport rules in global.css.
        Nine nav items plus an 18rem badge plus the phone block needs roughly 700px of
