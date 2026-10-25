@@ -25,7 +25,9 @@ credentials, content, and confirmation of a few facts nobody on this side can ve
 `POST /api/waivers` → Turso. Each signing immediately emails a short "Waiver signed" alert
 to `WAIVER_DIGEST_TO`. Dave reads them at `/admin/waivers`, and a daily digest email
 goes out with a CSV attached. Group links carry a `?g=` code so a whole party signs without
-typing anything.
+typing anything. Guests doing both can tick "also staying at the lodge" / "also going
+fishing" on either form: one signature files both waivers in one transaction (the second
+row carries the leader and trip date but no group code, since team links are per type).
 
 **Booking enquiries.** The homepage booking form → `POST /api/booking` → email to
 `WAIVER_DIGEST_TO`. The form only shows its confirmation once the mail provider has

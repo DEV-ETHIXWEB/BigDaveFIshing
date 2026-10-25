@@ -17,6 +17,9 @@ interface Props {
 
 const { waiverType, eyebrow, heading, intro, photo } = Astro.props;
 const doc = waiverDocuments[waiverType];
+// The other waiver, offered on this form as an "I'm doing both" tick.
+const otherType = waiverType === 'lodge' ? 'fishing-adventure' : 'lodge';
+const otherWaiver = { type: otherType, ...waiverDocuments[otherType] } as const;
 
 /**
  * Two ways in, one form.
@@ -137,6 +140,7 @@ const linkIsBroken = groupCode !== null && team === null;
             client:visible
             waiverType={waiverType}
             waiverTitle={doc.title}
+            otherWaiver={otherWaiver}
             waiverBodyHtml={`<p class="mb-2">The full agreement is printed above on this page: the recitals and all ${doc.terms.length} terms, governed by the laws of Oregon.</p><p>By signing below you confirm you have read that agreement and agree to it.</p>`}
           />
         </>
@@ -185,6 +189,7 @@ const linkIsBroken = groupCode !== null && team === null;
           client:visible
           waiverType={waiverType}
           waiverTitle={doc.title}
+          otherWaiver={otherWaiver}
           waiverBodyHtml={`<p class="mb-2">The full agreement is printed above on this page: the recitals and all ${doc.terms.length} terms, governed by the laws of Oregon.</p><p>By signing below you confirm you have read that agreement and agree to it.</p>`}
         />
       )

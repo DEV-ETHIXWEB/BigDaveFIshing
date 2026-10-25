@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Check, Plus, X } from 'lucide-react';
@@ -25,6 +25,7 @@ const schema = z.object({
   tripDate: z.string().trim().max(50).optional(),
   ...guestFields,
   minorNames: z.array(z.object({ name: z.string().trim().max(200) })).max(MAX_MINORS),
+  alsoSign: z.boolean().optional(),
   agree: z.literal(true, { error: 'You must agree to continue' }),
 });
 
@@ -106,17 +107,45 @@ function messageForFailure(
   return 'That could not be submitted. Please check your details, or call us.';
 }
 
-interface Props {
-  waiverType: 'fishing-adventure' | 'lodge';
-  waiverTitle: string;
-  waiverBodyHtml: string;
+type WaiverType = 'fishing-adventure' | 'lodge';
+
+const WAIVER_NAME: Record<WaiverType, string> = {
+  'fishing-adventure': 'Fishing Adventure',
+  lodge: 'Wilson River Lodge',
+};
+
+/** The tick's own question, phrased from the waiver the guest is already on. */
+const ALSO_QUESTION: Record<WaiverType, string> = {
+  'fishing-adventure': 'Also staying at the Wilson River Lodge?',
+  lodge: 'Also going fishing with Big Dave?',
+};
+
+/** The other waiver, offered as a tick so a guest doing both signs once. */
+export interface OtherWaiver {
+  type: WaiverType;
+  title: string;
+  preamble: string[];
+  terms: string[];
 }
 
-export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: Props) {
+interface Props {
+  waiverType: WaiverType;
+  waiverTitle: string;
+  waiverBodyHtml: string;
+  otherWaiver: OtherWaiver;
+}
+
+export default function WaiverForm({
+  waiverType,
+  waiverTitle,
+  waiverBodyHtml,
+  otherWaiver,
+}: Props) {
   const [groupCode, setGroupCode] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [signedName, setSignedName] = useState('');
   const [signedAt, setSignedAt] = useState<string | null>(null);
+  const [signedBoth, setSignedBoth] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
   const sigRef = useRef<SignaturePadHandle>(null);
@@ -188,7 +217,11 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
     control: formControl,
     handleSubmit,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { minorNames: [] } });
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { minorNames: [], alsoSign: false },
+  });
+  const alsoSign = useWatch({ control: formControl, name: 'alsoSign' }) === true;
 
   // Starts empty. Most guests bring no kids, and an empty row sitting there reads as a
   // field they are required to fill in.
@@ -227,6 +260,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           waiverType,
+          alsoSign: data.alsoSign ? otherWaiver.type : undefined,
           groupCode: groupCode ?? undefined,
           groupLeaderName: data.groupLeaderName,
           tripDate: data.tripDate,
@@ -262,6 +296,7 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
       // the confirmation screen and the admin dashboard agreeing on the date for the
       // same row.
       setSignedAt(response.signedAt ?? null);
+      setSignedBoth(data.alsoSign === true);
       setSubmitted(true);
     } catch {
       // Only a genuine network failure reaches here now, fetch rejecting rather than
@@ -294,15 +329,19 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         </h2>
 
         <p className="text-cream/80 mx-auto mt-4 max-w-sm text-sm leading-relaxed sm:text-base">
-          Your waiver is signed and on file. We hope you enjoy your trip. Tight lines, and
-          we&rsquo;ll see you on the water.
+          {signedBoth
+            ? 'Both waivers are signed and on file.'
+            : 'Your waiver is signed and on file.'}{' '}
+          We hope you enjoy your trip. Tight lines, and we&rsquo;ll see you on the water.
         </p>
 
         <dl className="border-cream/15 mx-auto mt-7 max-w-xs border-t pt-6 text-left text-sm">
           <div className="flex items-baseline justify-between gap-4 py-1.5">
-            <dt className="text-cream/55">Waiver</dt>
-            <dd className="text-cream">
-              {waiverType === 'lodge' ? 'Wilson River Lodge' : 'Fishing Adventure'}
+            <dt className="text-cream/55">{signedBoth ? 'Waivers' : 'Waiver'}</dt>
+            <dd className="text-cream text-right">
+              {signedBoth
+                ? `${WAIVER_NAME[waiverType]} + ${WAIVER_NAME[otherWaiver.type]}`
+                : WAIVER_NAME[waiverType]}
             </dd>
           </div>
           {groupCode && (
@@ -548,6 +587,49 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
         <div dangerouslySetInnerHTML={{ __html: waiverBodyHtml }} />
       </div>
 
+      {/* For guests doing both. One tick files this same signature against the other
+          waiver too, so nobody fills the form in twice. The other agreement's full text
+          opens right here once ticked: a guest must be able to read what they are
+          agreeing to before the checkbox below covers it. */}
+      <div
+        className={`mt-1 rounded border p-4 transition-colors ${
+          alsoSign ? 'border-silver/50 bg-silver/10' : 'border-cream/15 bg-cream/[0.04]'
+        }`}
+      >
+        <label className="flex items-start gap-2.5 text-sm text-cream/85">
+          <input
+            type="checkbox"
+            className="accent-silver mt-0.5 h-6 w-6 shrink-0"
+            {...register('alsoSign')}
+          />
+          <span className="pt-0.5">
+            <span className="text-cream block font-medium">{ALSO_QUESTION[waiverType]}</span>
+            <span className="text-cream/60 mt-1 block text-xs leading-relaxed">
+              Tick this and your one signature below covers the {WAIVER_NAME[otherWaiver.type]}{' '}
+              waiver too. No second form to fill in.
+            </span>
+          </span>
+        </label>
+
+        {alsoSign && (
+          <div className="mt-3 max-h-56 overflow-y-auto rounded border border-cream/15 bg-ink/40 p-4 text-xs leading-relaxed text-cream/70">
+            <p className="mb-2 font-display text-sm uppercase tracking-[0.06em] text-cream">
+              {WAIVER_NAME[otherWaiver.type]}: {otherWaiver.title}
+            </p>
+            {otherWaiver.preamble.map((para, index) => (
+              <p key={`p-${index}`} className="mb-2">
+                {para}
+              </p>
+            ))}
+            <ol className="mt-3 list-decimal space-y-2 pl-5">
+              {otherWaiver.terms.map((term, index) => (
+                <li key={`t-${index}`}>{term}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
+
       {/* The one thing a guest is required to tick before signing, and at the browser
           default of 13px it was the smallest target on a page meant to be used one-handed
           on a phone. Sized to 24px, the minimum a pointer target should be. The whole row
@@ -560,7 +642,11 @@ export default function WaiverForm({ waiverType, waiverTitle, waiverBodyHtml }: 
           {...register('agree')}
           {...errorProps('agree', errors.agree)}
         />
-        <span className="pt-0.5">I have read and agree to the waiver above.</span>
+        <span className="pt-0.5">
+          {alsoSign
+            ? `I have read and agree to both waivers: the ${WAIVER_NAME[waiverType]} waiver above and the ${WAIVER_NAME[otherWaiver.type]} waiver.`
+            : 'I have read and agree to the waiver above.'}
+        </span>
       </label>
       {errors.agree && (
         <p id="agree-error" className={errorText}>

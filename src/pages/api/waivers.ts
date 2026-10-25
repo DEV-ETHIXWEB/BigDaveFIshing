@@ -51,6 +51,9 @@ const signaturePngField = z
 
 const schema = z.object({
   waiverType: z.enum(['fishing-adventure', 'lodge']),
+  // The "I'm doing both" tick on the form. One signature, filed as the other waiver
+  // too, so a guest who fishes and stays at the lodge fills in one form, not two.
+  alsoSign: z.enum(['fishing-adventure', 'lodge']).optional(),
   groupCode: z.string().trim().max(100).optional(),
   groupLeaderName: z.string().trim().max(200).optional(),
   tripDate: z.string().trim().max(50).optional(),
@@ -104,6 +107,9 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
   }
 
   const w = parsed.data;
+  // Only ever the *other* waiver. Ticking "also sign" for the waiver already being
+  // signed is not a second agreement, so it is ignored rather than filed twice.
+  const alsoSign = w.alsoSign && w.alsoSign !== w.waiverType ? w.alsoSign : undefined;
 
   await ensureSchema();
 
@@ -136,33 +142,47 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     }
   }
 
-  let signedAt: string;
-  try {
-    const inserted = await db.execute({
-      sql: `INSERT INTO waivers
+  const leaderName = team?.leader_name || w.groupLeaderName || null;
+  const tripDate = team?.trip_date || w.tripDate || null;
+
+  // One row per waiver signed. The second waiver of a "both" signing carries no group
+  // code: team links belong to one waiver type, and this guest's party link was for the
+  // other one. It keeps the leader and trip date, so the dashboard still files it with
+  // the right party.
+  const rowFor = (waiverType: string, groupCode: string | null) => ({
+    sql: `INSERT INTO waivers
       (waiver_type, group_code, group_leader_name, trip_date, guest_name, guest_email,
        guest_phone, emergency_contact_name, emergency_contact_phone, minor_names, signature_png,
        customer_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING signed_at`,
-      args: [
-        w.waiverType,
-        w.groupCode || null,
-        team?.leader_name || w.groupLeaderName || null,
-        team?.trip_date || w.tripDate || null,
-        w.guestName,
-        w.guestEmail || null,
-        w.guestPhone,
-        w.emergencyContactName,
-        w.emergencyContactPhone,
-        // NULL rather than "[]" when nobody is listed, so "brought no kids" and "signed
-        // before the form asked" stay distinguishable in the column.
-        w.minorNames.length ? JSON.stringify(w.minorNames) : null,
-        w.signaturePng,
-        customerId,
-      ],
-    });
-    signedAt = String(inserted.rows[0]!.signed_at);
+    args: [
+      waiverType,
+      groupCode,
+      leaderName,
+      tripDate,
+      w.guestName,
+      w.guestEmail || null,
+      w.guestPhone,
+      w.emergencyContactName,
+      w.emergencyContactPhone,
+      // NULL rather than "[]" when nobody is listed, so "brought no kids" and "signed
+      // before the form asked" stay distinguishable in the column.
+      w.minorNames.length ? JSON.stringify(w.minorNames) : null,
+      w.signaturePng,
+      customerId,
+    ],
+  });
+
+  let signedAt: string;
+  try {
+    // A batch is one transaction: a "both" signing lands as both rows or neither, so a
+    // guest is never told they are done with only half their paperwork on file.
+    const results = await db.batch(
+      [rowFor(w.waiverType, w.groupCode || null), ...(alsoSign ? [rowFor(alsoSign, null)] : [])],
+      'write',
+    );
+    signedAt = String(results[0]!.rows[0]!.signed_at);
   } catch (error) {
     if (error instanceof Error && /unique/i.test(error.message)) {
       // Two different duplicate rules now guard this table (see the indexes in
@@ -172,9 +192,11 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       // in one sitting.
       return new Response(
         JSON.stringify({
-          error: w.groupCode
-            ? 'Someone has already signed with this phone number for this trip.'
-            : 'This phone number has already signed this waiver today. There is nothing else to do.',
+          error: alsoSign
+            ? 'This phone number has already signed one of these waivers. If you signed the other one earlier, untick it and submit again.'
+            : w.groupCode
+              ? 'Someone has already signed with this phone number for this trip.'
+              : 'This phone number has already signed this waiver today. There is nothing else to do.',
         }),
         {
           status: 409,
@@ -197,14 +219,15 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
     const alert = await sendWaiverAlert(
       {
         waiverType: w.waiverType,
+        alsoWaiverType: alsoSign ?? null,
         guestName: w.guestName,
         guestPhone: w.guestPhone,
         guestEmail: w.guestEmail || null,
         emergencyContactName: w.emergencyContactName,
         emergencyContactPhone: w.emergencyContactPhone,
         minorNames: w.minorNames,
-        partyLeader: team?.leader_name || w.groupLeaderName || null,
-        tripDate: team?.trip_date || w.tripDate || null,
+        partyLeader: leaderName,
+        tripDate,
         signedAt,
       },
       siteOrigin(request.url),

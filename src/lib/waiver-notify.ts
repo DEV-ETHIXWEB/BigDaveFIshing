@@ -20,6 +20,8 @@ import { formatSignedAt, formatTripDate } from './dates';
 
 export interface WaiverAlert {
   waiverType: string;
+  /** Set when the guest ticked "also sign" and one signature covered both waivers. */
+  alsoWaiverType: string | null;
   guestName: string;
   guestPhone: string;
   guestEmail: string | null;
@@ -71,13 +73,17 @@ export async function sendWaiverAlert(alert: WaiverAlert, origin: string): Promi
 }
 
 function tripLine(alert: WaiverAlert) {
-  const label = TRIP_LABEL[alert.waiverType] || alert.waiverType;
+  const label = [alert.waiverType, alert.alsoWaiverType]
+    .filter((type): type is string => Boolean(type))
+    .map((type) => TRIP_LABEL[type] || type)
+    .join(' + ');
   return alert.tripDate ? `${label} · ${formatTripDate(alert.tripDate)}` : label;
 }
 
 export function alertSubject(alert: WaiverAlert) {
   const party = alert.partyLeader ? ` (${alert.partyLeader}'s party)` : '';
-  return `Waiver signed: ${alert.guestName}${party}`;
+  const both = alert.alsoWaiverType ? ' (both waivers)' : '';
+  return `Waiver signed: ${alert.guestName}${both}${party}`;
 }
 
 export function alertText(alert: WaiverAlert, dashboardUrl: string) {
